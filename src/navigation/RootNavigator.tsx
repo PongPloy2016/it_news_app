@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FEED_GROUPS } from '../config';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
 import { BookmarksScreen } from '../screens/BookmarksScreen';
@@ -14,16 +14,16 @@ import { useNews } from '../store/NewsContext';
 import { MainTabParamList, RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Drawer = createDrawerNavigator<MainTabParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
+const Drawer = createDrawerNavigator();
 
 function DrawerContent(props: DrawerContentComponentProps) {
   const { colors, scale, setSelectedFeedKey } = useNews();
-  const itemColor = colors.primary;
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
       <View style={[styles.drawerHeader, { backgroundColor: colors.surfaceVariant }]}> 
-        <MaterialCommunityIcons name="newspaper-variant-outline" size={28} color={itemColor} />
+        <MaterialCommunityIcons name="newspaper-variant-outline" size={28} color={colors.primary} />
         <Text style={[styles.drawerTitle, { color: colors.text, fontSize: 22 * scale }]}>หมวดข่าว</Text>
       </View>
 
@@ -37,7 +37,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
               if (firstFeed) {
                 setSelectedFeedKey(firstFeed.key);
               }
-              props.navigation.navigate('Latest');
+              props.navigation.closeDrawer();
             }}
             style={[styles.groupButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
           >
@@ -53,32 +53,91 @@ function DrawerContent(props: DrawerContentComponentProps) {
   );
 }
 
+function MainTabs() {
+  const { colors, scale } = useNews();
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          height: 74,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: {
+          fontWeight: '700',
+          fontSize: 11 * scale,
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Latest"
+        component={LatestScreen}
+        options={{
+          title: 'ข่าวล่าสุด',
+          tabBarLabel: 'ข่าวล่าสุด',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{
+          title: 'ค้นหา',
+          tabBarLabel: 'ค้นหา',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="magnify" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Bookmarks"
+        component={BookmarksScreen}
+        options={{
+          title: 'บันทึก',
+          tabBarLabel: 'บันทึก',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bookmark-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: 'ตั้งค่า',
+          tabBarLabel: 'ตั้งค่า',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="cog-outline" size={size} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
 function MainDrawer() {
   const { colors, scale } = useNews();
-  const insets = useSafeAreaInsets();
 
   return (
     <Drawer.Navigator
       drawerContent={(props) => <DrawerContent {...props} />}
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
-        drawerStyle: {
-          backgroundColor: colors.surface,
-          width: 310,
-          paddingTop: insets.top,
-        },
+        drawerStyle: { backgroundColor: colors.surface, width: 310 },
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.text,
         drawerLabelStyle: { fontWeight: '700', fontSize: 14 * scale },
         drawerItemStyle: { borderRadius: 12, marginHorizontal: 10, marginVertical: 2 },
-      }}
+        headerLeft: () => (
+          <Pressable style={{ marginLeft: 16 }} onPress={() => navigation.openDrawer()}>
+            <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
+          </Pressable>
+        ),
+      })}
     >
-      <Drawer.Screen name="Latest" component={LatestScreen} options={{ title: 'ข่าวล่าสุด', drawerLabel: 'ข่าวล่าสุด', drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} /> }} />
-      <Drawer.Screen name="Search" component={SearchScreen} options={{ title: 'ค้นหา', drawerLabel: 'ค้นหา', drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="magnify" size={size} color={color} /> }} />
-      <Drawer.Screen name="Bookmarks" component={BookmarksScreen} options={{ title: 'ข่าวที่บันทึก', drawerLabel: 'บันทึก', drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="bookmark-outline" size={size} color={color} /> }} />
-      <Drawer.Screen name="Settings" component={SettingsScreen} options={{ title: 'ตั้งค่า', drawerLabel: 'ตั้งค่า', drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="cog-outline" size={size} color={color} /> }} />
+      <Drawer.Screen name="MainTabs" component={MainTabs} options={{ title: 'ข่าว' }} />
     </Drawer.Navigator>
   );
 }
