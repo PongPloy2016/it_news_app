@@ -83,7 +83,6 @@
   - จัดคิวด้วยระบบ Priority Scheduler ให้ความสำคัญกับฟีดที่กำลังเปิดอยู่หน้าแรกสุด (Priority 0)
   - มี In-memory Cache ป้องกันการโหลดข้อมูลซ้ำซ้อน
 - **Skeleton Shimmer Loading**: การ์ดแสดงผลขณะโหลดแบบ Shimmer Pulse ทั้งรูปแบบ Compact และ Magazine สวยงาม ลื่นไหล
-- **Swipe Actions บนการ์ดข่าว**: ปัดขวาเพื่อทำเครื่องหมาย "อ่านแล้ว" และปัดซ้ายเพื่อ "บันทึกข่าว (Bookmark)" อย่างง่ายดาย
 - **Enhanced Native Sharing**: ระบบแชร์ข่าวจัดฟอร์แมตสวยงาม พร้อมหัวข้อ, สำนักข่าว, เนื้อหาฉบับย่อ และลิงก์ต้นฉบับ
 - **Thai Typography Optimization**: ปรับแต่ง Line Height และ Font Fallback สำหรับภาษาไทย (`Noto Sans Thai`, `Thonburi`, `Sukhumvit Set`) ป้องกันสระและวรรณยุกต์ลอยซ้อนทับหรือโดนตัด
 
@@ -97,7 +96,7 @@ it_news_app/
 ├── src/
 │   ├── components/              # คอมโพเนนต์ UI
 │   │   ├── AiReaderCard.tsx     # การ์ดอ่านสรุปข่าว AI และเครื่องเล่นเสียง
-│   │   ├── NewsCard.tsx         # การ์ดแสดงข่าว (Compact & Magazine) พร้อมระบบ Highlight & Swipe Actions
+│   │   ├── NewsCard.tsx         # การ์ดแสดงข่าว (Compact & Magazine) พร้อมระบบ Highlight & Theme Styling
 │   │   ├── SkeletonCard.tsx     # การ์ด Skeleton Shimmer Placeholder ขณะโหลดข่าว
 │   │   └── ScreenState.tsx      # หน้าแสดงสถานะ Error / Empty
 │   ├── config/                  # แหล่งข่าว หมวดหมู่ และค่าคงที่
