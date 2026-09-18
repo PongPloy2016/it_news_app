@@ -14,16 +14,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AiReaderCard } from '../components/AiReaderCard';
 import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
+import { typography } from '../theme';
 import { RootStackParamList } from '../types';
 import { generateAiSummary } from '../utils/aiSummary';
 import { formatRelative, stripHtml } from '../utils/content';
+import { shareArticle } from '../utils/share';
 import { speakArticleText, stopSpeaking } from '../utils/speech';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Article'>;
 
 export function ArticleDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { articles, bookmarks, colors, scale, toggleBookmark, isDark, settings } = useNews();
+  const { articles, bookmarks, colors, scale, toggleBookmark, isDark, settings, selectedFeed } = useNews();
   const isAiEnabled = settings.aiReaderEnabled;
   const [readerMode, setReaderMode] = useState<'ai' | 'full'>('ai');
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
@@ -83,12 +85,31 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
 
       <View style={styles.body}>
         {/* News Headline Title */}
-        <Text style={[styles.title, { color: colors.text, fontSize: 23 * scale, lineHeight: 32 * scale }]}>
+        <Text
+          style={[
+            styles.title,
+            {
+              color: colors.text,
+              fontSize: 23 * scale,
+              lineHeight: Math.round(23 * scale * typography.title.lineHeightMultiplier),
+              fontFamily: typography.fontFamily,
+            },
+          ]}
+        >
           {article.title}
         </Text>
 
         {/* Metadata (Author, Time, Read Duration) */}
-        <Text style={[styles.meta, { color: colors.muted, fontSize: 13 * scale }]}>
+        <Text
+          style={[
+            styles.meta,
+            {
+              color: colors.muted,
+              fontSize: 13 * scale,
+              fontFamily: typography.fontFamily,
+            },
+          ]}
+        >
           {[article.author, formatRelative(article.publishedMillis), `อ่าน ${article.readingTime} นาที`]
             .filter(Boolean)
             .join(' · ')}
@@ -113,7 +134,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
 
           <Pressable
             hitSlop={8}
-            onPress={() => void Share.share({ message: `${article.title}\n${article.link}` })}
+            onPress={() => void shareArticle(article, selectedFeed?.label)}
             style={[styles.actionButton, { backgroundColor: colors.surfaceVariant }]}
           >
             <MaterialCommunityIcons name="share-variant-outline" size={20} color={colors.primary} />
@@ -221,7 +242,17 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
           </>
         ) : (
           <View style={styles.originalContentWrap}>
-            <Text style={[styles.description, { color: colors.text, fontSize: 16 * scale, lineHeight: 28 * scale }]}>
+            <Text
+              style={[
+                styles.description,
+                {
+                  color: colors.text,
+                  fontSize: 16 * scale,
+                  lineHeight: Math.round(16 * scale * typography.body.lineHeightMultiplier),
+                  fontFamily: typography.fontFamily,
+                },
+              ]}
+            >
               {article.description || stripHtml(article.content)}
             </Text>
           </View>

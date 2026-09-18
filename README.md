@@ -71,40 +71,81 @@
 - **การจัดการข้อมูล**: ปุ่มล้างข่าวที่แคชไว้ และปุ่มล้างรายการข่าวที่บันทึกไว้
 - บันทึกสถานะการอ่าน การตั้งค่า และบุ๊กมาร์กลง `AsyncStorage` ข้อมูลไม่สูญหายเมื่อปิดแอป
 
+### 7. สถาปัตยกรรมระดับ Production & Worker Queue (Modular Architecture)
+- **Modular Layer Architecture**:
+  - `src/config/`: แยก `feeds.ts`, `categories.ts`, `constants.ts` ออกจากกันชัดเจน
+  - `src/data/rss/`: แยกโมดูล `fetcher.ts`, `parser.ts`, `normalizer.ts`, `dedupe.ts`
+  - `src/data/database/`: Data Access Layer สำหรับ AsyncStorage (`articles.ts`, `bookmarks.ts`, `history.ts`)
+  - `src/services/`: Core Business Logic (`feedService.ts` พร้อมคิวโหลดข่าว, `aiService.ts`, `imageService.ts`, `speechService.ts`)
+  - `src/hooks/`: Custom React Hooks (`useNews`, `useBookmarks`, `useTheme`, `useRefresh`)
+- **Worker Queue พร้อม Concurrency Control**:
+  - จำกัดการดึงข้อมูลพร้อมกันไม่เกิน 5 concurrent requests ป้องกัน Network/CPU Burst จาก 47+ ช่องข่าว
+  - จัดคิวด้วยระบบ Priority Scheduler ให้ความสำคัญกับฟีดที่กำลังเปิดอยู่หน้าแรกสุด (Priority 0)
+  - มี In-memory Cache ป้องกันการโหลดข้อมูลซ้ำซ้อน
+- **Skeleton Shimmer Loading**: การ์ดแสดงผลขณะโหลดแบบ Shimmer Pulse ทั้งรูปแบบ Compact และ Magazine สวยงาม ลื่นไหล
+- **Swipe Actions บนการ์ดข่าว**: ปัดขวาเพื่อทำเครื่องหมาย "อ่านแล้ว" และปัดซ้ายเพื่อ "บันทึกข่าว (Bookmark)" อย่างง่ายดาย
+- **Enhanced Native Sharing**: ระบบแชร์ข่าวจัดฟอร์แมตสวยงาม พร้อมหัวข้อ, สำนักข่าว, เนื้อหาฉบับย่อ และลิงก์ต้นฉบับ
+- **Thai Typography Optimization**: ปรับแต่ง Line Height และ Font Fallback สำหรับภาษาไทย (`Noto Sans Thai`, `Thonburi`, `Sukhumvit Set`) ป้องกันสระและวรรณยุกต์ลอยซ้อนทับหรือโดนตัด
+
 ---
 
 ## 📁 โครงสร้างโปรเจกต์ (Project Structure)
 
 ```
 it_news_app/
-├── android/                   # โฟลเดอร์ Native Android Project
+├── android/                     # โฟลเดอร์ Native Android Project
 ├── src/
-│   ├── components/            # คอมโพเนนต์ UI
-│   │   ├── AiReaderCard.tsx   # การ์ดอ่านสรุปข่าว AI และเครื่องเล่นเสียง
-│   │   ├── NewsCard.tsx       # การ์ดแสดงข่าว (Compact & Magazine) พร้อมระบบ Highlight
-│   │   └── ScreenState.tsx    # หน้าแสดงสถานะ Error / Empty
-│   ├── config.ts              # รายชื่อ 47 แหล่งข่าว และ 5 หมวดหมู่หลัก
+│   ├── components/              # คอมโพเนนต์ UI
+│   │   ├── AiReaderCard.tsx     # การ์ดอ่านสรุปข่าว AI และเครื่องเล่นเสียง
+│   │   ├── NewsCard.tsx         # การ์ดแสดงข่าว (Compact & Magazine) พร้อมระบบ Highlight & Swipe Actions
+│   │   ├── SkeletonCard.tsx     # การ์ด Skeleton Shimmer Placeholder ขณะโหลดข่าว
+│   │   └── ScreenState.tsx      # หน้าแสดงสถานะ Error / Empty
+│   ├── config/                  # แหล่งข่าว หมวดหมู่ และค่าคงที่
+│   │   ├── constants.ts         # คีย์ Storage, ค่า Limit, Timeout
+│   │   ├── feeds.ts             # รายชื่อ 47 แหล่งข่าว
+│   │   ├── categories.ts        # รายชื่อ 5 หมวดหมู่หลักและแถบสี
+│   │   └── index.ts
 │   ├── data/
-│   │   └── rss.ts             # ระบบ Parse ข้อมูล RSS / Atom Feed (XML)
+│   │   ├── database/            # Data Access Layer (AsyncStorage)
+│   │   │   ├── database.ts      # Storage Helper พื้นฐาน
+│   │   │   ├── articles.ts      # แคชข่าวบทความ
+│   │   │   ├── bookmarks.ts     # จัดการข่าวที่บันทึก
+│   │   │   └── history.ts       # จัดการประวัติการค้นหา
+│   │   └── rss/                 # ระบบดึงและแปลงข้อมูล RSS/Atom
+│   │       ├── fetcher.ts       # Network Fetcher พร้อม Proxy Fallback
+│   │       ├── parser.ts        # XML Parsing
+│   │       ├── normalizer.ts    # Transform & Image Extraction
+│   │       └── dedupe.ts        # Deduplication & Sorting
+│   ├── hooks/                   # Custom Hooks
+│   │   ├── useNews.ts           # เข้าถึงฟีดข่าวและสถานะการอ่าน
+│   │   ├── useBookmarks.ts      # จัดการบันทึกข่าว
+│   │   ├── useTheme.ts          # โหมดมืด/สว่าง และสีสัน
+│   │   └── useRefresh.ts        # จัดการ Refresh State
 │   ├── navigation/
-│   │   └── RootNavigator.tsx  # Navigation สไตล์ญี่ปุ่น (Drawer + Tabs + Stack)
-│   ├── screens/               # หน้าจอต่าง ๆ
-│   │   ├── ArticleDetailScreen.tsx # หน้ารายละเอียดข่าว + โหมดอ่าน AI
-│   │   ├── BookmarksScreen.tsx     # หน้ารายการข่าวที่บันทึกไว้
-│   │   ├── LatestScreen.tsx        # หน้าฟีดข่าวล่าสุด + แถบกรองสถานะ
-│   │   ├── SearchScreen.tsx        # หน้าค้นหาข่าวพร้อมประวัติการค้นหา
-│   │   ├── SettingsScreen.tsx      # หน้าตั้งค่าธีม, ฟอนต์, เลย์เอาต์, สวิตช์ AI
-│   │   └── WebViewScreen.tsx       # หน้าเปิดดูเว็บไซต์ข่าวต้นฉบับเต็ม
+│   │   └── RootNavigator.tsx    # Navigation สไตล์ญี่ปุ่น (Drawer + Tabs + Stack)
+│   ├── screens/                 # หน้าจอต่าง ๆ
+│   │   ├── ArticleDetailScreen.tsx # หน้ารายละเอียดข่าว + โหมดอ่าน AI + Native Sharing
+│   │   ├── BookmarksScreen.tsx       # หน้ารายการข่าวที่บันทึกไว้
+│   │   ├── LatestScreen.tsx          # หน้าฟีดข่าวล่าสุด + แถบกรองสถานะ + Skeleton
+│   │   ├── SearchScreen.tsx          # หน้าค้นหาข่าวพร้อมประวัติการค้นหา
+│   │   ├── SettingsScreen.tsx        # หน้าตั้งค่าธีม, ฟอนต์, เลย์เอาต์, สวิตช์ AI
+│   │   └── WebViewScreen.tsx         # หน้าเปิดดูเว็บไซต์ข่าวต้นฉบับเต็ม
+│   ├── services/                # Business Logic Services
+│   │   ├── feedService.ts       # Queue Manager (Concurrency 5, Priority Scheduling)
+│   │   ├── aiService.ts         # AI Summary & Entity Extractor Bridge
+│   │   ├── imageService.ts      # Dynamic og:image Fetcher & Cache
+│   │   └── speechService.ts     # Text-To-Speech Controller
 │   ├── store/
-│   │   └── NewsContext.tsx    # State Management (ข่าว, แคช, ข่าวที่อ่านแล้ว, การตั้งค่า)
+│   │   └── NewsContext.tsx      # State Management (ประสานงาน Services & Repositories)
 │   ├── theme/
-│   │   └── index.ts           # โทนสีและ Design Tokens
-│   ├── types.ts               # TypeScript Type Definitions
+│   │   └── index.ts             # โทนสี, Design Tokens & Thai Typography
+│   ├── types.ts                 # TypeScript Type Definitions
 │   └── utils/
-│       ├── aiSummary.ts       # เอนจินวิเคราะห์และสรุปประเด็นข่าวอัจฉริยะ
-│       ├── content.ts         # ตัวช่วยแปลงข้อความ HTML, เวลา, รูปภาพ
-│       └── speech.ts          # ตัวควบคุมการอ่านออกเสียง Text-To-Speech
-├── App.tsx                    # Entry Point หลักของแอป
+│       ├── aiSummary.ts         # เอนจินวิเคราะห์และสรุปประเด็นข่าวอัจฉริยะ
+│       ├── content.ts           # ตัวช่วยแปลงข้อความ HTML, เวลา, รูปภาพ
+│       ├── share.ts             # ฟังก์ชันฟอร์แมตข้อความสำหรับ Native Share
+│       └── speech.ts            # Dynamic Expo Speech Module Helper
+├── App.tsx                      # Entry Point หลักของแอป
 └── package.json
 ```
 
@@ -119,7 +160,7 @@ it_news_app/
 - **Data Parsing**: `fast-xml-parser`, `he`
 - **Storage**: `@react-native-async-storage/async-storage`
 - **Safe Area**: `react-native-safe-area-context`
-- **Web & Speech**: `react-native-webview`, `expo-speech`
+- **Web & Speech**: `react-native-webview`, safe dynamic `expo-speech`
 
 ---
 

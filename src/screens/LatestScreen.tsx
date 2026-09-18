@@ -17,6 +17,7 @@ import WebView from 'react-native-webview';
 import { FEED_GROUPS } from '../config';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
+import { SkeletonFeed } from '../components/SkeletonCard';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
@@ -308,9 +309,12 @@ export function LatestScreen() {
 
   if (!isHydrated || (isRefreshing && !articles.length)) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loading, { color: colors.muted, fontSize: 14 * scale }]}>กำลังโหลดข่าวล่าสุด…</Text>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+          {renderCategoryTabBar()}
+          {renderSourceTabBar()}
+        </View>
+        <SkeletonFeed layout={settings.cardLayout} count={4} />
       </View>
     );
   }
