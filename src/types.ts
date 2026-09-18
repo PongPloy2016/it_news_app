@@ -1,9 +1,12 @@
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type FontSizeOption = 'small' | 'medium' | 'large';
+export type CardLayoutOption = 'compact' | 'magazine';
 
 export interface AppSettings {
   themeMode: ThemeMode;
   fontSize: FontSizeOption;
+  cardLayout: CardLayoutOption;
+  aiReaderEnabled: boolean;
 }
 
 export interface NewsArticle {

@@ -19,10 +19,10 @@ export function BookmarksScreen() {
       subtitle="แตะไอคอนบุ๊กมาร์กบนข่าวที่สนใจ แล้วกลับมาอ่านภายหลังได้ที่นี่" />;
   }
   return <FlatList data={articles} keyExtractor={(item) => item.id}
-    contentContainerStyle={[styles.list, { paddingBottom: 120 + insets.bottom }]}
+    contentContainerStyle={[styles.list, { paddingBottom: 150 + insets.bottom }]}
     renderItem={({ item }) => <NewsCard article={item} isBookmarked
       onToggleBookmark={() => toggleBookmark(item)}
       onPress={() => navigation.navigate('Article', { articleId: item.id })} />} />;
 }
 
-const styles = StyleSheet.create({ list: { padding: 16, paddingBottom: 96 } });
+const styles = StyleSheet.create({ list: { padding: 16 } });

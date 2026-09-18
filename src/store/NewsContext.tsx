@@ -5,7 +5,7 @@ import {
 import { useColorScheme } from 'react-native';
 import { DEFAULT_FEED_KEY, FEED_SOURCES, FEED_URL, FeedSource, PROXY_URL } from '../config';
 import { parseFeed } from '../data/rss';
-import { AppSettings, FontSizeOption, NewsArticle, ThemeMode } from '../types';
+import { AppSettings, CardLayoutOption, FontSizeOption, NewsArticle, ThemeMode } from '../types';
 import { AppColors, darkColors, fontScale, lightColors } from '../theme';
 import { extractOgImage } from '../utils/content';
 
@@ -13,8 +13,9 @@ const STORAGE = {
   articles: 'blognone.articles', bookmarks: 'blognone.bookmarks',
   history: 'blognone.searchHistory', settings: 'blognone.settings',
   lastUpdated: 'blognone.lastUpdated', selectedFeedKey: 'blognone.selectedFeedKey',
+  readArticles: 'blognone.readArticles',
 } as const;
-const defaultSettings: AppSettings = { themeMode: 'system', fontSize: 'medium' };
+const defaultSettings: AppSettings = { themeMode: 'system', fontSize: 'medium', cardLayout: 'magazine', aiReaderEnabled: true };
 const STALE_AFTER_MS = 30 * 60 * 1_000;
 
 interface NewsContextValue {
@@ -41,6 +42,17 @@ interface NewsContextValue {
   clearNewsCache: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => void;
   setFontSize: (size: FontSizeOption) => void;
+  setCardLayout: (layout: CardLayoutOption) => void;
+  setAiReaderEnabled: (enabled: boolean) => void;
+  readArticles: Record<string, number>;
+  markAsRead: (articleId: string) => void;
+  markAllAsRead: () => void;
+  isArticleNew: (article: NewsArticle) => boolean;
+  isArticleFresh: (article: NewsArticle) => boolean;
+  isArticleRead: (articleId: string) => boolean;
+  lastRefreshNewCount: number;
+  clearFreshCount: () => void;
+  channelStats: Record<string, { total: number; newCount: number }>;
 }
 
 const NewsContext = createContext<NewsContextValue | null>(null);
@@ -57,6 +69,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [bookmarks, setBookmarks] = useState<Record<string, NewsArticle>>({});
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [readArticles, setReadArticles] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [selectedFeedKey, setSelectedFeedKeyState] = useState<string>(DEFAULT_FEED_KEY);
   const [lastUpdated, setLastUpdated] = useState<number>();
@@ -64,6 +77,8 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasFetchError, setHasFetchError] = useState(false);
   const [isShowingCachedFeed, setIsShowingCachedFeed] = useState(false);
+  const [lastRefreshNewCount, setLastRefreshNewCount] = useState<number>(0);
+  const [channelStats, setChannelStats] = useState<Record<string, { total: number; newCount: number }>>({});
 
   const isDark = settings.themeMode === 'dark' ||
     (settings.themeMode === 'system' && systemScheme === 'dark');
@@ -79,13 +94,23 @@ export function NewsProvider({ children }: PropsWithChildren) {
         const cachedArticles = saved[STORAGE.articles];
         const cachedBookmarks = saved[STORAGE.bookmarks];
         const cachedHistory = saved[STORAGE.history];
+        const cachedRead = saved[STORAGE.readArticles];
         const cachedSettings = saved[STORAGE.settings];
         const cachedUpdated = saved[STORAGE.lastUpdated];
         const cachedFeedKey = saved[STORAGE.selectedFeedKey];
         if (cachedArticles) setArticles(JSON.parse(cachedArticles));
         if (cachedBookmarks) setBookmarks(JSON.parse(cachedBookmarks));
         if (cachedHistory) setSearchHistory(JSON.parse(cachedHistory));
-        if (cachedSettings) setSettings(JSON.parse(cachedSettings));
+        if (cachedRead) setReadArticles(JSON.parse(cachedRead));
+        if (cachedSettings) {
+          const parsed = JSON.parse(cachedSettings);
+          setSettings({
+            ...defaultSettings,
+            ...parsed,
+            cardLayout: parsed.cardLayout ?? 'magazine',
+            aiReaderEnabled: parsed.aiReaderEnabled ?? true,
+          });
+        }
         if (cachedUpdated) setLastUpdated(Number(cachedUpdated));
         if (cachedFeedKey) setSelectedFeedKeyState(String(cachedFeedKey));
       } catch {
@@ -159,6 +184,23 @@ export function NewsProvider({ children }: PropsWithChildren) {
       );
       const merged = parsed.map((item) => ({ ...item, imageUrl: item.imageUrl ?? knownImages.get(item.id) }));
       const now = Date.now();
+
+      // Check how many newly arrived articles compared to previous feed
+      const previousIds = new Set(articles.map((item) => item.id));
+      const newlyArrivedCount = articles.length > 0
+        ? merged.filter((item) => !previousIds.has(item.id)).length
+        : 0;
+      if (newlyArrivedCount > 0) {
+        setLastRefreshNewCount(newlyArrivedCount);
+      }
+
+      // Update channel unread count
+      const unreadCount = merged.filter((item) => !readArticles[item.id]).length;
+      setChannelStats((prev) => ({
+        ...prev,
+        [selectedFeed.key]: { total: merged.length, newCount: unreadCount },
+      }));
+
       setArticles(merged);
       setLastUpdated(now);
       setHasFetchError(false);
@@ -174,7 +216,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
     } finally {
       setIsRefreshing(false);
     }
-  }, [articles, bookmarks, enrichImages, isRefreshing, selectedFeed]);
+  }, [articles, bookmarks, enrichImages, isRefreshing, readArticles, selectedFeed]);
 
   const setSelectedFeedKey = useCallback((key: string) => {
     const nextKey = FEED_SOURCES.some((item) => item.key === key) ? key : DEFAULT_FEED_KEY;
@@ -231,6 +273,72 @@ export function NewsProvider({ children }: PropsWithChildren) {
     void AsyncStorage.setItem(STORAGE.settings, JSON.stringify(next));
   }, []);
 
+  const clearFreshCount = useCallback(() => {
+    setLastRefreshNewCount(0);
+  }, []);
+
+  const markAsRead = useCallback((articleId: string) => {
+    setReadArticles((prev) => {
+      if (prev[articleId]) return prev;
+      const next = { ...prev, [articleId]: Date.now() };
+      void AsyncStorage.setItem(STORAGE.readArticles, JSON.stringify(next));
+      return next;
+    });
+    setChannelStats((prev) => {
+      const current = prev[selectedFeed.key];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [selectedFeed.key]: {
+          ...current,
+          newCount: Math.max(0, current.newCount - 1),
+        },
+      };
+    });
+  }, [selectedFeed.key]);
+
+  const markAllAsRead = useCallback(() => {
+    setReadArticles((prev) => {
+      const now = Date.now();
+      const next = { ...prev };
+      for (const item of articles) {
+        next[item.id] = now;
+      }
+      void AsyncStorage.setItem(STORAGE.readArticles, JSON.stringify(next));
+      return next;
+    });
+    setChannelStats((prev) => ({
+      ...prev,
+      [selectedFeed.key]: {
+        total: articles.length,
+        newCount: 0,
+      },
+    }));
+    setLastRefreshNewCount(0);
+  }, [articles, selectedFeed.key]);
+
+  const isArticleRead = useCallback((articleId: string) => {
+    return Boolean(readArticles[articleId]);
+  }, [readArticles]);
+
+  const isArticleFresh = useCallback((article: NewsArticle) => {
+    if (readArticles[article.id]) return false;
+    if (article.publishedMillis) {
+      const hoursAgo = (Date.now() - article.publishedMillis) / (1000 * 60 * 60);
+      return hoursAgo <= 3;
+    }
+    return false;
+  }, [readArticles]);
+
+  const isArticleNew = useCallback((article: NewsArticle) => {
+    if (readArticles[article.id]) return false;
+    if (article.publishedMillis) {
+      const hoursAgo = (Date.now() - article.publishedMillis) / (1000 * 60 * 60);
+      return hoursAgo <= 24;
+    }
+    return true;
+  }, [readArticles]);
+
   const value = useMemo<NewsContextValue>(() => ({
     articles, bookmarks, searchHistory, settings, selectedFeedKey, selectedFeed,
     isHydrated, isRefreshing, hasFetchError, isShowingCachedFeed, lastUpdated,
@@ -239,12 +347,18 @@ export function NewsProvider({ children }: PropsWithChildren) {
     clearSearchHistory, clearBookmarks, clearNewsCache,
     setThemeMode: (themeMode) => updateSettings({ ...settings, themeMode }),
     setFontSize: (fontSize) => updateSettings({ ...settings, fontSize }),
+    setCardLayout: (cardLayout) => updateSettings({ ...settings, cardLayout }),
+    setAiReaderEnabled: (aiReaderEnabled) => updateSettings({ ...settings, aiReaderEnabled }),
+    readArticles, markAsRead, markAllAsRead, isArticleNew, isArticleFresh, isArticleRead,
+    lastRefreshNewCount, clearFreshCount, channelStats,
   }), [
     articles, bookmarks, searchHistory, settings, selectedFeedKey, selectedFeed,
     isHydrated, isRefreshing, hasFetchError, isShowingCachedFeed,
     lastUpdated, isDark, colors, refresh, setSelectedFeedKey,
     toggleBookmark, addSearchHistory, clearSearchHistory, clearBookmarks,
-    clearNewsCache, updateSettings,
+    clearNewsCache, updateSettings, readArticles, markAsRead, markAllAsRead,
+    isArticleNew, isArticleFresh, isArticleRead,
+    lastRefreshNewCount, clearFreshCount, channelStats,
   ]);
 
   return <NewsContext.Provider value={value}>{children}</NewsContext.Provider>;

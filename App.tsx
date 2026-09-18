@@ -1,6 +1,7 @@
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NewsProvider, useNews } from './src/store/NewsContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
@@ -31,8 +32,10 @@ function AppShell() {
 
 export default function App() {
   return (
-    <NewsProvider>
-      <AppShell />
-    </NewsProvider>
+    <SafeAreaProvider>
+      <NewsProvider>
+        <AppShell />
+      </NewsProvider>
+    </SafeAreaProvider>
   );
 }

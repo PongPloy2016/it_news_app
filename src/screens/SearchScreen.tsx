@@ -22,7 +22,7 @@ export function SearchScreen() {
   }, [articles, query]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: 120 + insets.bottom }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <MaterialCommunityIcons name="magnify" size={23} color={colors.muted} />
         <TextInput value={query} onChangeText={setQuery} placeholder="ค้นหาหัวข้อหรือผู้เขียน"
@@ -49,7 +49,7 @@ export function SearchScreen() {
         </View> : <ScreenState icon="text-search" title="ค้นหาข่าวสาร"
           subtitle="ค้นหาจากข่าวที่ดาวน์โหลดไว้ ตามหัวข้อ เนื้อหา หรือชื่อผู้เขียน" />
       ) : results.length ? (
-        <FlatList data={results} keyExtractor={(item) => item.id} contentContainerStyle={[styles.results, { paddingBottom: 120 + insets.bottom }]}
+        <FlatList data={results} keyExtractor={(item) => item.id} contentContainerStyle={[styles.results, { paddingBottom: 150 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => <NewsCard article={item} isBookmarked={Boolean(bookmarks[item.id])}
             onToggleBookmark={() => toggleBookmark(item)}

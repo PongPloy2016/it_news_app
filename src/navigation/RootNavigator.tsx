@@ -1,9 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
+import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { FEED_GROUPS } from '../config';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FEED_GROUPS, FEED_SOURCES } from '../config';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
 import { BookmarksScreen } from '../screens/BookmarksScreen';
 import { LatestScreen } from '../screens/LatestScreen';
@@ -12,49 +14,316 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { WebViewScreen } from '../screens/WebViewScreen';
 import { useNews } from '../store/NewsContext';
 import { MainTabParamList, RootStackParamList } from '../types';
+import { formatRelative } from '../utils/content';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Drawer = createDrawerNavigator();
 
+const withAlpha = (hex: string, alpha: number) => {
+  const clean = hex.replace('#', '');
+  const safe = clean.length === 3 ? clean.split('').map((char) => char + char).join('') : clean;
+  const value = Number.parseInt(safe, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 function DrawerContent(props: DrawerContentComponentProps) {
-  const { colors, scale, setSelectedFeedKey } = useNews();
+  const {
+    colors,
+    scale,
+    selectedFeedKey,
+    setSelectedFeedKey,
+    bookmarks,
+    isDark,
+    setThemeMode,
+    lastUpdated,
+    refresh,
+    isRefreshing,
+    articles,
+    channelStats,
+    isArticleNew,
+  } = useNews();
+  const insets = useSafeAreaInsets();
+
+  const bookmarkCount = Object.keys(bookmarks).length;
+  const [filterGroupKey, setFilterGroupKey] = useState<string>('all');
+
+  const navigateToTab = (screenName: keyof MainTabParamList) => {
+    (props.navigation as any).navigate('DrawerHome', { screen: screenName });
+    props.navigation.closeDrawer();
+  };
+
+  // Build list of channels with their parent group color
+  const channels = useMemo(() => {
+    return FEED_GROUPS.flatMap((group) =>
+      group.sources.map((source) => ({
+        ...source,
+        groupKey: group.key,
+        groupLabel: group.label,
+        groupColor: group.color,
+      }))
+    );
+  }, []);
+
+  const filteredChannels = useMemo(() => {
+    if (filterGroupKey === 'all') return channels;
+    return channels.filter((c) => c.groupKey === filterGroupKey);
+  }, [channels, filterGroupKey]);
 
   return (
-    <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
-      <View style={[styles.drawerHeader, { backgroundColor: colors.surfaceVariant }]}> 
-        <MaterialCommunityIcons name="newspaper-variant-outline" size={28} color={colors.primary} />
-        <Text style={[styles.drawerTitle, { color: colors.text, fontSize: 22 * scale }]}>หมวดข่าว</Text>
+    <View style={[styles.drawerContainer, { backgroundColor: colors.surface, paddingTop: insets.top }]}>
+      {/* 1. Japanese Style Top Bar: 最終更新 (Last Updated) + 🔄 Refresh */}
+      <View style={[styles.topBar, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
+        <View style={styles.lastUpdateWrap}>
+          <Text style={[styles.lastUpdateLabel, { color: colors.text, fontSize: 13 * scale }]}>
+            อัปเดตล่าสุด : {lastUpdated ? formatRelative(lastUpdated) : 'เมื่อสักครู่'}
+          </Text>
+        </View>
+        <Pressable
+          hitSlop={12}
+          onPress={() => void refresh()}
+          disabled={isRefreshing}
+          style={styles.refreshBtn}
+        >
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <MaterialCommunityIcons name="reload" size={20} color={colors.muted} />
+          )}
+        </Pressable>
       </View>
 
-      <Text style={[styles.drawerSection, { color: colors.muted, fontSize: 12 * scale }]}>เลือกกลุ่มข่าว</Text>
-      <View style={styles.groupList}>
-        {FEED_GROUPS.map((group) => (
+      {/* 2. Subheader Bar: チャンネル一覧 (Channels) + 新着順 (Latest) */}
+      <View style={[styles.subHeaderBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.subHeaderTitle, { color: colors.muted, fontSize: 12 * scale }]}>
+          ช่องข่าวทั้งหมด ({filteredChannels.length})
+        </Text>
+        <Text style={[styles.subHeaderSort, { color: colors.muted, fontSize: 11.5 * scale }]}>
+          เรียงตามล่าสุด
+        </Text>
+      </View>
+
+      {/* 3. Category Filter Chips (ทั้งหมด | ไอที | มือถือ | เกม | ข่าวไทย) */}
+      <View style={[styles.filterBar, { borderBottomColor: colors.border }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
           <Pressable
-            key={group.key}
-            onPress={() => {
-              const firstFeed = group.sources[0];
-              if (firstFeed) {
-                setSelectedFeedKey(firstFeed.key);
-              }
-              props.navigation.closeDrawer();
-            }}
-            style={[styles.groupButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => setFilterGroupKey('all')}
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: filterGroupKey === 'all' ? colors.primary : colors.surfaceVariant,
+                borderColor: filterGroupKey === 'all' ? colors.primary : colors.border,
+              },
+            ]}
           >
-            <View style={[styles.groupDot, { backgroundColor: group.color }]} />
-            <Text style={[styles.groupLabel, { color: colors.text, fontSize: 14 * scale }]}>{group.label}</Text>
+            <Text
+              style={[
+                styles.filterChipText,
+                { color: filterGroupKey === 'all' ? '#FFFFFF' : colors.muted, fontSize: 11 * scale },
+              ]}
+            >
+              ทั้งหมด
+            </Text>
           </Pressable>
-        ))}
+
+          {FEED_GROUPS.map((group) => {
+            const isSelected = filterGroupKey === group.key;
+            return (
+              <Pressable
+                key={group.key}
+                onPress={() => setFilterGroupKey(group.key)}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: isSelected ? group.color : colors.surfaceVariant,
+                    borderColor: isSelected ? group.color : colors.border,
+                  },
+                ]}
+              >
+                <View style={[styles.filterChipDot, { backgroundColor: isSelected ? '#FFFFFF' : group.color }]} />
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    { color: isSelected ? '#FFFFFF' : colors.text, fontSize: 11 * scale },
+                  ]}
+                >
+                  {group.label.replace('ข่าว', '')}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
-      <DrawerItemList {...props} />
-    </DrawerContentScrollView>
+      {/* 4. Japanese Style Channels Vertical List */}
+      <ScrollView
+        showsVerticalScrollIndicator={true}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        style={styles.channelScrollView}
+      >
+        {filteredChannels.map((channel) => {
+          const isSelected = channel.key === selectedFeedKey;
+          const stat = channelStats[channel.key];
+          const newCount = isSelected ? articles.filter(isArticleNew).length : (stat?.newCount ?? 0);
+          const hasNew = newCount > 0;
+
+          return (
+            <Pressable
+              key={channel.key}
+              onPress={() => {
+                setSelectedFeedKey(channel.key);
+                navigateToTab('Latest');
+              }}
+              style={({ pressed }) => [
+                styles.channelRow,
+                {
+                  backgroundColor: isSelected
+                    ? withAlpha(channel.groupColor, 0.1)
+                    : pressed
+                    ? colors.surfaceVariant
+                    : colors.surface,
+                  borderBottomColor: colors.border,
+                },
+              ]}
+            >
+              {/* Left Accent Color Stripe (Exactly like the Japanese app screenshot) */}
+              <View
+                style={[
+                  styles.colorStripe,
+                  {
+                    backgroundColor: channel.groupColor,
+                    width: isSelected ? 5 : 3.5,
+                  },
+                ]}
+              />
+
+              {/* Channel Name */}
+              <View style={styles.channelNameWrap}>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.channelName,
+                    {
+                      color: isSelected ? channel.groupColor : colors.text,
+                      fontWeight: isSelected ? '800' : '600',
+                      fontSize: 14.5 * scale,
+                    },
+                  ]}
+                >
+                  {channel.label}
+                </Text>
+                {hasNew && <View style={styles.channelNewDot} />}
+              </View>
+
+              {/* Right: Article count number or badge (e.g. 50, 60, or X ใหม่) */}
+              <View style={styles.channelCountWrap}>
+                {hasNew ? (
+                  <View style={styles.drawerNewBadge}>
+                    <Text style={styles.drawerNewBadgeText}>{newCount} ใหม่</Text>
+                  </View>
+                ) : (
+                  <Text
+                    style={[
+                      styles.channelCount,
+                      {
+                        color: isSelected ? channel.groupColor : colors.muted,
+                        fontWeight: isSelected ? '800' : '500',
+                        fontSize: 13 * scale,
+                      },
+                    ]}
+                  >
+                    {isSelected ? `${articles.length || 50}` : `${stat?.total ?? 50}`}
+                  </Text>
+                )}
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* 5. Minimal Bottom Action Bar */}
+      <View
+        style={[
+          styles.bottomBar,
+          {
+            backgroundColor: colors.surfaceVariant,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, 12),
+          },
+        ]}
+      >
+        <Pressable
+          hitSlop={8}
+          onPress={() => navigateToTab('Bookmarks')}
+          style={styles.bottomBarItem}
+        >
+          <MaterialCommunityIcons name="bookmark-outline" size={19} color={colors.primary} />
+          <Text style={[styles.bottomBarText, { color: colors.text, fontSize: 11.5 * scale }]}>
+            บันทึก ({bookmarkCount})
+          </Text>
+        </Pressable>
+
+        <View style={[styles.bottomDivider, { backgroundColor: colors.border }]} />
+
+        <Pressable
+          hitSlop={8}
+          onPress={() => navigateToTab('Search')}
+          style={styles.bottomBarItem}
+        >
+          <MaterialCommunityIcons name="magnify" size={19} color={colors.primary} />
+          <Text style={[styles.bottomBarText, { color: colors.text, fontSize: 11.5 * scale }]}>
+            ค้นหา
+          </Text>
+        </Pressable>
+
+        <View style={[styles.bottomDivider, { backgroundColor: colors.border }]} />
+
+        <Pressable
+          hitSlop={8}
+          onPress={() => setThemeMode(isDark ? 'light' : 'dark')}
+          style={styles.bottomBarItem}
+        >
+          <MaterialCommunityIcons
+            name={isDark ? 'weather-night' : 'white-balance-sunny'}
+            size={19}
+            color={isDark ? '#8DB9FF' : '#F59E0B'}
+          />
+          <Text style={[styles.bottomBarText, { color: colors.text, fontSize: 11.5 * scale }]}>
+            {isDark ? 'มืด' : 'สว่าง'}
+          </Text>
+        </Pressable>
+
+        <View style={[styles.bottomDivider, { backgroundColor: colors.border }]} />
+
+        <Pressable
+          hitSlop={8}
+          onPress={() => navigateToTab('Settings')}
+          style={styles.bottomBarItem}
+        >
+          <MaterialCommunityIcons name="cog-outline" size={19} color={colors.muted} />
+          <Text style={[styles.bottomBarText, { color: colors.text, fontSize: 11.5 * scale }]}>
+            ตั้งค่า
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 function MainTabs() {
   const { colors, scale } = useNews();
+  const insets = useSafeAreaInsets();
+
+  const bottomInset = insets.bottom;
+  const paddingBottom = Math.max(bottomInset, 8);
+  const tabHeight = 58 + paddingBottom;
 
   return (
     <Tab.Navigator
@@ -63,9 +332,9 @@ function MainTabs() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          height: 74,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: tabHeight,
+          paddingBottom: paddingBottom,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
@@ -81,7 +350,9 @@ function MainTabs() {
         options={{
           title: 'ข่าวล่าสุด',
           tabBarLabel: 'ข่าวล่าสุด',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -90,7 +361,9 @@ function MainTabs() {
         options={{
           title: 'ค้นหา',
           tabBarLabel: 'ค้นหา',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="magnify" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="magnify" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -99,7 +372,9 @@ function MainTabs() {
         options={{
           title: 'บันทึก',
           tabBarLabel: 'บันทึก',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bookmark-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="bookmark-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -108,7 +383,9 @@ function MainTabs() {
         options={{
           title: 'ตั้งค่า',
           tabBarLabel: 'ตั้งค่า',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="cog-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>
@@ -125,19 +402,27 @@ function MainDrawer() {
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
-        drawerStyle: { backgroundColor: colors.surface, width: 310 },
+        drawerStyle: { backgroundColor: colors.surface, width: 295 },
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.text,
         drawerLabelStyle: { fontWeight: '700', fontSize: 14 * scale },
         drawerItemStyle: { borderRadius: 12, marginHorizontal: 10, marginVertical: 2 },
         headerLeft: () => (
-          <Pressable style={{ marginLeft: 16 }} onPress={() => navigation.openDrawer()}>
+          <Pressable
+            hitSlop={12}
+            style={{ marginLeft: 16 }}
+            onPress={() => navigation.openDrawer()}
+          >
             <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
           </Pressable>
         ),
       })}
     >
-      <Drawer.Screen name="MainTabs" component={MainTabs} options={{ title: 'ข่าว' }} />
+      <Drawer.Screen
+        name="DrawerHome"
+        component={MainTabs}
+        options={{ title: 'IT News App' }}
+      />
     </Drawer.Navigator>
   );
 }
@@ -145,26 +430,159 @@ function MainDrawer() {
 export function RootNavigator() {
   const { colors, scale } = useNews();
   return (
-    <Stack.Navigator screenOptions={{
-      headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text,
-      headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
-      contentStyle: { backgroundColor: colors.background },
-    }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
       <Stack.Screen name="MainTabs" component={MainDrawer} options={{ headerShown: false }} />
       <Stack.Screen name="Article" component={ArticleDetailScreen} options={{ title: 'รายละเอียดข่าว' }} />
-      <Stack.Screen name="WebView" component={WebViewScreen} options={({ route }) => ({ title: route.params.title ?? 'เปิดข่าว' })} />
+      <Stack.Screen
+        name="WebView"
+        component={WebViewScreen}
+        options={({ route }) => ({ title: route.params.title ?? 'เปิดข่าว' })}
+      />
     </Stack.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  drawerContent: { paddingHorizontal: 12, paddingTop: 8 },
-  drawerHeader: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 10, marginBottom: 16, padding: 16 },
-  drawerTitle: { fontWeight: '800' },
-  drawerSection: { fontWeight: '700', letterSpacing: 0.5, marginBottom: 8, marginLeft: 6, textTransform: 'uppercase' },
-  groupList: { gap: 8 },
-  groupButton: { alignItems: 'center', borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 10, paddingHorizontal: 12, paddingVertical: 12 },
-  groupDot: { borderRadius: 999, height: 10, width: 10 },
-  groupLabel: { flex: 1, fontWeight: '700' },
-  divider: { height: StyleSheet.hairlineWidth, marginVertical: 16 },
+  drawerContainer: {
+    flex: 1,
+  },
+  topBar: {
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    height: 48,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+  },
+  lastUpdateWrap: {
+    flex: 1,
+  },
+  lastUpdateLabel: {
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  refreshBtn: {
+    alignItems: 'center',
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  subHeaderBar: {
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    height: 38,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+  },
+  subHeaderTitle: {
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  subHeaderSort: {
+    fontWeight: '600',
+  },
+  filterBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 8,
+  },
+  filterScroll: {
+    gap: 6,
+    paddingHorizontal: 10,
+  },
+  filterChip: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  filterChipDot: {
+    borderRadius: 999,
+    height: 6,
+    width: 6,
+  },
+  filterChipText: {
+    fontWeight: '700',
+  },
+  channelScrollView: {
+    flex: 1,
+  },
+  channelRow: {
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    height: 48,
+    position: 'relative',
+  },
+  colorStripe: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+  },
+  channelNameWrap: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    paddingLeft: 18,
+    paddingRight: 8,
+  },
+  channelName: {
+    letterSpacing: -0.2,
+  },
+  channelNewDot: {
+    backgroundColor: '#EF4444',
+    borderRadius: 999,
+    height: 6,
+    marginLeft: 6,
+    width: 6,
+  },
+  channelCountWrap: {
+    paddingRight: 16,
+  },
+  channelCount: {
+    letterSpacing: 0.3,
+  },
+  drawerNewBadge: {
+    backgroundColor: '#EF4444',
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  drawerNewBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  bottomBar: {
+    alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 10,
+  },
+  bottomBarItem: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 3,
+    justifyContent: 'center',
+  },
+  bottomBarText: {
+    fontWeight: '600',
+  },
+  bottomDivider: {
+    height: 20,
+    width: StyleSheet.hairlineWidth,
+  },
 });
