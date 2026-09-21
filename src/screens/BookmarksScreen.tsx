@@ -6,6 +6,7 @@ import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
+import { showInterstitialAndNavigate } from '../services/interstitialService';
 
 export function BookmarksScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -22,7 +23,11 @@ export function BookmarksScreen() {
     contentContainerStyle={[styles.list, { paddingBottom: 150 + insets.bottom }]}
     renderItem={({ item }) => <NewsCard article={item} isBookmarked
       onToggleBookmark={() => toggleBookmark(item)}
-      onPress={() => navigation.navigate('Article', { articleId: item.id })} />} />;
+      onPress={() => {
+        void showInterstitialAndNavigate(() => {
+          navigation.navigate('Article', { articleId: item.id });
+        });
+      }} />} />;
 }
 
 const styles = StyleSheet.create({ list: { padding: 16 } });

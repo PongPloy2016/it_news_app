@@ -15,12 +15,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
 import { FEED_GROUPS } from '../config';
+import { AdBanner } from '../components/AdBanner';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { SkeletonFeed } from '../components/SkeletonCard';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
+import { showInterstitialAndNavigate } from '../services/interstitialService';
 
 const withAlpha = (hex: string, alpha: number) => {
   const clean = hex.replace('#', '');
@@ -349,10 +351,11 @@ export function LatestScreen() {
   }
 
   return (
-    <FlatList
-      data={visibleArticles}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={[styles.list, { paddingBottom: 120 + insets.bottom }]}
+    <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+      <FlatList
+        data={visibleArticles}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[styles.list, { paddingBottom: 24 }]}
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh()} tintColor={colors.primary} />}
       onEndReached={() => {
         if (!isRefreshing && hasMore) {
@@ -499,15 +502,24 @@ export function LatestScreen() {
           onToggleBookmark={() => toggleBookmark(item)}
           onPress={() => {
             markAsRead(item.id);
-            navigation.navigate('Article', { articleId: item.id });
+            void showInterstitialAndNavigate(() => {
+              navigation.navigate('Article', { articleId: item.id });
+            });
           }}
         />
       )}
     />
+    <AdBanner style={[styles.bottomAdBanner, { backgroundColor: colors.surface, borderTopColor: colors.border }]} />
+  </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContainer: { flex: 1 },
+  bottomAdBanner: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 2,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loading: { marginTop: 14 },
   list: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 96 },

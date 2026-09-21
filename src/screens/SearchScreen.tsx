@@ -8,6 +8,7 @@ import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
+import { showInterstitialAndNavigate } from '../services/interstitialService';
 
 export function SearchScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -53,7 +54,12 @@ export function SearchScreen() {
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => <NewsCard article={item} isBookmarked={Boolean(bookmarks[item.id])}
             onToggleBookmark={() => toggleBookmark(item)}
-            onPress={() => { addSearchHistory(query); navigation.navigate('Article', { articleId: item.id }); }} />} />
+            onPress={() => {
+              addSearchHistory(query);
+              void showInterstitialAndNavigate(() => {
+                navigation.navigate('Article', { articleId: item.id });
+              });
+            }} />} />
       ) : <ScreenState icon="magnify-close" title="ไม่พบผลการค้นหา" subtitle="ลองใช้คำค้นหาอื่นดูนะ" />}
     </View>
   );

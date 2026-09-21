@@ -5,8 +5,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NewsProvider, useNews } from './src/store/NewsContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
+import { useEffect } from 'react';
+import { initializeMobileAds } from './src/config/ads';
+import { initInterstitialAd } from './src/services/interstitialService';
+
 function AppShell() {
   const { colors, isDark } = useNews();
+
+  useEffect(() => {
+    void initializeMobileAds().then(() => {
+      initInterstitialAd();
+    });
+  }, []);
   const navigationTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {

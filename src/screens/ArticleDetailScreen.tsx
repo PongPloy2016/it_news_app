@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AdBanner } from '../components/AdBanner';
 import { AiReaderCard } from '../components/AiReaderCard';
 import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
@@ -280,6 +281,9 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
           </View>
         )}
 
+        {/* AdMob Banner */}
+        <AdBanner style={styles.detailAdBanner} />
+
         {/* Open Original Source Web Link Button */}
         <Pressable
           hitSlop={8}
@@ -298,6 +302,10 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 36 },
+  detailAdBanner: {
+    marginVertical: 16,
+    borderRadius: 8,
+  },
   imageWrap: {
     height: 240,
     width: '100%',
