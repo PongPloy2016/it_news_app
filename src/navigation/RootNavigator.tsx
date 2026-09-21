@@ -176,7 +176,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
           return (
             <Pressable
-              key={channel.key}
+              key={`${channel.groupKey}-${channel.key}`}
               onPress={() => {
                 setSelectedFeedKey(channel.key);
                 navigateToTab('Latest');
@@ -217,7 +217,11 @@ function DrawerContent(props: DrawerContentComponentProps) {
                     },
                   ]}
                 >
-                  {channel.label}
+                  {channel.type === 'aggregate'
+                    ? filterGroupKey === 'all'
+                      ? `⚡ ทั้งหมด · ${channel.groupLabel.replace('ข่าว', '')}`
+                      : '⚡ รวมข่าวใหม่ทั้งหมด'
+                    : channel.label}
                 </Text>
                 {hasNew && <View style={styles.channelNewDot} />}
               </View>

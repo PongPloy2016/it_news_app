@@ -25,7 +25,7 @@ const defaultSettings: AppSettings = {
   themeMode: 'system',
   fontSize: 'medium',
   cardLayout: 'magazine',
-  aiReaderEnabled: true,
+  aiReaderEnabled: false,
 };
 
 interface NewsContextValue {
@@ -43,7 +43,7 @@ interface NewsContextValue {
   isDark: boolean;
   colors: AppColors;
   scale: number;
-  refresh: () => Promise<void>;
+  refresh: (forceRefresh?: boolean) => Promise<void>;
   setSelectedFeedKey: (key: string) => void;
   toggleBookmark: (article: NewsArticle) => void;
   addSearchHistory: (query: string) => void;
@@ -114,7 +114,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
             ...defaultSettings,
             ...cachedSettings,
             cardLayout: cachedSettings.cardLayout ?? 'magazine',
-            aiReaderEnabled: cachedSettings.aiReaderEnabled ?? true,
+            aiReaderEnabled: false,
           });
         }
         if (cachedUpdated) setLastUpdated(cachedUpdated);
@@ -128,11 +128,15 @@ export function NewsProvider({ children }: PropsWithChildren) {
   }, []);
 
   // 2. Fetch news via Feed Worker Queue
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (forceRefresh: boolean = true) => {
     if (isRefreshing) return;
     setIsRefreshing(true);
 
     try {
+      if (forceRefresh) {
+        feedService.invalidateFeedCache(selectedFeed.key);
+      }
+
       // Fetch via Concurrency Queue with high priority
       const parsed = await feedService.fetchFeed(selectedFeed, 0);
       if (!parsed.length) throw new Error('Feed is empty');
@@ -200,8 +204,10 @@ export function NewsProvider({ children }: PropsWithChildren) {
     const shouldRefreshOnFeedChange =
       previousFeedKeyRef.current !== null && previousFeedKeyRef.current !== selectedFeedKey;
     previousFeedKeyRef.current = selectedFeedKey;
-    if (shouldRefreshOnFeedChange || !lastUpdated || Date.now() - lastUpdated > STALE_AFTER_MS) {
-      void refresh();
+    if (shouldRefreshOnFeedChange) {
+      void refresh(false);
+    } else if (!lastUpdated || Date.now() - lastUpdated > STALE_AFTER_MS) {
+      void refresh(true);
     }
   }, [isHydrated, lastUpdated, refresh, selectedFeedKey]);
 

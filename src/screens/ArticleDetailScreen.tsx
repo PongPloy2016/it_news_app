@@ -16,10 +16,10 @@ import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { RootStackParamList } from '../types';
-import { generateAiSummary } from '../utils/aiSummary';
+import { cleanNewsContent, generateAiSummary } from '../utils/aiSummary';
 import { formatRelative, stripHtml } from '../utils/content';
 import { shareArticle } from '../utils/share';
-import { speakArticleText, stopSpeaking } from '../utils/speech';
+import { SpeechRate, speakArticleText, stopSpeaking } from '../utils/speech';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Article'>;
 
@@ -27,8 +27,9 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { articles, bookmarks, colors, scale, toggleBookmark, isDark, settings, selectedFeed } = useNews();
   const isAiEnabled = settings.aiReaderEnabled;
-  const [readerMode, setReaderMode] = useState<'ai' | 'full'>('ai');
+  const [readerMode, setReaderMode] = useState<'ai' | 'full'>(isAiEnabled ? 'ai' : 'full');
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const [speechRate, setSpeechRate] = useState<SpeechRate>(0.9);
 
   const article =
     articles.find((item) => item.id === route.params.articleId) ??
@@ -58,17 +59,31 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
 
   const bookmarked = Boolean(bookmarks[article.id]);
 
-  const handleQuickVoicePlay = () => {
-    if (isVoicePlaying) {
+  const handleToggleVoice = (newRate?: SpeechRate) => {
+    const rateToUse = newRate ?? speechRate;
+    if (isVoicePlaying && !newRate) {
       stopSpeaking();
       setIsVoicePlaying(false);
     } else {
       setIsVoicePlaying(true);
-      speakArticleText(aiSummary.speechScript, {
+      const textToRead =
+        readerMode === 'full'
+          ? `${article.title}. ${cleanNewsContent(article.content || article.description || '')}`
+          : aiSummary.speechScript;
+
+      speakArticleText(textToRead, {
+        rate: rateToUse,
         onDone: () => setIsVoicePlaying(false),
         onStopped: () => setIsVoicePlaying(false),
         onError: () => setIsVoicePlaying(false),
       });
+    }
+  };
+
+  const handleChangeRate = (rate: SpeechRate) => {
+    setSpeechRate(rate);
+    if (isVoicePlaying) {
+      handleToggleVoice(rate);
     }
   };
 
@@ -146,7 +161,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
           {isAiEnabled && (
             <Pressable
               hitSlop={8}
-              onPress={handleQuickVoicePlay}
+              onPress={() => handleToggleVoice()}
               style={[
                 styles.actionButton,
                 styles.aiVoiceButton,
@@ -231,7 +246,14 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
             </View>
 
             {readerMode === 'ai' ? (
-              <AiReaderCard summary={aiSummary} articleTitle={article.title} />
+              <AiReaderCard
+                summary={aiSummary}
+                articleTitle={article.title}
+                isPlaying={isVoicePlaying}
+                onTogglePlay={() => handleToggleVoice()}
+                rate={speechRate}
+                onRateChange={handleChangeRate}
+              />
             ) : (
               <View style={styles.originalContentWrap}>
                 <Text style={[styles.description, { color: colors.text, fontSize: 16 * scale, lineHeight: 28 * scale }]}>

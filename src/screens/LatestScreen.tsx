@@ -167,6 +167,7 @@ export function LatestScreen() {
     >
       {activeSources.map((feed) => {
         const active = feed.key === selectedFeedKey;
+        const isAggregate = feed.type === 'aggregate';
         const groupColor = activeGroup.color;
         return (
           <Pressable
@@ -175,18 +176,34 @@ export function LatestScreen() {
             style={[
               styles.subTabItem,
               {
-                backgroundColor: active ? groupColor : colors.surface,
-                borderColor: active ? groupColor : colors.border,
+                backgroundColor: active
+                  ? groupColor
+                  : isAggregate
+                  ? withAlpha(groupColor, 0.12)
+                  : colors.surface,
+                borderColor: active
+                  ? groupColor
+                  : isAggregate
+                  ? withAlpha(groupColor, 0.4)
+                  : colors.border,
               },
             ]}
           >
+            {isAggregate && (
+              <MaterialCommunityIcons
+                name="lightning-bolt"
+                size={13 * scale}
+                color={active ? '#FFFFFF' : groupColor}
+                style={{ marginRight: 3 }}
+              />
+            )}
             <Text
               style={[
                 styles.subTabLabel,
                 {
-                  color: active ? '#FFFFFF' : colors.text,
+                  color: active ? '#FFFFFF' : isAggregate ? groupColor : colors.text,
                   fontSize: 11.5 * scale,
-                  fontWeight: active ? '700' : '500',
+                  fontWeight: active || isAggregate ? '700' : '500',
                 },
               ]}
             >
@@ -520,6 +537,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
     paddingHorizontal: 12,
     paddingVertical: 5,

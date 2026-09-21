@@ -16,6 +16,10 @@ import { SpeechRate, isSpeaking, speakArticleText, stopSpeaking } from '../utils
 interface Props {
   summary: AiSummaryResult;
   articleTitle: string;
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
+  rate?: SpeechRate;
+  onRateChange?: (rate: SpeechRate) => void;
 }
 
 const RATES: SpeechRate[] = [0.9, 1.1, 1.35];
@@ -25,11 +29,28 @@ const RATE_LABELS: Record<number, string> = {
   1.35: '1.5x',
 };
 
-export function AiReaderCard({ summary, articleTitle }: Props) {
+function formatReadingTime(seconds: number): string {
+  if (seconds < 60) return `~${seconds} วินาที`;
+  const mins = Math.floor(seconds / 60);
+  const remainingSec = seconds % 60;
+  return remainingSec > 0 ? `~${mins} นาที ${remainingSec} วิ` : `~${mins} นาที`;
+}
+
+export function AiReaderCard({
+  summary,
+  articleTitle,
+  isPlaying: controlledIsPlaying,
+  onTogglePlay,
+  rate: controlledRate,
+  onRateChange,
+}: Props) {
   const { colors, scale, isDark } = useNews();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentRateIdx, setCurrentRateIdx] = useState(0);
+  const [internalPlaying, setInternalPlaying] = useState(false);
+  const [internalRateIdx, setInternalRateIdx] = useState(0);
   const [waveAnim] = useState(new Animated.Value(0));
+
+  const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalPlaying;
+  const currentRate = controlledRate !== undefined ? controlledRate : RATES[internalRateIdx];
 
   // Audio wave animation
   useEffect(() => {
@@ -63,35 +84,49 @@ export function AiReaderCard({ summary, articleTitle }: Props) {
   // Clean up audio when component unmounts
   useEffect(() => {
     return () => {
-      stopSpeaking();
+      if (controlledIsPlaying === undefined) {
+        stopSpeaking();
+      }
     };
-  }, []);
+  }, [controlledIsPlaying]);
 
   const handleTogglePlay = () => {
+    if (onTogglePlay) {
+      onTogglePlay();
+      return;
+    }
+
     if (isPlaying) {
       stopSpeaking();
-      setIsPlaying(false);
+      setInternalPlaying(false);
     } else {
-      setIsPlaying(true);
+      setInternalPlaying(true);
       speakArticleText(summary.speechScript, {
-        rate: RATES[currentRateIdx],
-        onDone: () => setIsPlaying(false),
-        onStopped: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
+        rate: currentRate,
+        onDone: () => setInternalPlaying(false),
+        onStopped: () => setInternalPlaying(false),
+        onError: () => setInternalPlaying(false),
       });
     }
   };
 
   const handleCycleRate = () => {
-    const nextIdx = (currentRateIdx + 1) % RATES.length;
-    setCurrentRateIdx(nextIdx);
+    const currentIdx = RATES.indexOf(currentRate);
+    const nextIdx = (currentIdx + 1) % RATES.length;
+    const nextRate = RATES[nextIdx];
+
+    if (onRateChange) {
+      onRateChange(nextRate);
+      return;
+    }
+
+    setInternalRateIdx(nextIdx);
     if (isPlaying) {
-      // restart with new rate
       speakArticleText(summary.speechScript, {
-        rate: RATES[nextIdx],
-        onDone: () => setIsPlaying(false),
-        onStopped: () => setIsPlaying(false),
-        onError: () => setIsPlaying(false),
+        rate: nextRate,
+        onDone: () => setInternalPlaying(false),
+        onStopped: () => setInternalPlaying(false),
+        onError: () => setInternalPlaying(false),
       });
     }
   };
@@ -116,7 +151,7 @@ export function AiReaderCard({ summary, articleTitle }: Props) {
         <View style={styles.timeTag}>
           <MaterialCommunityIcons name="clock-fast" size={13} color={colors.primary} />
           <Text style={[styles.timeTagText, { color: colors.primary, fontSize: 11 * scale }]}>
-            สรุป ~{summary.readingTimeSec} วินาที
+            สรุป {formatReadingTime(summary.readingTimeSec)}
           </Text>
         </View>
       </View>
@@ -189,7 +224,7 @@ export function AiReaderCard({ summary, articleTitle }: Props) {
           style={[styles.rateButton, { backgroundColor: colors.surfaceVariant }]}
         >
           <Text style={[styles.rateText, { color: colors.primary, fontSize: 11.5 * scale }]}>
-            {RATE_LABELS[RATES[currentRateIdx]]}
+            {RATE_LABELS[currentRate]}
           </Text>
         </Pressable>
 
@@ -198,7 +233,11 @@ export function AiReaderCard({ summary, articleTitle }: Props) {
             hitSlop={8}
             onPress={() => {
               stopSpeaking();
-              setIsPlaying(false);
+              if (onTogglePlay) {
+                onTogglePlay();
+              } else {
+                setInternalPlaying(false);
+              }
             }}
             style={styles.stopButton}
           >

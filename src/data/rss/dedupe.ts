@@ -4,11 +4,13 @@ export function dedupeAndSortArticles(articles: NewsArticle[]): NewsArticle[] {
   const unique = new Map<string, NewsArticle>();
 
   for (const article of articles) {
-    if (!article || !article.id) continue;
+    if (!article) continue;
+    const dedupeKey = article.link?.trim() || article.id?.trim();
+    if (!dedupeKey) continue;
     // Prefer article with image if duplicate key
-    const existing = unique.get(article.id);
+    const existing = unique.get(dedupeKey);
     if (!existing || (!existing.imageUrl && article.imageUrl)) {
-      unique.set(article.id, article);
+      unique.set(dedupeKey, article);
     }
   }
 

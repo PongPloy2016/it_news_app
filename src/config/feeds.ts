@@ -1,4 +1,4 @@
-export type SourceType = 'rss' | 'atom' | 'html';
+export type SourceType = 'rss' | 'atom' | 'html' | 'aggregate';
 
 export type FeedSource = {
   key: string;
@@ -9,17 +9,17 @@ export type FeedSource = {
 };
 
 export const techBusinessSources: FeedSource[] = [
+  { key: 'blognone', label: 'Blognone', url: 'https://www.blognone.com/atom.xml', homepage: 'https://www.blognone.com', type: 'atom' },
   { key: 'brandinside', label: 'Brand Inside', url: 'https://brandinside.asia/feed/', homepage: 'https://brandinside.asia', type: 'rss' },
   { key: 'marketingoops', label: 'Marketing Oops', url: 'https://www.marketingoops.com/feed/', homepage: 'https://www.marketingoops.com', type: 'rss' },
   { key: 'adpt-news', label: 'ADPT News', url: 'https://www.adpt.news/feed/', homepage: 'https://www.adpt.news', type: 'rss' },
   { key: 'borntodev', label: 'Born to Dev', url: 'https://www.borntodev.com/feed/', homepage: 'https://www.borntodev.com', type: 'rss' },
-  { key: 'blognone', label: 'Blognone', url: 'https://www.blognone.com/atom.xml', homepage: 'https://www.blognone.com', type: 'atom' },
   { key: 'techsauce', label: 'Techsauce', url: 'https://techsauce.co/feed', homepage: 'https://techsauce.co', type: 'rss' },
   { key: 'beartai', label: 'Beartai', url: 'https://www.beartai.com/feed/', homepage: 'https://www.beartai.com', type: 'rss' },
   { key: 'techtalkthai', label: 'TechTalkThai', url: 'https://www.techtalkthai.com/feed/', homepage: 'https://www.techtalkthai.com', type: 'rss' },
-  { key: 'google-tech', label: 'Google Tech', url: 'https://news.google.com/rss/search?q=เทคโนโลยี&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
-  { key: 'google-ai', label: 'Google AI', url: 'https://news.google.com/rss/search?q=AI+OR+ปัญญาประดิษฐ์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
-  { key: 'google-cyber', label: 'Google Cyber', url: 'https://news.google.com/rss/search?q=Cybersecurity+OR+ความปลอดภัยไซเบอร์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'techhub', label: 'Techhub', url: 'https://www.techhub.in.th/feed/', homepage: 'https://www.techhub.in.th', type: 'rss' },
+  { key: 'thaiware', label: 'Thaiware', url: 'https://www.thaiware.com/rss/rss_latestPost_news.php', homepage: 'https://www.thaiware.com', type: 'rss' },
+  { key: 'sanook-hitech-computer', label: 'Sanook Hitech Computer', url: 'https://rssfeeds.sanook.com/rss/feeds/sanook/hitech.computer.index.xml', homepage: 'https://hitech.sanook.com', type: 'rss' },
 ];
 
 export const techInternationalSources: FeedSource[] = [
@@ -40,17 +40,58 @@ export const techInternationalSources: FeedSource[] = [
   { key: 'venturebeat', label: 'VentureBeat', url: 'https://venturebeat.com/feed/', homepage: 'https://venturebeat.com', type: 'rss' },
   { key: 'techradar', label: 'TechRadar', url: 'https://www.techradar.com/rss', homepage: 'https://www.techradar.com', type: 'rss' },
 ];
+export default techInternationalSources;
 
 export const thaiNewsSources: FeedSource[] = [
-  { key: 'bangkokbiz', label: 'Bangkok Biz', url: 'https://www.bangkokbiznews.com/tech', homepage: 'https://www.bangkokbiznews.com/tech', type: 'html' },
-  { key: 'thaieconomy', label: 'ฐานเศรษฐกิจ', url: 'https://www.thansettakij.com/technology', homepage: 'https://www.thansettakij.com/technology', type: 'html' },
-  { key: 'tnn-th', label: 'TNN Thailand', url: 'https://www.tnnthailand.com/tech/', homepage: 'https://www.tnnthailand.com/tech/', type: 'html' },
-  { key: 'nation-th', label: 'Nation Thailand', url: 'https://www.nationthailand.com/business/tech', homepage: 'https://www.nationthailand.com/business/tech', type: 'html' },
-  { key: 'pptv-th', label: 'PPTV HD 36', url: 'https://www.pptvhd36.com/news/%E0%B9%84%E0%B8%AD%E0%B8%97%E0%B8%B5', homepage: 'https://www.pptvhd36.com/news/%E0%B9%84%E0%B8%AD%E0%B8%97%E0%B8%B5', type: 'html' },
-  { key: 'thairath', label: 'ไทยรัฐ', url: 'https://www.thairath.co.th/lifestyle/tech', homepage: 'https://www.thairath.co.th/lifestyle/tech', type: 'html' },
-  { key: 'sanook-hitech', label: 'Sanook Hitech', url: 'https://www.sanook.com/hitech/', homepage: 'https://www.sanook.com/hitech/', type: 'html' },
-  { key: 'spring-news', label: 'Spring News', url: 'https://www.springnews.co.th/digital-tech', homepage: 'https://www.springnews.co.th/digital-tech', type: 'html' },
-  { key: 'manager-online', label: 'ผู้จัดการออนไลน์', url: 'https://mgronline.com/cyberbiz', homepage: 'https://mgronline.com/cyberbiz', type: 'html' },
+  // =========================
+  // 🇹🇭 สำนักข่าว / หนังสือพิมพ์
+  // =========================
+  {
+    key: 'nation',
+    label: 'Nation TV',
+    url: 'https://www.nationtv.tv/main/rss',
+    homepage: 'https://www.nationtv.tv',
+    type: 'rss',
+  },
+  {
+    key: 'matichon',
+    label: 'Matichon',
+    url: 'https://www.matichon.co.th/feed',
+    homepage: 'https://www.matichon.co.th',
+    type: 'rss',
+  },
+  {
+    key: 'dailynews',
+    label: 'DailyNews',
+    url: 'https://www.dailynews.co.th/feed',
+    homepage: 'https://www.dailynews.co.th',
+    type: 'rss',
+  },
+  {
+    key: 'khaosod',
+    label: 'Khaosod',
+    url: 'https://www.khaosod.co.th/feed',
+    homepage: 'https://www.khaosod.co.th',
+    type: 'rss',
+  },
+  {
+    key: 'mgronline',
+    label: 'MGR Online',
+    url: 'https://mgronline.com/store/rss/index.xml',
+    homepage: 'https://mgronline.com',
+    type: 'rss',
+  },
+
+  // =========================
+  // 🏦 ข่าวเศรษฐกิจ / ธุรกิจ
+  // =========================
+  {
+    key: 'prachachat',
+    label: 'Prachachat',
+    url: 'https://www.prachachat.net/feed',
+    homepage: 'https://www.prachachat.net',
+    type: 'rss',
+  },
 ];
 
 export const mobileSources: FeedSource[] = [

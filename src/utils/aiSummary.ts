@@ -54,7 +54,7 @@ function extractKeyTags(text: string): string[] {
 /**
  * Cleans boilerplate text from RSS feeds (e.g. "[...] The post appeared first on...")
  */
-function cleanNewsContent(raw: string): string {
+export function cleanNewsContent(raw: string): string {
   let text = stripHtml(raw);
   // remove WordPress / feed boilerplates
   text = text.replace(/\[\.\.\.\]/g, ' ');
@@ -63,6 +63,8 @@ function cleanNewsContent(raw: string): string {
   text = text.replace(/อ่านเพิ่มเติมได้ที่ .+/gi, '');
   text = text.replace(/อ่านต่อที่ .+/gi, '');
   text = text.replace(/source: .+/gi, '');
+  // remove http/https URLs so TTS doesn't stumble or read long URLs
+  text = text.replace(/https?:\/\/\S+/gi, '');
   return text.replace(/\s+/g, ' ').trim();
 }
 
@@ -141,31 +143,48 @@ export function generateAiSummary(title: string, rawContent?: string): AiSummary
     );
   }
 
-  // 3. Generate natural speech script for AI TTS
+  // 3. Generate natural speech script for AI TTS - Reads FULLY without cutting off
   const speechParts: string[] = [];
   if (isThai) {
-    speechParts.push(`สรุปข่าวโดย เอไอ.`);
-    speechParts.push(title + '.');
-    if (keyTags.length > 0) {
-      speechParts.push(`จุดเด่นสำคัญ ได้แก่ ${keyTags.join(', ')}.`);
+    speechParts.push('สรุปข่าวโดย เอไอ.');
+    speechParts.push(`${title}.`);
+    if (tldr) {
+      speechParts.push(`ใจความสำคัญ: ${tldr}.`);
     }
-    if (content.length > 20) {
-      speechParts.push(content.slice(0, 180) + '.');
+    if (keyPoints.length > 0) {
+      speechParts.push('ประเด็นสำคัญมีดังนี้ครับ.');
+      keyPoints.forEach((point, idx) => {
+        speechParts.push(`ข้อ ${idx + 1}. ${point}.`);
+      });
+    }
+    if (content.length > 0) {
+      speechParts.push(`รายละเอียดข่าวเพิ่มเติม: ${content}`);
     }
   } else {
-    speechParts.push(`AI News Summary.`);
-    speechParts.push(title + '.');
-    if (keyTags.length > 0) {
-      speechParts.push(`Key highlights include ${keyTags.join(', ')}.`);
+    speechParts.push('AI News Summary.');
+    speechParts.push(`${title}.`);
+    if (tldr) {
+      speechParts.push(`Summary: ${tldr}.`);
     }
-    if (content.length > 20) {
-      speechParts.push(content.slice(0, 200) + '.');
+    if (keyPoints.length > 0) {
+      speechParts.push('Key points:');
+      keyPoints.forEach((point, idx) => {
+        speechParts.push(`Point ${idx + 1}. ${point}.`);
+      });
+    }
+    if (content.length > 0) {
+      speechParts.push(`Full details: ${content}`);
     }
   }
 
   const speechScript = speechParts.join(' ');
-  const wordCount = speechScript.split(/\s+/).length;
-  const readingTimeSec = Math.max(15, Math.ceil((wordCount / 130) * 60));
+  let readingTimeSec = 15;
+  if (isThai) {
+    readingTimeSec = Math.max(15, Math.ceil(speechScript.length / 8));
+  } else {
+    const wordCount = speechScript.split(/\s+/).filter(Boolean).length;
+    readingTimeSec = Math.max(15, Math.ceil((wordCount / 140) * 60));
+  }
 
   return {
     tldr,

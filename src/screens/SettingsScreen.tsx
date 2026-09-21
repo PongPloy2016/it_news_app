@@ -91,27 +91,30 @@ export function SettingsScreen() {
         })}
       </Section>
 
-      <Section title="ฟีเจอร์ AI (AI Features)">
-        <View style={styles.switchRow}>
-          <View style={{ flex: 1, marginRight: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <MaterialCommunityIcons name="creation" size={19} color="#6366F1" />
-              <Text style={[styles.switchTitle, { color: colors.text, fontSize: 15 * scale }]}>
-                โหมดอ่านแบบ AI (AI Smart Reader)
+      {/* ซ่อนฟีเจอร์ AI ในหน้าตั้งค่าชั่วคราว */}
+      {false && (
+        <Section title="ฟีเจอร์ AI (AI Features)">
+          <View style={styles.switchRow}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MaterialCommunityIcons name="creation" size={19} color="#6366F1" />
+                <Text style={[styles.switchTitle, { color: colors.text, fontSize: 15 * scale }]}>
+                  โหมดอ่านแบบ AI (AI Smart Reader)
+                </Text>
+              </View>
+              <Text style={[styles.switchDesc, { color: colors.muted, fontSize: 12 * scale }]}>
+                แสดงบทสรุปประเด็นสำคัญและระบบอ่านออกเสียง AI ในหน้ารายละเอียดข่าว
               </Text>
             </View>
-            <Text style={[styles.switchDesc, { color: colors.muted, fontSize: 12 * scale }]}>
-              แสดงบทสรุปประเด็นสำคัญและระบบอ่านออกเสียง AI ในหน้ารายละเอียดข่าว
-            </Text>
+            <Switch
+              value={settings.aiReaderEnabled}
+              onValueChange={setAiReaderEnabled}
+              trackColor={{ false: colors.border, true: '#6366F1' }}
+              thumbColor={settings.aiReaderEnabled ? '#FFFFFF' : '#94A3B8'}
+            />
           </View>
-          <Switch
-            value={settings.aiReaderEnabled}
-            onValueChange={setAiReaderEnabled}
-            trackColor={{ false: colors.border, true: '#6366F1' }}
-            thumbColor={settings.aiReaderEnabled ? '#FFFFFF' : '#94A3B8'}
-          />
-        </View>
-      </Section>
+        </Section>
+      )}
 
       <Section title="ธีม">
         {themeOptions.map(([value, label]) => <RadioRow key={value} label={label}
