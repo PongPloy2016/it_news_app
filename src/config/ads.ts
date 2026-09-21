@@ -4,15 +4,9 @@ export const ADMOB_APP_ID = 'ca-app-pub-7617756372558825~3760194254';
 export const PRODUCTION_BANNER_AD_UNIT_ID = 'ca-app-pub-7617756372558825/6620045902';
 export const PRODUCTION_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-7617756372558825/7821446931';
 
-// In development mode, use Google's official Test ID to protect your AdMob account from policy violations.
-// In production builds, the real ad unit ID is used automatically.
-export const BANNER_AD_UNIT_ID = __DEV__
-  ? TestIds.BANNER
-  : PRODUCTION_BANNER_AD_UNIT_ID;
-
-export const INTERSTITIAL_AD_UNIT_ID = __DEV__
-  ? TestIds.INTERSTITIAL
-  : PRODUCTION_INTERSTITIAL_AD_UNIT_ID;
+// Directly use real production AdMob Ad Unit IDs
+export const BANNER_AD_UNIT_ID = PRODUCTION_BANNER_AD_UNIT_ID;
+export const INTERSTITIAL_AD_UNIT_ID = PRODUCTION_INTERSTITIAL_AD_UNIT_ID;
 
 let isAdsInitialized = false;
 
