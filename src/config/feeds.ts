@@ -18,8 +18,13 @@ export const techBusinessSources: FeedSource[] = [
   { key: 'beartai', label: 'Beartai', url: 'https://www.beartai.com/feed/', homepage: 'https://www.beartai.com', type: 'rss' },
   { key: 'techtalkthai', label: 'TechTalkThai', url: 'https://www.techtalkthai.com/feed/', homepage: 'https://www.techtalkthai.com', type: 'rss' },
   { key: 'techhub', label: 'Techhub', url: 'https://www.techhub.in.th/feed/', homepage: 'https://www.techhub.in.th', type: 'rss' },
+  { key: 'it24hrs', label: 'IT24Hrs', url: 'https://it24hrs.com/feed/', homepage: 'https://it24hrs.com', type: 'rss' },
+  { key: 'spin9', label: 'spin9', url: 'https://spin9.me/feed/', homepage: 'https://spin9.me', type: 'rss' },
+  { key: 'techoffside', label: 'TechOffside', url: 'https://www.techoffside.com/feed/', homepage: 'https://www.techoffside.com', type: 'rss' },
+  { key: 'thumbsup', label: 'Thumbsup', url: 'https://www.thumbsup.in.th/feed', homepage: 'https://www.thumbsup.in.th', type: 'rss' },
   { key: 'thaiware', label: 'Thaiware', url: 'https://www.thaiware.com/rss/rss_latestPost_news.php', homepage: 'https://www.thaiware.com', type: 'rss' },
   { key: 'sanook-hitech-computer', label: 'Sanook Hitech Computer', url: 'https://rssfeeds.sanook.com/rss/feeds/sanook/hitech.computer.index.xml', homepage: 'https://hitech.sanook.com', type: 'rss' },
+  { key: 'google-tech-th', label: 'Google ข่าวไอที', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
 
 export const techInternationalSources: FeedSource[] = [
@@ -47,10 +52,45 @@ export const thaiNewsSources: FeedSource[] = [
   // 🇹🇭 สำนักข่าว / หนังสือพิมพ์
   // =========================
   {
+    key: 'thestandard',
+    label: 'THE STANDARD',
+    url: 'https://thestandard.co/feed/',
+    homepage: 'https://thestandard.co',
+    type: 'rss',
+  },
+  {
     key: 'thaipbs',
     label: 'Thai PBS',
     url: 'https://news.thaipbs.or.th/rss/news/home',
     homepage: 'https://www.thaipbs.or.th',
+    type: 'rss',
+  },
+  {
+    key: 'bbc-thai',
+    label: 'BBC News ไทย',
+    url: 'https://feeds.bbci.co.uk/thai/rss.xml',
+    homepage: 'https://www.bbc.com/thai',
+    type: 'rss',
+  },
+  {
+    key: 'workpoint-today',
+    label: 'TODAY',
+    url: 'https://www.workpointtoday.com/feed',
+    homepage: 'https://www.workpointtoday.com',
+    type: 'rss',
+  },
+  {
+    key: 'sanook-news',
+    label: 'Sanook News',
+    url: 'https://rssfeeds.sanook.com/rss/feeds/sanook/news.index.xml',
+    homepage: 'https://www.sanook.com/news',
+    type: 'rss',
+  },
+  {
+    key: 'the-momentum',
+    label: 'The Momentum',
+    url: 'https://themomentum.co/feed/',
+    homepage: 'https://themomentum.co',
     type: 'rss',
   },
   {
@@ -107,6 +147,7 @@ export const mobileSources: FeedSource[] = [
   { key: 'flashfly', label: 'Flashfly', url: 'https://www.flashfly.net/wp/feed', homepage: 'https://www.flashfly.net', type: 'rss' },
   { key: 'iphone-mod', label: 'iMoD', url: 'https://www.iphonemod.net/feed', homepage: 'https://www.iphonemod.net', type: 'rss' },
   { key: 'droidsans', label: 'DroidSans', url: 'https://droidsans.com/feed/', homepage: 'https://droidsans.com', type: 'rss' },
+  { key: 'whatphone', label: 'WhatPhone', url: 'https://whatphone.net/feed/', homepage: 'https://whatphone.net', type: 'rss' },
   { key: 'google-android', label: 'Google Android', url: 'https://news.google.com/rss/search?q=Android&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
   { key: 'google-iphone', label: 'Apple / iPhone', url: 'https://news.google.com/rss/search?q=Apple+OR+iPhone&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
@@ -114,6 +155,8 @@ export const mobileSources: FeedSource[] = [
 export const computerSources: FeedSource[] = [
   { key: 'notebookspec', label: 'NotebookSPEC', url: 'https://notebookspec.com/web/feed', homepage: 'https://notebookspec.com', type: 'rss' },
   { key: 'gamingdose', label: 'GamingDose', url: 'https://www.gamingdose.com/feed/', homepage: 'https://www.gamingdose.com', type: 'rss' },
+  { key: 'game-ded', label: 'Game-Ded', url: 'https://www.game-ded.com/feed', homepage: 'https://www.game-ded.com', type: 'rss' },
+  { key: 'gamemonday', label: 'GameMonday', url: 'https://www.gamemonday.com/feed', homepage: 'https://www.gamemonday.com', type: 'rss' },
   { key: 'extremeit', label: 'Extreme IT', url: 'https://www.extremeit.com/feed/', homepage: 'https://www.extremeit.com', type: 'rss' },
   { key: 'google-cloud', label: 'Cloud / DC', url: 'https://news.google.com/rss/search?q=Cloud+OR+Data+Center&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
