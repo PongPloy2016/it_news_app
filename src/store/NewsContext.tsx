@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { useColorScheme } from 'react-native';
-import { DEFAULT_FEED_KEY, FEED_SOURCES, FeedSource } from '../config';
+import { DEFAULT_FEED_KEY, FEED_GROUPS, FEED_SOURCES, FeedGroup, FeedSource } from '../config';
 import { STALE_AFTER_MS } from '../config/constants';
 import {
   articleRepository,
@@ -17,7 +17,7 @@ import {
   historyRepository,
   storage,
 } from '../data/database';
-import { feedService, imageService } from '../services';
+import { feedService, imageService, loadFeedConfiguration } from '../services';
 import { AppColors, darkColors, fontScale, lightColors } from '../theme';
 import { AppSettings, CardLayoutOption, FontSizeOption, NewsArticle, ThemeMode } from '../types';
 
@@ -35,6 +35,9 @@ interface NewsContextValue {
   settings: AppSettings;
   selectedFeedKey: string;
   selectedFeed: FeedSource;
+  feedGroups: FeedGroup[];
+  feedSources: FeedSource[];
+  isOnlineFeeds: boolean;
   isHydrated: boolean;
   isRefreshing: boolean;
   hasFetchError: boolean;
@@ -74,6 +77,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [readArticles, setReadArticles] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  const [feedGroups, setFeedGroups] = useState<FeedGroup[]>(FEED_GROUPS);
+  const [feedSources, setFeedSources] = useState<FeedSource[]>(FEED_SOURCES);
+  const [isOnlineFeeds, setIsOnlineFeeds] = useState<boolean>(false);
   const [selectedFeedKey, setSelectedFeedKeyState] = useState<string>(DEFAULT_FEED_KEY);
   const [lastUpdated, setLastUpdated] = useState<number>();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -87,8 +93,32 @@ export function NewsProvider({ children }: PropsWithChildren) {
     settings.themeMode === 'dark' ||
     (settings.themeMode === 'system' && systemScheme === 'dark');
   const colors = isDark ? darkColors : lightColors;
-  const selectedFeed = FEED_SOURCES.find((item) => item.key === selectedFeedKey) ?? FEED_SOURCES[0];
+  const selectedFeed = useMemo(
+    () => feedSources.find((item) => item.key === selectedFeedKey) ?? feedSources[0] ?? FEED_SOURCES[0],
+    [feedSources, selectedFeedKey],
+  );
   const previousFeedKeyRef = useRef<string | null>(null);
+
+  // 1. Dynamic Feed Sources: Supabase (Online) -> Local categories.ts & feeds.ts (Offline)
+  useEffect(() => {
+    let isMounted = true;
+    void (async () => {
+      try {
+        const config = await loadFeedConfiguration();
+        if (isMounted) {
+          setFeedGroups(config.groups);
+          setFeedSources(config.sources);
+          setIsOnlineFeeds(config.isFromSupabase);
+          feedService.setFeedGroups(config.groups);
+        }
+      } catch (err) {
+        console.warn('[NewsContext] Dynamic feed loading error:', err);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // 1. Initial Hydration from Storage
   useEffect(() => {
@@ -193,11 +223,14 @@ export function NewsProvider({ children }: PropsWithChildren) {
     }
   }, [articles, bookmarks, isRefreshing, readArticles, selectedFeed]);
 
-  const setSelectedFeedKey = useCallback((key: string) => {
-    const nextKey = FEED_SOURCES.some((item) => item.key === key) ? key : DEFAULT_FEED_KEY;
-    setSelectedFeedKeyState(nextKey);
-    void storage.set('blognone.selectedFeedKey', nextKey);
-  }, []);
+  const setSelectedFeedKey = useCallback(
+    (key: string) => {
+      const nextKey = feedSources.some((item) => item.key === key) ? key : DEFAULT_FEED_KEY;
+      setSelectedFeedKeyState(nextKey);
+      void storage.set('blognone.selectedFeedKey', nextKey);
+    },
+    [feedSources],
+  );
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -335,6 +368,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
       settings,
       selectedFeedKey,
       selectedFeed,
+      feedGroups,
+      feedSources,
+      isOnlineFeeds,
       isHydrated,
       isRefreshing,
       hasFetchError,
@@ -371,6 +407,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
       settings,
       selectedFeedKey,
       selectedFeed,
+      feedGroups,
+      feedSources,
+      isOnlineFeeds,
       isHydrated,
       isRefreshing,
       hasFetchError,

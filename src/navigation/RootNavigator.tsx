@@ -6,7 +6,6 @@ import { DrawerActions } from '@react-navigation/native';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FEED_GROUPS, FEED_SOURCES } from '../config';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
 import { BookmarksScreen } from '../screens/BookmarksScreen';
 import { LatestScreen } from '../screens/LatestScreen';
@@ -33,6 +32,7 @@ const withAlpha = (hex: string, alpha: number) => {
 
 function DrawerContent(props: DrawerContentComponentProps) {
   const {
+    feedGroups,
     colors,
     scale,
     selectedFeedKey,
@@ -65,7 +65,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
   // Build list of channels with their parent group color
   const channels = useMemo(() => {
-    return FEED_GROUPS.flatMap((group) =>
+    return feedGroups.flatMap((group) =>
       group.sources.map((source) => ({
         ...source,
         groupKey: group.key,
@@ -73,7 +73,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
         groupColor: group.color,
       }))
     );
-  }, []);
+  }, [feedGroups]);
 
   const filteredChannels = useMemo(() => {
     if (filterGroupKey === 'all') return channels;
@@ -152,7 +152,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
             </Text>
           </Pressable>
 
-          {FEED_GROUPS.map((group) => {
+          {feedGroups.map((group) => {
             const isSelected = filterGroupKey === group.key;
             return (
               <Pressable

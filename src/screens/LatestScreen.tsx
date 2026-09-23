@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
-import { FEED_GROUPS } from '../config';
 import { AdBanner } from '../components/AdBanner';
 import { AdCard } from '../components/AdCard';
 import { NewsCard } from '../components/NewsCard';
@@ -53,6 +52,7 @@ export function LatestScreen() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'read'>('all');
 
   const {
+    feedGroups,
     articles,
     bookmarks,
     colors,
@@ -78,10 +78,10 @@ export function LatestScreen() {
   } = useNews();
 
   const activeGroup = useMemo(
-    () => FEED_GROUPS.find((group) => group.sources.some((item) => item.key === selectedFeedKey)) ?? FEED_GROUPS[0],
-    [selectedFeedKey],
+    () => feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey)) ?? feedGroups[0],
+    [feedGroups, selectedFeedKey],
   );
-  const [activeGroupKey, setActiveGroupKey] = useState(activeGroup.key);
+  const [activeGroupKey, setActiveGroupKey] = useState(activeGroup?.key ?? 'tech-business');
 
   const newArticlesCount = useMemo(
     () => articles.filter(isArticleNew).length,
@@ -104,16 +104,16 @@ export function LatestScreen() {
   }, [filteredArticles.length]);
 
   useEffect(() => {
-    const matchedGroup = FEED_GROUPS.find((group) => group.sources.some((item) => item.key === selectedFeedKey));
+    const matchedGroup = feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey));
     if (matchedGroup) setActiveGroupKey(matchedGroup.key);
-  }, [selectedFeedKey]);
+  }, [feedGroups, selectedFeedKey]);
 
   const visibleArticles = filteredArticles.slice(0, visibleCount);
   const hasMore = visibleCount < filteredArticles.length;
-  const activeSources = activeGroup.sources;
+  const activeSources = activeGroup?.sources ?? [];
 
   const categoryTabs: UnderlineTabItem[] = useMemo(() => {
-    return FEED_GROUPS.map((group) => {
+    return feedGroups.map((group) => {
       const cleanLabel = group.label.replace(/^ข่าว/, '');
       const icon = GROUP_ICONS[group.key] || 'newspaper';
       return {
@@ -123,7 +123,7 @@ export function LatestScreen() {
         color: group.color,
       };
     });
-  }, []);
+  }, [feedGroups]);
 
   const renderCategoryTabBar = () => (
     <UnderlineTabBar
@@ -132,11 +132,11 @@ export function LatestScreen() {
       activeKey={activeGroupKey}
       onChange={(key) => {
         setActiveGroupKey(key);
-        const group = FEED_GROUPS.find((g) => g.key === key);
+        const group = feedGroups.find((g) => g.key === key);
         const firstFeed = group?.sources[0];
         if (firstFeed) setSelectedFeedKey(firstFeed.key);
       }}
-      indicatorColor={activeGroup.color}
+      indicatorColor={activeGroup?.color ?? '#2F6FED'}
       style={styles.mainTabBarWrap}
     />
   );

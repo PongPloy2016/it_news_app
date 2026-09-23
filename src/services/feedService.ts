@@ -1,4 +1,4 @@
-import { FEED_GROUPS } from '../config/categories';
+import { FEED_GROUPS, FeedGroup } from '../config/categories';
 import { MAX_CONCURRENT_FEEDS } from '../config/constants';
 import { FeedSource } from '../config/feeds';
 import { fetchAndParseFeed } from '../data/rss';
@@ -17,9 +17,20 @@ class FeedServiceQueue {
   private activeCount: number = 0;
   private concurrency: number = MAX_CONCURRENT_FEEDS;
   private cache: Map<string, { articles: NewsArticle[]; timestamp: number }> = new Map();
+  private feedGroups: FeedGroup[] = FEED_GROUPS;
 
   constructor(concurrency: number = MAX_CONCURRENT_FEEDS) {
     this.concurrency = concurrency;
+  }
+
+  setFeedGroups(groups: FeedGroup[]): void {
+    if (groups && groups.length > 0) {
+      this.feedGroups = groups;
+    }
+  }
+
+  getFeedGroups(): FeedGroup[] {
+    return this.feedGroups;
   }
 
   /**
@@ -80,7 +91,7 @@ class FeedServiceQueue {
       return cached.articles;
     }
 
-    const group = FEED_GROUPS.find((g) => g.sources.some((s) => s.key === aggregateFeed.key));
+    const group = this.feedGroups.find((g) => g.sources.some((s) => s.key === aggregateFeed.key));
     const childSources = (group?.sources ?? []).filter(
       (s) => s.type !== 'aggregate' && s.type !== 'html',
     );
@@ -185,7 +196,7 @@ class FeedServiceQueue {
     }
     this.cache.delete(key);
     if (key.startsWith('all:')) {
-      const group = FEED_GROUPS.find((g) => g.sources.some((s) => s.key === key));
+      const group = this.feedGroups.find((g) => g.sources.some((s) => s.key === key));
       if (group) {
         for (const s of group.sources) {
           this.cache.delete(s.key);
