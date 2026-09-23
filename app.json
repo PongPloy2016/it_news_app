@@ -23,6 +23,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "react-native-google-mobile-ads": {
+      "android_app_id": "ca-app-pub-7617756372558825~3760194254",
+      "ios_app_id": "ca-app-pub-3940256099942544~1458695864"
+    },
     "plugins": [
       "expo-font",
       [

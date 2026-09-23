@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdBanner } from '../components/AdBanner';
+import { AdCard } from '../components/AdCard';
 import { AiReaderCard } from '../components/AiReaderCard';
+import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
@@ -21,12 +23,13 @@ import { cleanNewsContent, generateAiSummary } from '../utils/aiSummary';
 import { formatRelative, stripHtml } from '../utils/content';
 import { shareArticle } from '../utils/share';
 import { SpeechRate, speakArticleText, stopSpeaking } from '../utils/speech';
+import { showInterstitialAndNavigate } from '../services/interstitialService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Article'>;
 
 export function ArticleDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { articles, bookmarks, colors, scale, toggleBookmark, isDark, settings, selectedFeed } = useNews();
+  const { articles, bookmarks, colors, scale, toggleBookmark, isDark, settings, selectedFeed, markAsRead } = useNews();
   const isAiEnabled = settings.aiReaderEnabled;
   const [readerMode, setReaderMode] = useState<'ai' | 'full'>(isAiEnabled ? 'ai' : 'full');
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
@@ -47,6 +50,11 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
     if (!article) return null;
     return generateAiSummary(article.title, article.content || article.description);
   }, [article]);
+
+  const otherArticles = useMemo(() => {
+    if (!article) return [];
+    return articles.filter((item) => item.id !== article.id).slice(0, 3);
+  }, [articles, article]);
 
   if (!article || !aiSummary) {
     return (
@@ -295,6 +303,47 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
           </Text>
           <MaterialCommunityIcons name="open-in-new" size={18} color={colors.onPrimary} />
         </Pressable>
+
+        {/* ข่าวอื่นๆ ที่น่าสนใจ (Other / Related News Section) */}
+        {otherArticles.length > 0 && (
+          <View style={[styles.relatedSection, { borderTopColor: colors.border }]}>
+            <View style={styles.relatedHeaderRow}>
+              <View style={[styles.relatedHeaderIconWrap, { backgroundColor: colors.surfaceVariant }]}>
+                <MaterialCommunityIcons
+                  name="newspaper-variant-multiple-outline"
+                  size={18 * scale}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.relatedSectionTitle, { color: colors.text, fontSize: 17 * scale }]}>
+                ข่าวอื่นๆ ที่น่าสนใจ
+              </Text>
+            </View>
+
+            <View style={styles.relatedList}>
+              {otherArticles.map((item) => (
+                <NewsCard
+                  key={item.id}
+                  article={item}
+                  isBookmarked={Boolean(bookmarks[item.id])}
+                  onToggleBookmark={() => toggleBookmark(item)}
+                  onPress={() => {
+                    markAsRead(item.id);
+                    void showInterstitialAndNavigate(() => {
+                      navigation.push('Article', { articleId: item.id });
+                    });
+                  }}
+                />
+              ))}
+            </View>
+
+            {/* Ads Card ต่อจากข่าวอื่นๆ */}
+            <AdCard
+              title="ผู้สนับสนุนเนื้อหา"
+              style={styles.relatedAdCard}
+            />
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -385,5 +434,29 @@ const styles = StyleSheet.create({
   openText: {
     fontWeight: '800',
     marginRight: 8,
+  },
+  relatedSection: {
+    marginTop: 32,
+    borderTopWidth: 1,
+    paddingTop: 22,
+  },
+  relatedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  relatedHeaderIconWrap: {
+    padding: 6,
+    borderRadius: 8,
+  },
+  relatedSectionTitle: {
+    fontWeight: '800',
+  },
+  relatedList: {
+    gap: 12,
+  },
+  relatedAdCard: {
+    marginTop: 16,
   },
 });

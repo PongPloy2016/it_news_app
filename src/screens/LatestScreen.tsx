@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
 import { FEED_GROUPS } from '../config';
 import { AdBanner } from '../components/AdBanner';
+import { AdCard } from '../components/AdCard';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { SkeletonFeed } from '../components/SkeletonCard';
@@ -495,18 +496,23 @@ export function LatestScreen() {
           </View>
         ) : null
       }
-      renderItem={({ item }) => (
-        <NewsCard
-          article={item}
-          isBookmarked={Boolean(bookmarks[item.id])}
-          onToggleBookmark={() => toggleBookmark(item)}
-          onPress={() => {
-            markAsRead(item.id);
-            void showInterstitialAndNavigate(() => {
-              navigation.navigate('Article', { articleId: item.id });
-            });
-          }}
-        />
+      renderItem={({ item, index }) => (
+        <View>
+          <NewsCard
+            article={item}
+            isBookmarked={Boolean(bookmarks[item.id])}
+            onToggleBookmark={() => toggleBookmark(item)}
+            onPress={() => {
+              markAsRead(item.id);
+              void showInterstitialAndNavigate(() => {
+                navigation.navigate('Article', { articleId: item.id });
+              });
+            }}
+          />
+          {(index + 1) % 5 === 0 && (
+            <AdCard style={styles.inFeedAdCard} />
+          )}
+        </View>
       )}
     />
     <AdBanner style={[styles.bottomAdBanner, { backgroundColor: colors.surface, borderTopColor: colors.border }]} />
@@ -519,6 +525,9 @@ const styles = StyleSheet.create({
   bottomAdBanner: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingVertical: 2,
+  },
+  inFeedAdCard: {
+    marginVertical: 10,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loading: { marginTop: 14 },

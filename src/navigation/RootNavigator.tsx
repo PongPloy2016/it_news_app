@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { DrawerActions } from '@react-navigation/native';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,9 +52,15 @@ function DrawerContent(props: DrawerContentComponentProps) {
   const bookmarkCount = Object.keys(bookmarks).length;
   const [filterGroupKey, setFilterGroupKey] = useState<string>('all');
 
+  const closeDrawer = () => {
+    props.navigation.dispatch(DrawerActions.closeDrawer());
+  };
+
   const navigateToTab = (screenName: keyof MainTabParamList) => {
-    (props.navigation as any).navigate('DrawerHome', { screen: screenName });
-    props.navigation.closeDrawer();
+    closeDrawer();
+    setTimeout(() => {
+      (props.navigation as any).navigate('DrawerHome', { screen: screenName });
+    }, 60);
   };
 
   // Build list of channels with their parent group color
@@ -75,25 +82,37 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
   return (
     <View style={[styles.drawerContainer, { backgroundColor: colors.surface, paddingTop: insets.top }]}>
-      {/* 1. Japanese Style Top Bar: 最終更新 (Last Updated) + 🔄 Refresh */}
+      {/* 1. Japanese Style Top Bar: 最終更新 (Last Updated) + 🔄 Refresh + ✕ Close Button */}
       <View style={[styles.topBar, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
         <View style={styles.lastUpdateWrap}>
           <Text style={[styles.lastUpdateLabel, { color: colors.text, fontSize: 13 * scale }]}>
             อัปเดตล่าสุด : {lastUpdated ? formatRelative(lastUpdated) : 'เมื่อสักครู่'}
           </Text>
         </View>
-        <Pressable
-          hitSlop={12}
-          onPress={() => void refresh()}
-          disabled={isRefreshing}
-          style={styles.refreshBtn}
-        >
-          {isRefreshing ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <MaterialCommunityIcons name="reload" size={20} color={colors.muted} />
-          )}
-        </Pressable>
+        <View style={styles.topBarActions}>
+          <Pressable
+            hitSlop={12}
+            onPress={() => void refresh()}
+            disabled={isRefreshing}
+            style={styles.headerIconBtn}
+            accessibilityLabel="รีเฟรชข่าว"
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <MaterialCommunityIcons name="reload" size={19} color={colors.muted} />
+            )}
+          </Pressable>
+
+          <Pressable
+            hitSlop={12}
+            onPress={closeDrawer}
+            style={[styles.headerIconBtn, { backgroundColor: withAlpha(colors.text, 0.08), marginLeft: 4 }]}
+            accessibilityLabel="ปิดเมนูข้าง"
+          >
+            <MaterialCommunityIcons name="close" size={20} color={colors.text} />
+          </Pressable>
+        </View>
       </View>
 
       {/* 2. Subheader Bar: チャンネル一覧 (Channels) + 新着順 (Latest) */}
@@ -179,7 +198,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
               key={`${channel.groupKey}-${channel.key}`}
               onPress={() => {
                 setSelectedFeedKey(channel.key);
-                navigateToTab('Latest');
+                closeDrawer();
               }}
               style={({ pressed }) => [
                 styles.channelRow,
@@ -407,6 +426,10 @@ function MainDrawer() {
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
         drawerStyle: { backgroundColor: colors.surface, width: 295 },
+        drawerType: 'front',
+        swipeEnabled: true,
+        swipeEdgeWidth: 80,
+        overlayColor: 'rgba(0, 0, 0, 0.55)',
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.text,
         drawerLabelStyle: { fontWeight: '700', fontSize: 14 * scale },
@@ -415,7 +438,7 @@ function MainDrawer() {
           <Pressable
             hitSlop={12}
             style={{ marginLeft: 16 }}
-            onPress={() => navigation.openDrawer()}
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           >
             <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
           </Pressable>
@@ -471,6 +494,17 @@ const styles = StyleSheet.create({
   lastUpdateLabel: {
     fontWeight: '600',
     letterSpacing: 0.2,
+  },
+  topBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconBtn: {
+    alignItems: 'center',
+    borderRadius: 8,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
   },
   refreshBtn: {
     alignItems: 'center',
