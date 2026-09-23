@@ -20,6 +20,7 @@ import { AdCard } from '../components/AdCard';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { SkeletonFeed } from '../components/SkeletonCard';
+import { UnderlineTabBar, UnderlineTabItem } from '../components/UnderlineTabBar';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
@@ -111,54 +112,33 @@ export function LatestScreen() {
   const hasMore = visibleCount < filteredArticles.length;
   const activeSources = activeGroup.sources;
 
+  const categoryTabs: UnderlineTabItem[] = useMemo(() => {
+    return FEED_GROUPS.map((group) => {
+      const cleanLabel = group.label.replace(/^ข่าว/, '');
+      const icon = GROUP_ICONS[group.key] || 'newspaper';
+      return {
+        key: group.key,
+        label: cleanLabel,
+        iconName: icon,
+        color: group.color,
+      };
+    });
+  }, []);
+
   const renderCategoryTabBar = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.mainTabBar}
+    <UnderlineTabBar
+      scrollable
+      tabs={categoryTabs}
+      activeKey={activeGroupKey}
+      onChange={(key) => {
+        setActiveGroupKey(key);
+        const group = FEED_GROUPS.find((g) => g.key === key);
+        const firstFeed = group?.sources[0];
+        if (firstFeed) setSelectedFeedKey(firstFeed.key);
+      }}
+      indicatorColor={activeGroup.color}
       style={styles.mainTabBarWrap}
-    >
-      {FEED_GROUPS.map((group) => {
-        const active = group.key === activeGroupKey;
-        const icon = GROUP_ICONS[group.key] || 'newspaper';
-        return (
-          <Pressable
-            key={group.key}
-            onPress={() => {
-              setActiveGroupKey(group.key);
-              const firstFeed = group.sources[0];
-              if (firstFeed) setSelectedFeedKey(firstFeed.key);
-            }}
-            style={[
-              styles.mainTabButton,
-              {
-                backgroundColor: active ? withAlpha(group.color, 0.14) : colors.surface,
-                borderColor: active ? group.color : colors.border,
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={icon}
-              size={16 * scale}
-              color={active ? group.color : colors.muted}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[
-                styles.tabLabel,
-                {
-                  color: active ? group.color : colors.muted,
-                  fontSize: 12.5 * scale,
-                  fontWeight: active ? '700' : '600',
-                },
-              ]}
-            >
-              {group.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+    />
   );
 
   const renderSourceTabBar = () => (
