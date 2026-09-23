@@ -2,6 +2,7 @@ export * from './constants';
 export * from './feeds';
 export * from './categories';
 export * from './ads';
+export * from './supabase';
 
 // Re-export backward compatibility aliases
 import { DEFAULT_FEED_URL } from './categories';
