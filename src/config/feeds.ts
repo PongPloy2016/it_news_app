@@ -47,6 +47,13 @@ export const thaiNewsSources: FeedSource[] = [
   // 🇹🇭 สำนักข่าว / หนังสือพิมพ์
   // =========================
   {
+    key: 'thaipbs',
+    label: 'Thai PBS',
+    url: 'https://news.thaipbs.or.th/rss/news/home',
+    homepage: 'https://www.thaipbs.or.th',
+    type: 'rss',
+  },
+  {
     key: 'nation',
     label: 'Nation TV',
     url: 'https://www.nationtv.tv/main/rss',
