@@ -92,7 +92,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
         <View style={styles.topBarActions}>
           <Pressable
             hitSlop={12}
-            onPress={() => void refresh()}
+            onPress={() => void refresh(true)}
             disabled={isRefreshing}
             style={styles.headerIconBtn}
             accessibilityLabel="รีเฟรชข่าว"

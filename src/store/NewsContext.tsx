@@ -158,70 +158,92 @@ export function NewsProvider({ children }: PropsWithChildren) {
   }, []);
 
   // 2. Fetch news via Feed Worker Queue
-  const refresh = useCallback(async (forceRefresh: boolean = true) => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
+  const refresh = useCallback(
+    async (forceRefresh: boolean = true) => {
+      if (isRefreshing) return;
+      setIsRefreshing(true);
 
-    try {
-      if (forceRefresh) {
-        feedService.invalidateFeedCache(selectedFeed.key);
+      try {
+        let currentFeed = selectedFeed;
+
+        if (forceRefresh) {
+          // 1. Clear all in-memory feed cache so all channels reload completely
+          feedService.clearMemoryCache();
+
+          // 2. Reload dynamic feeds from Supabase (or fallback to local config if offline)
+          try {
+            const config = await loadFeedConfiguration();
+            setFeedGroups(config.groups);
+            setFeedSources(config.sources);
+            setIsOnlineFeeds(config.isFromSupabase);
+            feedService.setFeedGroups(config.groups);
+
+            const matched = config.sources.find((item) => item.key === selectedFeedKey);
+            if (matched) {
+              currentFeed = matched;
+            }
+          } catch (configErr) {
+            console.warn('[NewsContext] Reload feed configuration error:', configErr);
+          }
+        }
+
+        // 3. Fetch via Concurrency Queue with high priority
+        const parsed = await feedService.fetchFeed(currentFeed, 0);
+        if (!parsed.length) throw new Error('Feed is empty');
+
+        const knownImages = new Map(
+          [...articles, ...Object.values(bookmarks)]
+            .filter((item) => item.imageUrl)
+            .map((item) => [item.id, item.imageUrl]),
+        );
+        const merged = parsed.map((item) => ({
+          ...item,
+          imageUrl: item.imageUrl ?? knownImages.get(item.id),
+        }));
+        const now = Date.now();
+
+        // Detect newly arrived articles
+        const previousIds = new Set(articles.map((item) => item.id));
+        const newlyArrivedCount =
+          articles.length > 0
+            ? merged.filter((item) => !previousIds.has(item.id)).length
+            : 0;
+        if (newlyArrivedCount > 0) {
+          setLastRefreshNewCount(newlyArrivedCount);
+        }
+
+        // Calculate unread count for current channel
+        const unreadCount = merged.filter((item) => !readArticles[item.id]).length;
+        setChannelStats((prev) => ({
+          ...prev,
+          [currentFeed.key]: { total: merged.length, newCount: unreadCount },
+        }));
+
+        setArticles(merged);
+        setLastUpdated(now);
+        setHasFetchError(false);
+        setIsShowingCachedFeed(false);
+
+        // Persist to storage
+        await Promise.all([
+          articleRepository.saveCachedArticles(merged),
+          articleRepository.saveLastUpdated(now),
+        ]);
+
+        // Enrich images in background
+        void imageService.enrichArticlesWithOgImage(merged, (nextArticles) => {
+          setArticles(nextArticles);
+          void articleRepository.saveCachedArticles(nextArticles);
+        });
+      } catch {
+        if (articles.length) setIsShowingCachedFeed(true);
+        else setHasFetchError(true);
+      } finally {
+        setIsRefreshing(false);
       }
-
-      // Fetch via Concurrency Queue with high priority
-      const parsed = await feedService.fetchFeed(selectedFeed, 0);
-      if (!parsed.length) throw new Error('Feed is empty');
-
-      const knownImages = new Map(
-        [...articles, ...Object.values(bookmarks)]
-          .filter((item) => item.imageUrl)
-          .map((item) => [item.id, item.imageUrl]),
-      );
-      const merged = parsed.map((item) => ({
-        ...item,
-        imageUrl: item.imageUrl ?? knownImages.get(item.id),
-      }));
-      const now = Date.now();
-
-      // Detect newly arrived articles
-      const previousIds = new Set(articles.map((item) => item.id));
-      const newlyArrivedCount =
-        articles.length > 0
-          ? merged.filter((item) => !previousIds.has(item.id)).length
-          : 0;
-      if (newlyArrivedCount > 0) {
-        setLastRefreshNewCount(newlyArrivedCount);
-      }
-
-      // Calculate unread count for current channel
-      const unreadCount = merged.filter((item) => !readArticles[item.id]).length;
-      setChannelStats((prev) => ({
-        ...prev,
-        [selectedFeed.key]: { total: merged.length, newCount: unreadCount },
-      }));
-
-      setArticles(merged);
-      setLastUpdated(now);
-      setHasFetchError(false);
-      setIsShowingCachedFeed(false);
-
-      // Persist to storage
-      await Promise.all([
-        articleRepository.saveCachedArticles(merged),
-        articleRepository.saveLastUpdated(now),
-      ]);
-
-      // Enrich images in background
-      void imageService.enrichArticlesWithOgImage(merged, (nextArticles) => {
-        setArticles(nextArticles);
-        void articleRepository.saveCachedArticles(nextArticles);
-      });
-    } catch {
-      if (articles.length) setIsShowingCachedFeed(true);
-      else setHasFetchError(true);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [articles, bookmarks, isRefreshing, readArticles, selectedFeed]);
+    },
+    [articles, bookmarks, feedSources, isRefreshing, readArticles, selectedFeed, selectedFeedKey],
+  );
 
   const setSelectedFeedKey = useCallback(
     (key: string) => {

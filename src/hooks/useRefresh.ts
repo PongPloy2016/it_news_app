@@ -8,7 +8,7 @@ export function useRefresh() {
   const handleRefresh = useCallback(async () => {
     try {
       setRefreshError(null);
-      await refresh();
+      await refresh(true);
     } catch (err) {
       setRefreshError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการรีเฟรช');
     }

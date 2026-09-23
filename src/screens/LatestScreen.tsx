@@ -337,7 +337,7 @@ export function LatestScreen() {
         data={visibleArticles}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: 24 }]}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh()} tintColor={colors.primary} />}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh(true)} tintColor={colors.primary} />}
       onEndReached={() => {
         if (!isRefreshing && hasMore) {
           setVisibleCount((current) => Math.min(current + PAGE_SIZE, filteredArticles.length));
