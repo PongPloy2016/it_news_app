@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "951932441667",
+    "project_id": "techthainews",
+    "storage_bucket": "techthainews.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951932441667:android:96fb2fb2deddf0493ff0f6",
+        "android_client_info": {
+          "package_name": "com.pongploydev.technewsth.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEkOtQYvekCcOUDUI4Yp498M494egjpcQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { BANNER_AD_UNIT_ID, initializeMobileAds } from '../config/ads';
+import { useNews } from '../store/NewsContext';
 
 interface AdBannerProps {
   unitId?: string;
@@ -10,25 +11,33 @@ interface AdBannerProps {
 }
 
 export function AdBanner({
-  unitId = BANNER_AD_UNIT_ID,
+  unitId,
   size = BannerAdSize.ANCHORED_ADAPTIVE_BANNER,
   style,
 }: AdBannerProps) {
+  const { remoteSettings } = useNews();
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [hasAdError, setHasAdError] = useState(false);
 
-  useEffect(() => {
-    void initializeMobileAds();
-  }, []);
+  // If ads are disabled globally or banner ads are off in Supabase
+  const isBannerEnabled = remoteSettings.ads_enabled && remoteSettings.banner_ads_enabled;
 
-  if (hasAdError) {
+  useEffect(() => {
+    if (isBannerEnabled) {
+      void initializeMobileAds();
+    }
+  }, [isBannerEnabled]);
+
+  if (!isBannerEnabled || hasAdError) {
     return null;
   }
+
+  const effectiveUnitId = unitId || remoteSettings.admob_banner_id_android || BANNER_AD_UNIT_ID;
 
   return (
     <View style={[styles.container, style]}>
       <BannerAd
-        unitId={unitId}
+        unitId={effectiveUnitId}
         size={size}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,

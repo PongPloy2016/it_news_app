@@ -8,15 +8,37 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { useEffect } from 'react';
 import { initializeMobileAds } from './src/config/ads';
 import { initInterstitialAd } from './src/services/interstitialService';
+import { crashlyticsService } from './src/services/crashlyticsService';
+import { notificationService } from './src/services/notificationService';
 
 function AppShell() {
-  const { colors, isDark } = useNews();
+  const { colors, isDark, remoteSettings } = useNews();
 
   useEffect(() => {
-    void initializeMobileAds().then(() => {
-      initInterstitialAd();
+    crashlyticsService.log('App initialized');
+
+    // Request notification permission and retrieve FCM token
+    void notificationService.requestPermission().then((granted) => {
+      if (granted) {
+        void notificationService.getFCMToken();
+      }
     });
-  }, []);
+
+    // Set up foreground & background listeners
+    const unsubscribeNotifications = notificationService.setupListeners();
+
+    if (remoteSettings.ads_enabled) {
+      void initializeMobileAds().then(() => {
+        if (remoteSettings.interstitial_ads_enabled) {
+          initInterstitialAd();
+        }
+      });
+    }
+
+    return () => {
+      unsubscribeNotifications();
+    };
+  }, [remoteSettings.ads_enabled, remoteSettings.interstitial_ads_enabled]);
   const navigationTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {

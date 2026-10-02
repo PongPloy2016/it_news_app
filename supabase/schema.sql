@@ -149,3 +149,120 @@ SET label = EXCLUDED.label,
     group_key = EXCLUDED.group_key,
     order_index = EXCLUDED.order_index,
     is_active = EXCLUDED.is_active;
+
+-- ==============================================================================
+-- 7. Create App Settings Table (Remote Config)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+
+    -- AI & TTS
+    is_ai_enabled BOOLEAN NOT NULL DEFAULT true,
+    ai_model_name TEXT NOT NULL DEFAULT 'gemini-1.5-flash',
+    ai_max_tokens INTEGER NOT NULL DEFAULT 400,
+    tts_default_rate NUMERIC(3,2) NOT NULL DEFAULT 0.95,
+
+    -- Ads (AdMob)
+    ads_enabled BOOLEAN NOT NULL DEFAULT false,
+    banner_ads_enabled BOOLEAN NOT NULL DEFAULT false,
+    interstitial_ads_enabled BOOLEAN NOT NULL DEFAULT false,
+    interstitial_interval_clicks INTEGER NOT NULL DEFAULT 4,
+    interstitial_min_delay_sec INTEGER NOT NULL DEFAULT 60,
+    admob_banner_id_android TEXT,
+    admob_interstitial_id_android TEXT,
+
+    -- Versions & Maintenance
+    min_supported_version TEXT NOT NULL DEFAULT '1.0.0',
+    latest_version TEXT NOT NULL DEFAULT '1.0.0',
+    force_update_title TEXT DEFAULT 'มีเวอร์ชันใหม่พร้อมใช้งาน',
+    force_update_message TEXT DEFAULT 'กรุณาอัปเดตเป็นเวอร์ชันล่าสุดเพื่อการใช้งานที่ราบรื่นและปลอดภัย',
+    is_maintenance BOOLEAN NOT NULL DEFAULT false,
+    maintenance_message TEXT DEFAULT 'ระบบกำลังปิดปรับปรุงชั่วคราว ทีมงานกำลังเร่งแก้ไขครับ',
+
+    -- Legal & Contact URLs
+    privacy_policy_url TEXT DEFAULT 'https://pongploydev.github.io/privacy-policy',
+    terms_url TEXT DEFAULT 'https://pongploydev.github.io/terms',
+    support_email TEXT DEFAULT 'pongku71@gmail.com',
+    play_store_url TEXT DEFAULT 'https://play.google.com/store/apps/details?id=com.pongploydev.technewsth.app',
+
+    -- Announcements & Breaking News
+    announcement_active BOOLEAN NOT NULL DEFAULT false,
+    announcement_message TEXT,
+    breaking_news_active BOOLEAN NOT NULL DEFAULT false,
+    breaking_news_text TEXT,
+    breaking_news_url TEXT,
+
+    -- Defaults & Cache
+    default_feed_key TEXT NOT NULL DEFAULT 'tech-business',
+    cache_ttl_minutes INTEGER NOT NULL DEFAULT 15,
+
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view app settings" ON public.app_settings;
+CREATE POLICY "Public can view app settings"
+    ON public.app_settings FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "Service role can manage app settings" ON public.app_settings;
+CREATE POLICY "Service role can manage app settings"
+    ON public.app_settings FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+INSERT INTO public.app_settings (
+    id,
+    is_ai_enabled,
+    ads_enabled,
+    banner_ads_enabled,
+    interstitial_ads_enabled,
+    interstitial_interval_clicks,
+    interstitial_min_delay_sec,
+    min_supported_version,
+    latest_version,
+    default_feed_key
+)
+VALUES (
+    'default',
+    true,
+    false,
+    false,
+    false,
+    4,
+    60,
+    '1.0.0',
+    '1.0.0',
+    'tech-business'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- ==============================================================================
+-- 8. Create User Feedback & Bug Report Table
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.app_feedbacks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category TEXT NOT NULL DEFAULT 'general',
+    message TEXT NOT NULL,
+    contact TEXT,
+    app_version TEXT,
+    device_platform TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.app_feedbacks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can submit feedback" ON public.app_feedbacks;
+CREATE POLICY "Public can submit feedback"
+    ON public.app_feedbacks FOR INSERT
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service role can view feedback" ON public.app_feedbacks;
+CREATE POLICY "Service role can view feedback"
+    ON public.app_feedbacks FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+

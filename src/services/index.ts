@@ -4,3 +4,6 @@ export * from './imageService';
 export * from './speechService';
 export * from './interstitialService';
 export * from './supabaseFeedService';
+export * from './appSettingsService';
+export * from './crashlyticsService';
+export * from './notificationService';

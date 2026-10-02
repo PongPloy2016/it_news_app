@@ -13,22 +13,28 @@ interface AdCardProps {
 }
 
 export function AdCard({
-  unitId = BANNER_AD_UNIT_ID,
+  unitId,
   size = BannerAdSize.ANCHORED_ADAPTIVE_BANNER,
   style,
   title = 'ผู้สนับสนุน / สปอนเซอร์',
 }: AdCardProps) {
-  const { colors, scale } = useNews();
+  const { colors, scale, remoteSettings } = useNews();
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [hasAdError, setHasAdError] = useState(false);
 
-  useEffect(() => {
-    void initializeMobileAds();
-  }, []);
+  const isBannerEnabled = remoteSettings.ads_enabled && remoteSettings.banner_ads_enabled;
 
-  if (hasAdError) {
+  useEffect(() => {
+    if (isBannerEnabled) {
+      void initializeMobileAds();
+    }
+  }, [isBannerEnabled]);
+
+  if (!isBannerEnabled || hasAdError) {
     return null;
   }
+
+  const effectiveUnitId = unitId || remoteSettings.admob_banner_id_android || BANNER_AD_UNIT_ID;
 
   return (
     <View
@@ -57,7 +63,7 @@ export function AdCard({
       {/* Ad Content */}
       <View style={styles.adWrap}>
         <BannerAd
-          unitId={unitId}
+          unitId={effectiveUnitId}
           size={size}
           requestOptions={{
             requestNonPersonalizedAdsOnly: true,

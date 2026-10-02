@@ -1,5 +1,6 @@
 import { InterstitialAd, AdEventType } from 'react-native-google-mobile-ads';
 import { INTERSTITIAL_AD_UNIT_ID } from '../config/ads';
+import { getCurrentRemoteSettings } from './appSettingsService';
 
 let interstitialAd: InterstitialAd | null = null;
 let isLoaded = false;
@@ -8,8 +9,15 @@ let unsubscribeLoaded: (() => void) | null = null;
 let unsubscribeClosed: (() => void) | null = null;
 let unsubscribeError: (() => void) | null = null;
 let pendingNavigate: (() => void) | null = null;
+let articleClickCount = 0;
+let lastAdShownTimestamp = 0;
 
 function setupAdInstance(): void {
+  const remote = getCurrentRemoteSettings();
+  if (!remote.ads_enabled || !remote.interstitial_ads_enabled) {
+    return;
+  }
+
   // Clean up any existing listeners
   if (unsubscribeLoaded) {
     unsubscribeLoaded();
@@ -35,8 +43,10 @@ function setupAdInstance(): void {
   isLoaded = false;
   isLoading = false;
 
+  const adUnitId = remote.admob_interstitial_id_android || INTERSTITIAL_AD_UNIT_ID;
+
   try {
-    interstitialAd = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID, {
+    interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
       requestNonPersonalizedAdsOnly: true,
     });
 
@@ -100,6 +110,8 @@ function setupAdInstance(): void {
  * Request loading the interstitial ad if not already loaded or loading.
  */
 export function loadInterstitialAd(): void {
+  const remote = getCurrentRemoteSettings();
+  if (!remote.ads_enabled || !remote.interstitial_ads_enabled) return;
   if (isLoaded || isLoading) return;
 
   if (!interstitialAd) {
@@ -121,6 +133,8 @@ export function loadInterstitialAd(): void {
  * Initializes the interstitial ad system and preloads the first ad.
  */
 export function initInterstitialAd(): void {
+  const remote = getCurrentRemoteSettings();
+  if (!remote.ads_enabled || !remote.interstitial_ads_enabled) return;
   setupAdInstance();
   loadInterstitialAd();
 }
@@ -132,7 +146,28 @@ export function initInterstitialAd(): void {
  * @param onNavigate The navigation function to execute when ad closes or if ad is unavailable
  */
 export async function showInterstitialAndNavigate(onNavigate: () => void): Promise<void> {
+  const remote = getCurrentRemoteSettings();
+
+  // If ads are disabled globally or interstitial ads are off in Supabase
+  if (!remote.ads_enabled || !remote.interstitial_ads_enabled) {
+    onNavigate();
+    return;
+  }
+
+  articleClickCount++;
+  const intervalClicks = remote.interstitial_interval_clicks || 4;
+  const minDelaySec = remote.interstitial_min_delay_sec || 60;
+  const now = Date.now();
+  const timeSinceLastAd = (now - lastAdShownTimestamp) / 1000;
+
+  // Only trigger if click interval matches and minimum time delay has passed
+  if (articleClickCount % intervalClicks !== 0 || timeSinceLastAd < minDelaySec) {
+    onNavigate();
+    return;
+  }
+
   if (isLoaded && interstitialAd) {
+    lastAdShownTimestamp = now;
     let safetyTimer: ReturnType<typeof setTimeout> | null = null;
 
     pendingNavigate = () => {

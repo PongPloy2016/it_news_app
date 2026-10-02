@@ -6,6 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B132B"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -17,17 +22,21 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "googleServicesFile": "./android/app/google-services.json"
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0B132B"
+      },
+      "googleServicesFile": "./google-services.json",
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "react-native-google-mobile-ads": {
-      "android_app_id": "ca-app-pub-7617756372558825~3760194254",
-      "ios_app_id": "ca-app-pub-3940256099942544~1458695864"
-    },
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      "@react-native-firebase/messaging",
       "expo-font",
       [
         "react-native-google-mobile-ads",

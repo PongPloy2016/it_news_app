@@ -18,14 +18,26 @@ import {
   storage,
 } from '../data/database';
 import { feedService, imageService, loadFeedConfiguration } from '../services';
+import {
+  DEFAULT_REMOTE_SETTINGS,
+  fetchRemoteAppSettings,
+  getCachedRemoteAppSettings,
+} from '../services/appSettingsService';
 import { AppColors, darkColors, fontScale, lightColors } from '../theme';
-import { AppSettings, CardLayoutOption, FontSizeOption, NewsArticle, ThemeMode } from '../types';
+import {
+  AppSettings,
+  CardLayoutOption,
+  FontSizeOption,
+  NewsArticle,
+  RemoteAppSettings,
+  ThemeMode,
+} from '../types';
 
 const defaultSettings: AppSettings = {
   themeMode: 'system',
   fontSize: 'medium',
   cardLayout: 'magazine',
-  aiReaderEnabled: false,
+  aiReaderEnabled: true,
 };
 
 interface NewsContextValue {
@@ -33,6 +45,7 @@ interface NewsContextValue {
   bookmarks: Record<string, NewsArticle>;
   searchHistory: string[];
   settings: AppSettings;
+  remoteSettings: RemoteAppSettings;
   selectedFeedKey: string;
   selectedFeed: FeedSource;
   feedGroups: FeedGroup[];
@@ -88,6 +101,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const [isShowingCachedFeed, setIsShowingCachedFeed] = useState(false);
   const [lastRefreshNewCount, setLastRefreshNewCount] = useState<number>(0);
   const [channelStats, setChannelStats] = useState<Record<string, { total: number; newCount: number }>>({});
+  const [remoteSettings, setRemoteSettings] = useState<RemoteAppSettings>(DEFAULT_REMOTE_SETTINGS);
 
   const isDark =
     settings.themeMode === 'dark' ||
@@ -99,17 +113,27 @@ export function NewsProvider({ children }: PropsWithChildren) {
   );
   const previousFeedKeyRef = useRef<string | null>(null);
 
-  // 1. Dynamic Feed Sources: Supabase (Online) -> Local categories.ts & feeds.ts (Offline)
+  // 1. Dynamic Feed Sources & Remote App Settings: Supabase (Online) -> Local (Offline)
   useEffect(() => {
     let isMounted = true;
     void (async () => {
       try {
-        const config = await loadFeedConfiguration();
+        const [config, cachedRemote] = await Promise.all([
+          loadFeedConfiguration(),
+          getCachedRemoteAppSettings(),
+        ]);
         if (isMounted) {
           setFeedGroups(config.groups);
           setFeedSources(config.sources);
           setIsOnlineFeeds(config.isFromSupabase);
           feedService.setFeedGroups(config.groups);
+          setRemoteSettings(cachedRemote);
+        }
+
+        // Fetch fresh settings from Supabase
+        const freshRemote = await fetchRemoteAppSettings();
+        if (isMounted) {
+          setRemoteSettings(freshRemote);
         }
       } catch (err) {
         console.warn('[NewsContext] Dynamic feed loading error:', err);
@@ -144,7 +168,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
             ...defaultSettings,
             ...cachedSettings,
             cardLayout: cachedSettings.cardLayout ?? 'magazine',
-            aiReaderEnabled: false,
+            aiReaderEnabled: cachedSettings.aiReaderEnabled ?? true,
           });
         }
         if (cachedUpdated) setLastUpdated(cachedUpdated);
@@ -170,20 +194,24 @@ export function NewsProvider({ children }: PropsWithChildren) {
           // 1. Clear all in-memory feed cache so all channels reload completely
           feedService.clearMemoryCache();
 
-          // 2. Reload dynamic feeds from Supabase (or fallback to local config if offline)
+          // 2. Reload dynamic feeds and remote settings from Supabase (or fallback to local config if offline)
           try {
-            const config = await loadFeedConfiguration();
+            const [config, freshRemote] = await Promise.all([
+              loadFeedConfiguration(),
+              fetchRemoteAppSettings(),
+            ]);
             setFeedGroups(config.groups);
             setFeedSources(config.sources);
             setIsOnlineFeeds(config.isFromSupabase);
             feedService.setFeedGroups(config.groups);
+            setRemoteSettings(freshRemote);
 
             const matched = config.sources.find((item) => item.key === selectedFeedKey);
             if (matched) {
               currentFeed = matched;
             }
           } catch (configErr) {
-            console.warn('[NewsContext] Reload feed configuration error:', configErr);
+            console.warn('[NewsContext] Reload configuration error:', configErr);
           }
         }
 
@@ -388,6 +416,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       bookmarks,
       searchHistory,
       settings,
+      remoteSettings,
       selectedFeedKey,
       selectedFeed,
       feedGroups,
@@ -427,6 +456,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       bookmarks,
       searchHistory,
       settings,
+      remoteSettings,
       selectedFeedKey,
       selectedFeed,
       feedGroups,

@@ -29,8 +29,19 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Article'>;
 
 export function ArticleDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { articles, bookmarks, colors, scale, toggleBookmark, isDark, settings, selectedFeed, markAsRead } = useNews();
-  const isAiEnabled = settings.aiReaderEnabled;
+  const {
+    articles,
+    bookmarks,
+    colors,
+    scale,
+    toggleBookmark,
+    isDark,
+    settings,
+    remoteSettings,
+    selectedFeed,
+    markAsRead,
+  } = useNews();
+  const isAiEnabled = settings.aiReaderEnabled && remoteSettings.is_ai_enabled;
   const [readerMode, setReaderMode] = useState<'ai' | 'full'>(isAiEnabled ? 'ai' : 'full');
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
   const [speechRate, setSpeechRate] = useState<SpeechRate>(0.9);
