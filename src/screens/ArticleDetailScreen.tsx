@@ -20,7 +20,7 @@ import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { RootStackParamList } from '../types';
 import { cleanNewsContent, generateAiSummary } from '../utils/aiSummary';
-import { formatRelative, stripHtml } from '../utils/content';
+import { formatRelative, sanitizeImageUrl, stripHtml } from '../utils/content';
 import { shareArticle } from '../utils/share';
 import { SpeechRate, speakArticleText, stopSpeaking } from '../utils/speech';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
@@ -107,14 +107,22 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
     }
   };
 
+  const [imageError, setImageError] = useState(false);
+  const displayImageUrl = !imageError ? sanitizeImageUrl(article.imageUrl) : undefined;
+
   return (
     <ScrollView
       contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
       showsVerticalScrollIndicator={false}
     >
-      {article.imageUrl ? (
+      {displayImageUrl ? (
         <View style={styles.imageWrap}>
-          <Image source={{ uri: article.imageUrl }} style={styles.image} resizeMode="cover" />
+          <Image
+            source={{ uri: displayImageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
         </View>
       ) : null}
 

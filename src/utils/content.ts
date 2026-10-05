@@ -5,11 +5,25 @@ export function stripHtml(value?: string | null): string {
   return he.decode(value.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
 }
 
+export function sanitizeImageUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  let cleaned = url.trim();
+  // Fix MGR Online broken CDN domain in RSS feed (mpics-cdn returns 404, while mpics.mgronline.com returns 200 OK)
+  cleaned = cleaned.replace(/\/\/mpics-cdn\.mgronline\.com\//i, '//mpics.mgronline.com/');
+  // Ensure protocol
+  if (cleaned.startsWith('//')) {
+    cleaned = 'https:' + cleaned;
+  }
+  return cleaned;
+}
+
 export function extractImage(...sources: Array<string | undefined>): string | undefined {
   for (const source of sources) {
     if (!source) continue;
     const match = source.match(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/i);
-    if (match?.[1] && /^https?:\/\/\S+$/i.test(match[1])) return he.decode(match[1]);
+    if (match?.[1] && /^https?:\/\/\S+$/i.test(match[1])) {
+      return sanitizeImageUrl(he.decode(match[1]));
+    }
   }
   return undefined;
 }
@@ -20,7 +34,9 @@ export function extractOgImage(html: string): string | undefined {
     const name = tag.match(/(?:property|name)\s*=\s*["']([^"']+)["']/i)?.[1]?.toLowerCase();
     if (!['og:image', 'og:image:url', 'og:image:secure_url', 'twitter:image'].includes(name ?? '')) continue;
     const url = tag.match(/content\s*=\s*["']([^"']+)["']/i)?.[1];
-    if (url && /^https?:\/\/\S+$/i.test(url)) return he.decode(url);
+    if (url && /^https?:\/\/\S+$/i.test(url)) {
+      return sanitizeImageUrl(he.decode(url));
+    }
   }
   return undefined;
 }

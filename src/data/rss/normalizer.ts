@@ -1,5 +1,5 @@
 import { NewsArticle } from '../../types';
-import { estimateReadingTime, extractImage, parseDate, stripHtml } from '../../utils/content';
+import { estimateReadingTime, extractImage, parseDate, sanitizeImageUrl, stripHtml } from '../../utils/content';
 import { asArray, extractNodeText } from './parser';
 
 export function normalizeRawEntry(
@@ -26,7 +26,8 @@ export function normalizeRawEntry(
   const authorNode = entry.author as Record<string, unknown> | undefined;
   const author = stripHtml(extractNodeText(authorNode?.name ?? entry['dc:creator'] ?? entry.author));
   const media = (entry['media:content'] ?? entry['media:thumbnail']) as Record<string, unknown> | undefined;
-  const imageUrl = String(media?.['@_url'] ?? '') || extractImage(fullText, content);
+  const rawMedia = String(media?.['@_url'] ?? '');
+  const imageUrl = sanitizeImageUrl(rawMedia) || extractImage(fullText, content);
 
   return {
     id: extractNodeText(entry.id ?? entry.guid) || link,

@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useState } from 'react';
 import {
   Image,
   Pressable,
@@ -9,7 +10,7 @@ import {
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { NewsArticle } from '../types';
-import { formatRelative } from '../utils/content';
+import { formatRelative, sanitizeImageUrl } from '../utils/content';
 
 interface Props {
   article: NewsArticle;
@@ -27,6 +28,8 @@ export function NewsCard({
 }: Props) {
   const { colors, scale, settings, isArticleNew, isArticleFresh, isArticleRead } =
     useNews();
+  const [imageError, setImageError] = useState(false);
+  const displayImageUrl = !imageError ? sanitizeImageUrl(article.imageUrl) : undefined;
   const isCompact = settings.cardLayout === 'compact';
   const isFresh = isArticleFresh(article);
   const isNew = isArticleNew(article);
@@ -132,9 +135,14 @@ export function NewsCard({
           </View>
         </View>
 
-        {article.imageUrl ? (
+        {displayImageUrl ? (
           <View style={styles.compactImageWrap}>
-            <Image source={{ uri: article.imageUrl }} style={styles.compactImage} resizeMode="cover" />
+            <Image
+              source={{ uri: displayImageUrl }}
+              style={styles.compactImage}
+              resizeMode="cover"
+              onError={() => setImageError(true)}
+            />
           </View>
         ) : null}
       </Pressable>
@@ -157,9 +165,14 @@ export function NewsCard({
         },
       ]}
     >
-      {article.imageUrl ? (
+      {displayImageUrl ? (
         <View style={styles.imageContainer}>
-          <Image source={{ uri: article.imageUrl }} style={styles.image} resizeMode="cover" />
+          <Image
+            source={{ uri: displayImageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
 
           {/* Highlight Badge on image */}
           {isFresh ? (
@@ -185,7 +198,7 @@ export function NewsCard({
 
       <View style={styles.body}>
         <View style={styles.magazineTitleRow}>
-          {!article.imageUrl && (
+          {!displayImageUrl && (
             <>
               {isFresh ? (
                 <View style={[styles.compactBadge, styles.freshBadgeBg, { marginBottom: 6 }]}>

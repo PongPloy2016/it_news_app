@@ -1,10 +1,15 @@
 import { STORAGE_KEYS } from '../../config/constants';
 import { NewsArticle } from '../../types';
+import { sanitizeImageUrl } from '../../utils/content';
 import { storage } from './database';
 
 export const articleRepository = {
   async getCachedArticles(): Promise<NewsArticle[]> {
-    return (await storage.get<NewsArticle[]>(STORAGE_KEYS.articles)) || [];
+    const list = (await storage.get<NewsArticle[]>(STORAGE_KEYS.articles)) || [];
+    return list.map((item) => ({
+      ...item,
+      imageUrl: sanitizeImageUrl(item.imageUrl),
+    }));
   },
 
   async saveCachedArticles(articles: NewsArticle[], limit: number = 100): Promise<void> {

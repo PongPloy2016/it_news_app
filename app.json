@@ -12,7 +12,9 @@
       "backgroundColor": "#0B132B"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pongploydev.technewsth.app",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.pongploydev.technewsth.app",
