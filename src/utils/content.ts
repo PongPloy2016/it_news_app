@@ -59,10 +59,10 @@ export function normalizeVideoEmbedUrl(rawUrl: string): string {
 
   // YouTube watch or short URL
   const ytMatch = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i,
+    /(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i,
   );
   if (ytMatch?.[1]) {
-    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+    return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
   }
 
   // Vimeo
