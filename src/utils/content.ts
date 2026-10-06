@@ -8,6 +8,16 @@ export function stripHtml(value?: string | null): string {
 export function sanitizeImageUrl(url?: string): string | undefined {
   if (!url) return undefined;
   let cleaned = url.trim();
+
+  // Filter out Google News placeholder/logo images
+  if (
+    cleaned.includes('googleusercontent.com/J6_coFbogxh') ||
+    cleaned.includes('googleusercontent.com/proxy') ||
+    /googleusercontent\.com.*(?:news|logo)/i.test(cleaned)
+  ) {
+    return undefined;
+  }
+
   // Fix MGR Online broken CDN domain in RSS feed (mpics-cdn returns 404, while mpics.mgronline.com returns 200 OK)
   cleaned = cleaned.replace(/\/\/mpics-cdn\.mgronline\.com\//i, '//mpics.mgronline.com/');
   // Ensure protocol

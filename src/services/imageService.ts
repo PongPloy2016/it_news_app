@@ -1,5 +1,5 @@
 import { NewsArticle } from '../types';
-import { extractOgImage } from '../utils/content';
+import { extractOgImage, sanitizeImageUrl } from '../utils/content';
 
 export const imageService = {
   async enrichArticlesWithOgImage(
@@ -7,7 +7,7 @@ export const imageService = {
     onUpdate: (updatedArticles: NewsArticle[]) => void,
     limit: number = 20,
   ): Promise<void> {
-    const pending = articles.filter((item) => !item.imageUrl).slice(0, limit);
+    const pending = articles.filter((item) => !sanitizeImageUrl(item.imageUrl)).slice(0, limit);
     if (pending.length === 0) return;
 
     let current = [...articles];
@@ -25,7 +25,7 @@ export const imageService = {
           if (!imageUrl) return;
 
           current = current.map((item) =>
-            item.id === article.id && !item.imageUrl ? { ...item, imageUrl } : item,
+            item.id === article.id && !sanitizeImageUrl(item.imageUrl) ? { ...item, imageUrl } : item,
           );
           onUpdate(current);
         } catch {

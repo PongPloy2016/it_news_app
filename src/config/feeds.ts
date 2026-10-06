@@ -110,7 +110,7 @@ export const thaiNewsSources: FeedSource[] = [
   {
     key: 'dailynews',
     label: 'DailyNews',
-    url: 'https://www.dailynews.co.th/feed',
+    url: 'https://www.dailynews.co.th/news/feed/',
     homepage: 'https://www.dailynews.co.th',
     type: 'rss',
   },

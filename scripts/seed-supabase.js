@@ -94,7 +94,7 @@ const FEED_SOURCES = [
   { key: 'the-momentum', label: 'The Momentum', url: 'https://themomentum.co/feed/', homepage: 'https://themomentum.co', type: 'rss', group_key: 'thai-news', order_index: 6 },
   { key: 'nation', label: 'Nation TV', url: 'https://www.nationtv.tv/main/rss', homepage: 'https://www.nationtv.tv', type: 'rss', group_key: 'thai-news', order_index: 7 },
   { key: 'matichon', label: 'Matichon', url: 'https://www.matichon.co.th/feed', homepage: 'https://www.matichon.co.th', type: 'rss', group_key: 'thai-news', order_index: 8 },
-  { key: 'dailynews', label: 'DailyNews', url: 'https://www.dailynews.co.th/feed', homepage: 'https://www.dailynews.co.th', type: 'rss', group_key: 'thai-news', order_index: 9 },
+  { key: 'dailynews', label: 'DailyNews', url: 'https://www.dailynews.co.th/news/feed/', homepage: 'https://www.dailynews.co.th', type: 'rss', group_key: 'thai-news', order_index: 9 },
   { key: 'khaosod', label: 'Khaosod', url: 'https://www.khaosod.co.th/feed', homepage: 'https://www.khaosod.co.th', type: 'rss', group_key: 'thai-news', order_index: 10 },
   { key: 'mgronline', label: 'MGR Online', url: 'https://mgronline.com/store/rss/index.xml', homepage: 'https://mgronline.com', type: 'rss', group_key: 'thai-news', order_index: 11 },
   { key: 'prachachat', label: 'Prachachat', url: 'https://www.prachachat.net/feed', homepage: 'https://www.prachachat.net', type: 'rss', group_key: 'thai-news', order_index: 12 },

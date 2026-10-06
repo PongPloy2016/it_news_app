@@ -119,7 +119,7 @@ VALUES
     ('the-momentum', 'The Momentum', 'https://themomentum.co/feed/', 'https://themomentum.co', 'rss', 'thai-news', 6, true),
     ('nation', 'Nation TV', 'https://www.nationtv.tv/main/rss', 'https://www.nationtv.tv', 'rss', 'thai-news', 7, true),
     ('matichon', 'Matichon', 'https://www.matichon.co.th/feed', 'https://www.matichon.co.th', 'rss', 'thai-news', 8, true),
-    ('dailynews', 'DailyNews', 'https://www.dailynews.co.th/feed', 'https://www.dailynews.co.th', 'rss', 'thai-news', 9, true),
+    ('dailynews', 'DailyNews', 'https://www.dailynews.co.th/news/feed/', 'https://www.dailynews.co.th', 'rss', 'thai-news', 9, true),
     ('khaosod', 'Khaosod', 'https://www.khaosod.co.th/feed', 'https://www.khaosod.co.th', 'rss', 'thai-news', 10, true),
     ('mgronline', 'MGR Online', 'https://mgronline.com/store/rss/index.xml', 'https://mgronline.com', 'rss', 'thai-news', 11, true),
     ('prachachat', 'Prachachat', 'https://www.prachachat.net/feed', 'https://www.prachachat.net', 'rss', 'thai-news', 12, true),
