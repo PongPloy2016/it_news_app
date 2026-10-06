@@ -90,7 +90,7 @@ VALUES
     ('thumbsup', 'Thumbsup', 'https://www.thumbsup.in.th/feed', 'https://www.thumbsup.in.th', 'rss', 'tech-business', 13, true),
     ('thaiware', 'Thaiware', 'https://www.thaiware.com/rss/rss_latestPost_news.php', 'https://www.thaiware.com', 'rss', 'tech-business', 14, true),
     ('sanook-hitech-computer', 'Sanook Hitech Computer', 'https://rssfeeds.sanook.com/rss/feeds/sanook/hitech.computer.index.xml', 'https://hitech.sanook.com', 'rss', 'tech-business', 15, true),
-    ('google-tech-th', 'Google ข่าวไอที', 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'tech-business', 16, true),
+    ('google-tech-th', 'Google ข่าวไอที', 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FuUm9HZ0pVU0NnQVAB?hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'tech-business', 16, true),
 
     -- International Tech
     ('techcrunch', 'TechCrunch', 'https://techcrunch.com/feed/', 'https://techcrunch.com', 'rss', 'international', 1, true),

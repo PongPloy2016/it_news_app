@@ -65,7 +65,7 @@ const FEED_SOURCES = [
   { key: 'thumbsup', label: 'Thumbsup', url: 'https://www.thumbsup.in.th/feed', homepage: 'https://www.thumbsup.in.th', type: 'rss', group_key: 'tech-business', order_index: 13 },
   { key: 'thaiware', label: 'Thaiware', url: 'https://www.thaiware.com/rss/rss_latestPost_news.php', homepage: 'https://www.thaiware.com', type: 'rss', group_key: 'tech-business', order_index: 14 },
   { key: 'sanook-hitech-computer', label: 'Sanook Hitech Computer', url: 'https://rssfeeds.sanook.com/rss/feeds/sanook/hitech.computer.index.xml', homepage: 'https://hitech.sanook.com', type: 'rss', group_key: 'tech-business', order_index: 15 },
-  { key: 'google-tech-th', label: 'Google ข่าวไอที', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss', group_key: 'tech-business', order_index: 16 },
+  { key: 'google-tech-th', label: 'Google ข่าวไอที', url: 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FuUm9HZ0pVU0NnQVAB?hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss', group_key: 'tech-business', order_index: 16 },
 
   // International Tech
   { key: 'techcrunch', label: 'TechCrunch', url: 'https://techcrunch.com/feed/', homepage: 'https://techcrunch.com', type: 'rss', group_key: 'international', order_index: 1 },
