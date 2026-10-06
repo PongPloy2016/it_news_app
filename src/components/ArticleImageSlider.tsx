@@ -21,10 +21,25 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedIndices, setFailedIndices] = useState<Record<number, boolean>>({});
 
-  // Consolidate images
-  const validImages = (images && images.length > 0 ? images : fallbackImageUrl ? [fallbackImageUrl] : []).filter(
-    Boolean,
-  );
+  // Consolidate & strictly sanitize valid article images
+  const rawImages = images && images.length > 0 ? images : fallbackImageUrl ? [fallbackImageUrl] : [];
+  const validImages = rawImages
+    .filter((url): url is string => Boolean(url && typeof url === 'string'))
+    .map((url) => url.trim())
+    .filter((url) => {
+      // Must be absolute http/https
+      if (!/^https?:\/\//i.test(url)) return false;
+      // Filter layout/tracking/job ad artifacts
+      if (
+        /badge|banner|gtag|doubleclick|feedburner|feedsportal|statcounter|avatar|gravatar|defaultcover|\/jobs\//i.test(
+          url,
+        )
+      ) {
+        return false;
+      }
+      return true;
+    })
+    .slice(0, 6); // Max 6 photos in carousel
 
   if (validImages.length === 0) {
     return null;
@@ -83,7 +98,7 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
         ))}
       </ScrollView>
 
-      {/* Floating Counter Badge (e.g. 1 / 4) */}
+      {/* Floating Counter Badge (e.g. 1 / 3) */}
       <View style={styles.counterBadge}>
         <MaterialCommunityIcons name="image-multiple-outline" size={13} color="#FFFFFF" />
         <Text style={styles.counterText}>
@@ -91,22 +106,24 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
         </Text>
       </View>
 
-      {/* Dots Indicator */}
-      <View style={styles.dotsWrap}>
-        {validImages.map((_, idx) => (
-          <View
-            key={`dot-${idx}`}
-            style={[styles.dot, activeIndex === idx ? styles.activeDot : styles.inactiveDot]}
-          />
-        ))}
-      </View>
+      {/* Dots Indicator (shown when <= 6 images) */}
+      {validImages.length <= 6 && (
+        <View style={styles.dotsWrap}>
+          {validImages.map((_, idx) => (
+            <View
+              key={`dot-${idx}`}
+              style={[styles.dot, activeIndex === idx ? styles.activeDot : styles.inactiveDot]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#D7DBE4',
+    backgroundColor: '#E2E8F0',
     height: 250,
     position: 'relative',
     width: '100%',
@@ -116,7 +133,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   slideItem: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#E2E8F0',
     height: '100%',
   },
   image: {

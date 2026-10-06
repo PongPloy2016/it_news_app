@@ -41,14 +41,18 @@ export function extractImages(...sources: Array<string | undefined>): string[] {
     const matches = source.matchAll(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi);
     for (const match of matches) {
       if (match[1]) {
-        const sanitized = sanitizeImageUrl(he.decode(match[1]));
+        const raw = he.decode(match[1]).trim();
+        // Ignore relative paths (e.g. /sites/default/files/badge.png)
+        if (!/^https?:\/\//i.test(raw) && !raw.startsWith('//')) {
+          continue;
+        }
+        const sanitized = sanitizeImageUrl(raw);
         if (sanitized && !seen.has(sanitized)) {
-          // Exclude tracker pixels, 1x1 spacer GIFs, or feed icons
+          // Exclude tracker pixels, spacer GIFs, avatars, badges, and layout banners
           if (
-            !sanitized.includes('feedsportal.com') &&
-            !sanitized.includes('feedburner.com') &&
-            !sanitized.includes('statcounter') &&
-            !sanitized.includes('doubleclick') &&
+            !/feedsportal|feedburner|statcounter|doubleclick|googletagmanager|avatar|gravatar|badge|banner|\/jobs\//i.test(
+              sanitized,
+            ) &&
             !/\.(?:ico)(?:\?.*)?$/i.test(sanitized)
           ) {
             seen.add(sanitized);
@@ -59,7 +63,7 @@ export function extractImages(...sources: Array<string | undefined>): string[] {
     }
   }
 
-  return images;
+  return images.slice(0, 6);
 }
 
 export function extractOgImage(html: string): string | undefined {

@@ -54,10 +54,10 @@ export function normalizeRawEntry(
     }
   }
 
-  const contentImages = extractImages(fullText, content, summary);
-  const combinedImages = Array.from(new Set([...mediaImages, ...contentImages]));
+  const contentImages = extractImages(content, summary);
+  const combinedImages = Array.from(new Set([...mediaImages, ...contentImages])).slice(0, 6);
   const imageUrl = combinedImages[0] || undefined;
-  const images = combinedImages.length > 0 ? combinedImages : undefined;
+  const images = combinedImages.length > 1 ? combinedImages : undefined;
 
   // Video extraction (enclosure, media:content, or embedded video in content/description)
   const enclosure = entry.enclosure as Record<string, unknown> | undefined;
