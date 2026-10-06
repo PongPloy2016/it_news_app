@@ -143,6 +143,9 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
           {article.title}
         </Text>
 
+        {/* Embedded Video Player */}
+        {article.videoUrl ? <ArticleVideoPlayer videoUrl={article.videoUrl} /> : null}
+
         {/* Metadata (Author, Time, Read Duration) */}
         <Text
           style={[
@@ -308,11 +311,6 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
             </Text>
           </View>
         )}
-
-        {/* Embedded Video Player */}
-        {article.videoUrl ? (
-          <ArticleVideoPlayer videoUrl={article.videoUrl} title={article.title} />
-        ) : null}
 
         {/* AdMob Banner */}
         <AdBanner style={styles.detailAdBanner} />
