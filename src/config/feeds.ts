@@ -24,7 +24,7 @@ export const techBusinessSources: FeedSource[] = [
   { key: 'thumbsup', label: 'Thumbsup', url: 'https://www.thumbsup.in.th/feed', homepage: 'https://www.thumbsup.in.th', type: 'rss' },
   { key: 'thaiware', label: 'Thaiware', url: 'https://www.thaiware.com/rss/rss_latestPost_news.php', homepage: 'https://www.thaiware.com', type: 'rss' },
   { key: 'sanook-hitech-computer', label: 'Sanook Hitech Computer', url: 'https://rssfeeds.sanook.com/rss/feeds/sanook/hitech.computer.index.xml', homepage: 'https://hitech.sanook.com', type: 'rss' },
-  { key: 'google-tech-th', label: 'Google ข่าวไอที', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'google-tech-th', label: 'Google ข่าวไอที', url: 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FuUm9HZ0pVU0NnQVAB?hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
 
 export const techInternationalSources: FeedSource[] = [
