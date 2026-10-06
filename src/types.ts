@@ -57,6 +57,7 @@ export interface NewsArticle {
   description: string;
   content?: string;
   imageUrl?: string;
+  videoUrl?: string;
   author?: string;
   publishedAt?: string;
   publishedMillis?: number;

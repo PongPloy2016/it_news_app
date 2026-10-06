@@ -1,5 +1,12 @@
 import { NewsArticle } from '../../types';
-import { estimateReadingTime, extractImage, parseDate, sanitizeImageUrl, stripHtml } from '../../utils/content';
+import {
+  estimateReadingTime,
+  extractImage,
+  extractVideoUrl,
+  parseDate,
+  sanitizeImageUrl,
+  stripHtml,
+} from '../../utils/content';
 import { asArray, extractNodeText } from './parser';
 
 export function normalizeRawEntry(
@@ -25,9 +32,24 @@ export function normalizeRawEntry(
   const publishedAt = extractNodeText(entry.published ?? entry.updated ?? entry.pubDate);
   const authorNode = entry.author as Record<string, unknown> | undefined;
   const author = stripHtml(extractNodeText(authorNode?.name ?? entry['dc:creator'] ?? entry.author));
+
+  // Media image extraction
   const media = (entry['media:content'] ?? entry['media:thumbnail']) as Record<string, unknown> | undefined;
   const rawMedia = String(media?.['@_url'] ?? '');
   const imageUrl = sanitizeImageUrl(rawMedia) || extractImage(fullText, content);
+
+  // Video extraction (enclosure, media:content, or embedded video in content/description)
+  const enclosure = entry.enclosure as Record<string, unknown> | undefined;
+  const enclosureType = String(enclosure?.['@_type'] ?? '');
+  const enclosureUrl = String(enclosure?.['@_url'] ?? '');
+  const isEnclosureVideo = enclosureType.startsWith('video/') ? enclosureUrl : undefined;
+
+  const mediaContent = entry['media:content'] as Record<string, unknown> | undefined;
+  const mediaMedium = String(mediaContent?.['@_medium'] ?? '');
+  const mediaUrl = String(mediaContent?.['@_url'] ?? '');
+  const isMediaVideo = mediaMedium === 'video' ? mediaUrl : undefined;
+
+  const videoUrl = isEnclosureVideo || isMediaVideo || extractVideoUrl(fullText, content, summary);
 
   return {
     id: extractNodeText(entry.id ?? entry.guid) || link,
@@ -36,6 +58,7 @@ export function normalizeRawEntry(
     description: stripHtml(fullText),
     content: content || fullText || undefined,
     imageUrl: imageUrl || undefined,
+    videoUrl: videoUrl || undefined,
     author: author || undefined,
     publishedAt: publishedAt || undefined,
     publishedMillis: parseDate(publishedAt),

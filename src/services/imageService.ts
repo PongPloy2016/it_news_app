@@ -1,5 +1,5 @@
 import { NewsArticle } from '../types';
-import { extractOgImage, sanitizeImageUrl } from '../utils/content';
+import { extractOgImage, extractVideoUrl, sanitizeImageUrl } from '../utils/content';
 
 export const imageService = {
   async enrichArticlesWithOgImage(
@@ -22,10 +22,17 @@ export const imageService = {
 
           const html = await response.text();
           const imageUrl = extractOgImage(html);
-          if (!imageUrl) return;
+          const videoUrl = !article.videoUrl ? extractVideoUrl(html) : undefined;
+          if (!imageUrl && !videoUrl) return;
 
           current = current.map((item) =>
-            item.id === article.id && !sanitizeImageUrl(item.imageUrl) ? { ...item, imageUrl } : item,
+            item.id === article.id
+              ? {
+                  ...item,
+                  ...(imageUrl && !sanitizeImageUrl(item.imageUrl) ? { imageUrl } : {}),
+                  ...(videoUrl && !item.videoUrl ? { videoUrl } : {}),
+                }
+              : item,
           );
           onUpdate(current);
         } catch {

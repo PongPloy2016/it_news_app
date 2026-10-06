@@ -70,6 +70,13 @@ export function NewsCard({
               </View>
             ) : null}
 
+            {article.videoUrl && !displayImageUrl ? (
+              <View style={[styles.compactBadge, styles.videoBadgeBg]}>
+                <MaterialCommunityIcons name="play-circle" size={11} color="#FFFFFF" />
+                <Text style={styles.compactBadgeText}>วิดีโอ</Text>
+              </View>
+            ) : null}
+
             <Text
               numberOfLines={3}
               style={[
@@ -143,6 +150,12 @@ export function NewsCard({
               resizeMode="cover"
               onError={() => setImageError(true)}
             />
+            {article.videoUrl ? (
+              <View style={styles.compactVideoBadge}>
+                <MaterialCommunityIcons name="play" size={10} color="#FFFFFF" />
+                <Text style={styles.compactVideoBadgeText}>วิดีโอ</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
       </Pressable>
@@ -187,6 +200,19 @@ export function NewsCard({
             </View>
           ) : null}
 
+          {article.videoUrl ? (
+            <View
+              style={[
+                styles.magazineBadge,
+                styles.videoBadgeBg,
+                { top: isFresh || isNew ? 40 : 10 },
+              ]}
+            >
+              <MaterialCommunityIcons name="play-circle" size={12} color="#FFFFFF" />
+              <Text style={styles.magazineBadgeText}>วิดีโอ</Text>
+            </View>
+          ) : null}
+
           {article.readingTime ? (
             <View style={styles.readingTimeBadge}>
               <MaterialCommunityIcons name="clock-time-four-outline" size={11} color="#FFFFFF" />
@@ -209,6 +235,12 @@ export function NewsCard({
                 <View style={[styles.compactBadge, styles.newBadgeBg, { marginBottom: 6 }]}>
                   <MaterialCommunityIcons name="fire" size={11} color="#FFFFFF" />
                   <Text style={styles.compactBadgeText}>ข่าวใหม่</Text>
+                </View>
+              ) : null}
+              {article.videoUrl ? (
+                <View style={[styles.compactBadge, styles.videoBadgeBg, { marginBottom: 6 }]}>
+                  <MaterialCommunityIcons name="play-circle" size={11} color="#FFFFFF" />
+                  <Text style={styles.compactBadgeText}>วิดีโอ</Text>
                 </View>
               ) : null}
             </>
@@ -337,6 +369,9 @@ const styles = StyleSheet.create({
   },
   newBadgeBg: {
     backgroundColor: '#F97316',
+  },
+  videoBadgeBg: {
+    backgroundColor: '#DC2626',
   },
   magazineBadgeText: {
     color: '#FFFFFF',
@@ -479,5 +514,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
     height: '100%',
     width: '100%',
+  },
+  compactVideoBadge: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    borderRadius: 4,
+    bottom: 6,
+    flexDirection: 'row',
+    gap: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    position: 'absolute',
+    right: 6,
+  },
+  compactVideoBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
 });

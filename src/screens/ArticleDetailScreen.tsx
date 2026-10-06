@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdBanner } from '../components/AdBanner';
 import { AdCard } from '../components/AdCard';
 import { AiReaderCard } from '../components/AiReaderCard';
+import { ArticleVideoPlayer } from '../components/ArticleVideoPlayer';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
@@ -307,6 +308,11 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
             </Text>
           </View>
         )}
+
+        {/* Embedded Video Player */}
+        {article.videoUrl ? (
+          <ArticleVideoPlayer videoUrl={article.videoUrl} title={article.title} />
+        ) : null}
 
         {/* AdMob Banner */}
         <AdBanner style={styles.detailAdBanner} />

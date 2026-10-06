@@ -51,6 +51,81 @@ export function extractOgImage(html: string): string | undefined {
   return undefined;
 }
 
+export function normalizeVideoEmbedUrl(rawUrl: string): string {
+  let url = rawUrl.trim();
+  if (url.startsWith('//')) {
+    url = 'https:' + url;
+  }
+
+  // YouTube watch or short URL
+  const ytMatch = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i,
+  );
+  if (ytMatch?.[1]) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  }
+
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+  if (vimeoMatch?.[1]) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  }
+
+  return url;
+}
+
+export function extractVideoUrl(...sources: Array<string | undefined>): string | undefined {
+  for (const source of sources) {
+    if (!source) continue;
+
+    // 1. Check iframe embed src (YouTube, Vimeo, Dailymotion, Video files)
+    const iframeMatch = source.match(/<iframe\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/i);
+    if (iframeMatch?.[1]) {
+      const src = he.decode(iframeMatch[1]).trim();
+      if (
+        /youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|facebook\.com\/plugins\/video|\.mp4|\.webm/i.test(
+          src,
+        )
+      ) {
+        return normalizeVideoEmbedUrl(src);
+      }
+    }
+
+    // 2. Check HTML5 video or source tags
+    const videoTagMatch = source.match(/<(?:video|source)\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/i);
+    if (videoTagMatch?.[1]) {
+      const src = he.decode(videoTagMatch[1]).trim();
+      if (/^https?:\/\/\S+/i.test(src) || src.startsWith('//')) {
+        return normalizeVideoEmbedUrl(src);
+      }
+    }
+
+    // 3. Check og:video in meta tags
+    const ogVideoMatch =
+      source.match(
+        /<meta\b[^>]*property\s*=\s*["']og:video(?::url|:secure_url)?["'][^>]*content\s*=\s*["']([^"']+)["']/i,
+      ) ||
+      source.match(
+        /<meta\b[^>]*content\s*=\s*["']([^"']+)["'][^>]*property\s*=\s*["']og:video(?::url|:secure_url)?["']/i,
+      );
+    if (ogVideoMatch?.[1]) {
+      const src = he.decode(ogVideoMatch[1]).trim();
+      if (/^https?:\/\/\S+/i.test(src) || src.startsWith('//')) {
+        return normalizeVideoEmbedUrl(src);
+      }
+    }
+
+    // 4. Check explicit YouTube link inside content
+    const ytLinkMatch = source.match(
+      /(?:https?:)?\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i,
+    );
+    if (ytLinkMatch?.[1]) {
+      return `https://www.youtube.com/embed/${ytLinkMatch[1]}`;
+    }
+  }
+  return undefined;
+}
+
 export function estimateReadingTime(text: string): number {
   const plain = stripHtml(text);
   if (!plain) return 1;
