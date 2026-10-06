@@ -28,27 +28,63 @@ export function sanitizeImageUrl(url?: string): string | undefined {
 }
 
 export function extractImage(...sources: Array<string | undefined>): string | undefined {
+  const images = extractImages(...sources);
+  return images[0] || undefined;
+}
+
+export function extractImages(...sources: Array<string | undefined>): string[] {
+  const images: string[] = [];
+  const seen = new Set<string>();
+
   for (const source of sources) {
     if (!source) continue;
-    const match = source.match(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/i);
-    if (match?.[1] && /^https?:\/\/\S+$/i.test(match[1])) {
-      return sanitizeImageUrl(he.decode(match[1]));
+    const matches = source.matchAll(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi);
+    for (const match of matches) {
+      if (match[1]) {
+        const sanitized = sanitizeImageUrl(he.decode(match[1]));
+        if (sanitized && !seen.has(sanitized)) {
+          // Exclude tracker pixels, 1x1 spacer GIFs, or feed icons
+          if (
+            !sanitized.includes('feedsportal.com') &&
+            !sanitized.includes('feedburner.com') &&
+            !sanitized.includes('statcounter') &&
+            !sanitized.includes('doubleclick') &&
+            !/\.(?:ico)(?:\?.*)?$/i.test(sanitized)
+          ) {
+            seen.add(sanitized);
+            images.push(sanitized);
+          }
+        }
+      }
     }
   }
-  return undefined;
+
+  return images;
 }
 
 export function extractOgImage(html: string): string | undefined {
+  const images = extractOgImages(html);
+  return images[0] || undefined;
+}
+
+export function extractOgImages(html: string): string[] {
+  const images: string[] = [];
+  const seen = new Set<string>();
+
   for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
     const tag = match[0];
     const name = tag.match(/(?:property|name)\s*=\s*["']([^"']+)["']/i)?.[1]?.toLowerCase();
     if (!['og:image', 'og:image:url', 'og:image:secure_url', 'twitter:image'].includes(name ?? '')) continue;
     const url = tag.match(/content\s*=\s*["']([^"']+)["']/i)?.[1];
     if (url && /^https?:\/\/\S+$/i.test(url)) {
-      return sanitizeImageUrl(he.decode(url));
+      const sanitized = sanitizeImageUrl(he.decode(url));
+      if (sanitized && !seen.has(sanitized)) {
+        seen.add(sanitized);
+        images.push(sanitized);
+      }
     }
   }
-  return undefined;
+  return images;
 }
 
 export function normalizeVideoEmbedUrl(rawUrl: string): string {

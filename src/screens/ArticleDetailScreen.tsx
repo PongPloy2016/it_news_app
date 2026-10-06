@@ -2,7 +2,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Image,
   Pressable,
   ScrollView,
   Share,
@@ -14,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdBanner } from '../components/AdBanner';
 import { AdCard } from '../components/AdCard';
 import { AiReaderCard } from '../components/AiReaderCard';
+import { ArticleImageSlider } from '../components/ArticleImageSlider';
 import { ArticleVideoPlayer } from '../components/ArticleVideoPlayer';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
@@ -116,16 +116,10 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
       contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
       showsVerticalScrollIndicator={false}
     >
-      {displayImageUrl ? (
-        <View style={styles.imageWrap}>
-          <Image
-            source={{ uri: displayImageUrl }}
-            style={styles.image}
-            resizeMode="cover"
-            onError={() => setImageError(true)}
-          />
-        </View>
-      ) : null}
+      <ArticleImageSlider
+        images={article.images}
+        fallbackImageUrl={displayImageUrl}
+      />
 
       <View style={styles.body}>
         {/* News Headline Title */}
@@ -377,15 +371,6 @@ const styles = StyleSheet.create({
   detailAdBanner: {
     marginVertical: 16,
     borderRadius: 8,
-  },
-  imageWrap: {
-    height: 240,
-    width: '100%',
-    backgroundColor: '#D7DBE4',
-  },
-  image: {
-    height: '100%',
-    width: '100%',
   },
   body: {
     padding: 18,
