@@ -1,7 +1,28 @@
 import { NewsArticle } from '../types';
-import { extractOgImage, extractVideoUrl, sanitizeImageUrl } from '../utils/content';
+import {
+  extractArticleImagesFromHtml,
+  extractOgImage,
+  extractVideoUrl,
+  sanitizeImageUrl,
+} from '../utils/content';
 
 export const imageService = {
+  async fetchArticleImagesFromLink(link: string): Promise<string[]> {
+    if (!link || !/^https?:\/\//i.test(link)) return [];
+    try {
+      const response = await fetch(link, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ITNewsApp/1.0)',
+        },
+      });
+      if (!response.ok) return [];
+      const html = await response.text();
+      return extractArticleImagesFromHtml(html, link);
+    } catch {
+      return [];
+    }
+  },
+
   async enrichArticlesWithOgImage(
     articles: NewsArticle[],
     onUpdate: (updatedArticles: NewsArticle[]) => void,

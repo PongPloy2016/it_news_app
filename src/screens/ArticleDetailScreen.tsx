@@ -17,6 +17,7 @@ import { ArticleImageSlider } from '../components/ArticleImageSlider';
 import { ArticleVideoPlayer } from '../components/ArticleVideoPlayer';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
+import { imageService } from '../services/imageService';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { RootStackParamList } from '../types';
@@ -110,6 +111,27 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
 
   const [imageError, setImageError] = useState(false);
   const displayImageUrl = !imageError ? sanitizeImageUrl(article.imageUrl) : undefined;
+  const [detailImages, setDetailImages] = useState<string[] | undefined>(
+    article.images && article.images.length > 0 ? article.images : undefined,
+  );
+
+  useEffect(() => {
+    if (article.images && article.images.length > 1) {
+      setDetailImages(article.images);
+      return;
+    }
+
+    let isMounted = true;
+    void imageService.fetchArticleImagesFromLink(article.link).then((fetchedImages) => {
+      if (isMounted && fetchedImages.length > 0) {
+        setDetailImages(fetchedImages);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [article.id, article.link]);
 
   return (
     <ScrollView
@@ -117,7 +139,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
       showsVerticalScrollIndicator={false}
     >
       <ArticleImageSlider
-        images={article.images}
+        images={detailImages}
         fallbackImageUrl={displayImageUrl}
       />
 

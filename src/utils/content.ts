@@ -91,6 +91,79 @@ export function extractOgImages(html: string): string[] {
   return images;
 }
 
+export function extractArticleImagesFromHtml(html: string, pageUrl: string): string[] {
+  const images: string[] = [];
+  const seen = new Set<string>();
+
+  const addUrl = (raw?: string) => {
+    if (!raw) return;
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith('data:')) return;
+    try {
+      const resolved = new URL(trimmed, pageUrl).href;
+      if (
+        !seen.has(resolved) &&
+        !/badge|banner|gtag|doubleclick|feedburner|feedsportal|statcounter|avatar|gravatar|defaultcover|\/jobs\/|emoji|logo|icon|tracking/i.test(
+          resolved,
+        ) &&
+        !/\.(?:ico|svg)(?:\?.*)?$/i.test(resolved)
+      ) {
+        seen.add(resolved);
+        images.push(resolved);
+      }
+    } catch {
+      // Ignore invalid URL
+    }
+  };
+
+  // 1. og:image tags (featured image)
+  const ogMatches = html.matchAll(
+    /<meta\b[^>]*property\s*=\s*["']og:image(?::url|:secure_url)?["'][^>]*content\s*=\s*["']([^"']+)["']/gi,
+  );
+  for (const m of ogMatches) {
+    addUrl(he.decode(m[1]));
+  }
+  const ogNameMatches = html.matchAll(
+    /<meta\b[^>]*name\s*=\s*["'](?:twitter:image|thumbnail)["'][^>]*content\s*=\s*["']([^"']+)["']/gi,
+  );
+  for (const m of ogNameMatches) {
+    addUrl(he.decode(m[1]));
+  }
+
+  // 2. Isolate article body: <article>, <main>, or common article content containers
+  let bodyHtml = '';
+  const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+  if (articleMatch) {
+    bodyHtml = articleMatch[1];
+  } else {
+    const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+    if (mainMatch) {
+      bodyHtml = mainMatch[1];
+    } else {
+      const contentMatch = html.match(
+        /<div\b[^>]*class=["'][^"']*(?:entry-content|post-content|article-body|story-body|detail-content|article-content|field-item)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+      );
+      if (contentMatch) {
+        bodyHtml = contentMatch[1];
+      }
+    }
+  }
+
+  // 3. Extract images inside the isolated article body
+  if (bodyHtml) {
+    const imgMatches = bodyHtml.matchAll(/<img\b[^>]*src\s*=\s*["']([^"']+)["']/gi);
+    for (const m of imgMatches) {
+      addUrl(he.decode(m[1]));
+    }
+    const lazyMatches = bodyHtml.matchAll(/<img\b[^>]*data-(?:src|original)\s*=\s*["']([^"']+)["']/gi);
+    for (const m of lazyMatches) {
+      addUrl(he.decode(m[1]));
+    }
+  }
+
+  return images.slice(0, 8);
+}
+
 export function normalizeVideoEmbedUrl(rawUrl: string): string {
   let url = rawUrl.trim();
   if (url.startsWith('//')) {
