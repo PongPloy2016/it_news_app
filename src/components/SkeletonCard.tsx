@@ -147,9 +147,106 @@ export function SkeletonCard({ layout = 'magazine' }: Props) {
   );
 }
 
+export function SkeletonGridCard() {
+  const { colors, isDark } = useNews();
+  const pulseAnim = useRef(new Animated.Value(0.35)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.8,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.35,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulseAnim]);
+
+  const skeletonColor = isDark ? '#263048' : '#E2E8F0';
+
+  return (
+    <View
+      style={[
+        styles.gridCardSkeleton,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.gridImageSkeleton,
+          { backgroundColor: skeletonColor, opacity: pulseAnim },
+        ]}
+      />
+      <View style={styles.gridBodySkeleton}>
+        <Animated.View
+          style={[
+            styles.lineLong,
+            { backgroundColor: skeletonColor, opacity: pulseAnim, width: '90%', height: 13 },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.lineMedium,
+            { backgroundColor: skeletonColor, opacity: pulseAnim, width: '65%', height: 13, marginTop: 6 },
+          ]}
+        />
+        <View style={styles.gridMetaRowSkeleton}>
+          <Animated.View
+            style={[
+              styles.lineShort,
+              { backgroundColor: skeletonColor, opacity: pulseAnim, width: '50%', height: 10 },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.iconSkeletonSmall,
+              { backgroundColor: skeletonColor, opacity: pulseAnim },
+            ]}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export function SkeletonGridFeed({ count = 4 }: { count?: number }) {
+  const safeCount = count % 2 === 0 ? count : count + 1;
+  const pairs: number[][] = [];
+  for (let i = 0; i < safeCount; i += 2) {
+    pairs.push([i, i + 1]);
+  }
+
+  return (
+    <View style={styles.gridFeedContainer}>
+      {pairs.map((_, rowIndex) => (
+        <View key={rowIndex} style={styles.gridRowWrap}>
+          <SkeletonGridCard />
+          <SkeletonGridCard />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function SkeletonFeed({ layout = 'magazine', count = 4 }: { layout?: CardLayoutOption; count?: number }) {
   if (layout === 'compact') {
     return <CustomListSkeleton count={count} />;
+  }
+  if (layout === 'grid') {
+    return <SkeletonGridFeed count={count} />;
   }
   return (
     <View style={styles.feedContainer}>
@@ -350,5 +447,40 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     height: 76,
     width: 106,
+  },
+
+  // Grid Skeleton Styles
+  gridFeedContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  gridRowWrap: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  gridCardSkeleton: {
+    borderRadius: 14,
+    borderWidth: 1,
+    flex: 1,
+    overflow: 'hidden',
+  },
+  gridImageSkeleton: {
+    height: 105,
+    width: '100%',
+  },
+  gridBodySkeleton: {
+    padding: 10,
+  },
+  gridMetaRowSkeleton: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  iconSkeletonSmall: {
+    borderRadius: 999,
+    height: 18,
+    width: 18,
   },
 });

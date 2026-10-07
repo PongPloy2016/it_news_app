@@ -382,6 +382,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
                 <NewsCard
                   key={item.id}
                   article={item}
+                  layout="compact"
                   isBookmarked={Boolean(bookmarks[item.id])}
                   onToggleBookmark={() => toggleBookmark(item)}
                   onPress={() => {

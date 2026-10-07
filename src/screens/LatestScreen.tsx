@@ -22,7 +22,7 @@ import { SkeletonFeed } from '../components/SkeletonCard';
 import { CustomRefreshHeader } from '../components/CustomRefreshIndicator';
 import { UnderlineTabBar, UnderlineTabItem } from '../components/UnderlineTabBar';
 import { useNews } from '../store/NewsContext';
-import { RootStackParamList } from '../types';
+import { CardLayoutOption, RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
 
@@ -380,6 +380,9 @@ export function LatestScreen() {
   return (
     <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
       <FlatList
+        key={settings.cardLayout === 'grid' ? 'grid-latest-2cols' : 'list-latest-1col'}
+        numColumns={settings.cardLayout === 'grid' ? 2 : 1}
+        columnWrapperStyle={settings.cardLayout === 'grid' ? styles.gridColumnWrap : undefined}
         data={visibleArticles}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: 24 }]}
@@ -464,7 +467,15 @@ export function LatestScreen() {
             <View style={styles.headingActions}>
               <Pressable
                 hitSlop={8}
-                onPress={() => setCardLayout(settings.cardLayout === 'compact' ? 'magazine' : 'compact')}
+                onPress={() => {
+                  const next: CardLayoutOption =
+                    settings.cardLayout === 'compact'
+                      ? 'magazine'
+                      : settings.cardLayout === 'magazine'
+                      ? 'grid'
+                      : 'compact';
+                  setCardLayout(next);
+                }}
                 style={[
                   styles.layoutToggleBtn,
                   { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
@@ -472,7 +483,13 @@ export function LatestScreen() {
                 accessibilityLabel="เปลี่ยนรูปแบบการแสดงผล"
               >
                 <MaterialCommunityIcons
-                  name={settings.cardLayout === 'compact' ? 'view-agenda-outline' : 'view-headline'}
+                  name={
+                    settings.cardLayout === 'compact'
+                      ? 'view-agenda-outline'
+                      : settings.cardLayout === 'magazine'
+                      ? 'view-grid-outline'
+                      : 'view-headline'
+                  }
                   size={19}
                   color={colors.primary}
                 />
@@ -537,7 +554,7 @@ export function LatestScreen() {
         ) : null
       }
       renderItem={({ item, index }) => (
-        <View>
+        <View style={settings.cardLayout === 'grid' ? styles.gridItemWrapper : undefined}>
           <NewsCard
             article={item}
             isBookmarked={Boolean(bookmarks[item.id])}
@@ -549,7 +566,7 @@ export function LatestScreen() {
               });
             }}
           />
-          {(index + 1) % 5 === 0 && (
+          {settings.cardLayout !== 'grid' && (index + 1) % 5 === 0 && (
             <AdCard style={styles.inFeedAdCard} />
           )}
         </View>
@@ -562,6 +579,13 @@ export function LatestScreen() {
 
 const styles = StyleSheet.create({
   screenContainer: { flex: 1 },
+  gridColumnWrap: {
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  gridItemWrapper: {
+    flex: 1,
+  },
   bottomAdBanner: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingVertical: 2,

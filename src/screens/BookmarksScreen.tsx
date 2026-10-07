@@ -34,6 +34,7 @@ export function BookmarksScreen() {
     colors,
     scale,
     isDark,
+    settings,
   } = useNews();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -395,6 +396,9 @@ export function BookmarksScreen() {
 
   return (
     <FlatList
+      key={settings.cardLayout === 'grid' ? 'grid-bookmarks-2cols' : 'list-bookmarks-1col'}
+      numColumns={settings.cardLayout === 'grid' ? 2 : 1}
+      columnWrapperStyle={settings.cardLayout === 'grid' ? styles.gridColumnWrap : undefined}
       data={filteredArticles}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={renderListHeader}
@@ -437,16 +441,18 @@ export function BookmarksScreen() {
         )
       }
       renderItem={({ item }) => (
-        <NewsCard
-          article={item}
-          isBookmarked
-          onToggleBookmark={() => toggleBookmark(item)}
-          onPress={() => {
-            void showInterstitialAndNavigate(() => {
-              navigation.navigate('Article', { articleId: item.id, article: item });
-            });
-          }}
-        />
+        <View style={settings.cardLayout === 'grid' ? styles.gridItemWrapper : undefined}>
+          <NewsCard
+            article={item}
+            isBookmarked
+            onToggleBookmark={() => toggleBookmark(item)}
+            onPress={() => {
+              void showInterstitialAndNavigate(() => {
+                navigation.navigate('Article', { articleId: item.id, article: item });
+              });
+            }}
+          />
+        </View>
       )}
     />
   );
@@ -456,6 +462,13 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 16,
     paddingTop: 8,
+  },
+  gridColumnWrap: {
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  gridItemWrapper: {
+    flex: 1,
   },
   emptyScroll: {
     flexGrow: 1,

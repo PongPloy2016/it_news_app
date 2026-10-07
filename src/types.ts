@@ -1,6 +1,6 @@
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type FontSizeOption = 'small' | 'medium' | 'large';
-export type CardLayoutOption = 'compact' | 'magazine';
+export type CardLayoutOption = 'compact' | 'magazine' | 'grid';
 
 export interface AppSettings {
   themeMode: ThemeMode;

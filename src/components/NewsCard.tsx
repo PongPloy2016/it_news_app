@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
-import { NewsArticle } from '../types';
+import { CardLayoutOption, NewsArticle } from '../types';
 import { formatRelative, sanitizeImageUrl } from '../utils/content';
 
 interface Props {
@@ -18,6 +18,7 @@ interface Props {
   onPress: () => void;
   onToggleBookmark: () => void;
   onMarkRead?: () => void;
+  layout?: CardLayoutOption;
 }
 
 export function NewsCard({
@@ -25,12 +26,15 @@ export function NewsCard({
   isBookmarked,
   onPress,
   onToggleBookmark,
+  layout,
 }: Props) {
   const { colors, scale, settings, isArticleNew, isArticleFresh, isArticleRead } =
     useNews();
   const [imageError, setImageError] = useState(false);
   const displayImageUrl = !imageError ? sanitizeImageUrl(article.imageUrl) : undefined;
-  const isCompact = settings.cardLayout === 'compact';
+  const activeLayout = layout ?? settings.cardLayout;
+  const isCompact = activeLayout === 'compact';
+  const isGrid = activeLayout === 'grid';
   const isFresh = isArticleFresh(article);
   const isNew = isArticleNew(article);
   const isRead = isArticleRead(article.id);
@@ -40,6 +44,116 @@ export function NewsCard({
     if (isNew) return '#F97316';
     return colors.border;
   };
+
+  if (isGrid) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={[
+          styles.gridCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: getBorderColor(),
+            borderTopWidth: isFresh ? 4 : isNew ? 3 : 1,
+            borderTopColor: getBorderColor(),
+            opacity: isRead ? 0.78 : 1,
+          },
+        ]}
+      >
+        {displayImageUrl ? (
+          <View style={styles.gridImageWrap}>
+            <Image
+              source={{ uri: displayImageUrl }}
+              style={styles.gridImage}
+              resizeMode="cover"
+              onError={() => setImageError(true)}
+            />
+            {isFresh ? (
+              <View style={[styles.gridBadge, styles.freshBadgeBg]}>
+                <MaterialCommunityIcons name="lightning-bolt" size={10} color="#FFFFFF" />
+                <Text style={styles.gridBadgeText}>ใหม่</Text>
+              </View>
+            ) : isNew ? (
+              <View style={[styles.gridBadge, styles.newBadgeBg]}>
+                <MaterialCommunityIcons name="fire" size={10} color="#FFFFFF" />
+                <Text style={styles.gridBadgeText}>ข่าวใหม่</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <View style={[styles.gridNoImageWrap, { backgroundColor: colors.surfaceVariant }]}>
+            <MaterialCommunityIcons name="newspaper-variant-outline" size={26} color={colors.muted} />
+            {isFresh ? (
+              <View style={[styles.gridBadge, styles.freshBadgeBg]}>
+                <MaterialCommunityIcons name="lightning-bolt" size={10} color="#FFFFFF" />
+                <Text style={styles.gridBadgeText}>ใหม่</Text>
+              </View>
+            ) : isNew ? (
+              <View style={[styles.gridBadge, styles.newBadgeBg]}>
+                <MaterialCommunityIcons name="fire" size={10} color="#FFFFFF" />
+                <Text style={styles.gridBadgeText}>ข่าวใหม่</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        <View style={styles.gridBody}>
+          <Text
+            numberOfLines={3}
+            style={[
+              styles.gridTitle,
+              {
+                color: isRead ? colors.muted : colors.text,
+                fontSize: 13 * scale,
+                fontWeight: isRead ? '600' : '800',
+                lineHeight: Math.round(13 * scale * typography.title.lineHeightMultiplier),
+                fontFamily: typography.fontFamily,
+              },
+            ]}
+          >
+            {article.title}
+          </Text>
+
+          <View style={styles.gridMetaRow}>
+            <View style={styles.gridMetaTextWrap}>
+              {article.author ? (
+                <Text
+                  numberOfLines={1}
+                  style={[styles.gridAuthor, { color: colors.primary, fontSize: 10.5 * scale }]}
+                >
+                  {article.author.split('·')[0].trim()}
+                </Text>
+              ) : null}
+              {article.publishedMillis ? (
+                <Text
+                  numberOfLines={1}
+                  style={[styles.gridDate, { color: colors.muted, fontSize: 10 * scale }]}
+                >
+                  {formatRelative(article.publishedMillis)}
+                </Text>
+              ) : null}
+            </View>
+
+            <Pressable
+              hitSlop={8}
+              onPress={(e) => {
+                e.stopPropagation();
+                onToggleBookmark();
+              }}
+              style={styles.gridBookmarkBtn}
+              accessibilityLabel="บุ๊กมาร์กข่าว"
+            >
+              <MaterialCommunityIcons
+                name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+                size={17}
+                color={isBookmarked ? colors.primary : colors.muted}
+              />
+            </Pressable>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   if (isCompact) {
     return (
@@ -479,5 +593,82 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
     height: '100%',
     width: '100%',
+  },
+
+  // --- Grid (รูปที่ 3) Styles ---
+  gridCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    elevation: 2,
+    flex: 1,
+    marginBottom: 10,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+  },
+  gridImageWrap: {
+    backgroundColor: '#1E293B',
+    height: 105,
+    overflow: 'hidden',
+    position: 'relative',
+    width: '100%',
+  },
+  gridImage: {
+    height: '100%',
+    width: '100%',
+  },
+  gridNoImageWrap: {
+    alignItems: 'center',
+    height: 70,
+    justifyContent: 'center',
+    position: 'relative',
+    width: '100%',
+  },
+  gridBadge: {
+    alignItems: 'center',
+    borderRadius: 4,
+    flexDirection: 'row',
+    gap: 2,
+    left: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    position: 'absolute',
+    top: 6,
+  },
+  gridBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  gridBody: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: 10,
+  },
+  gridTitle: {
+    letterSpacing: -0.2,
+    marginBottom: 8,
+  },
+  gridMetaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 'auto',
+  },
+  gridMetaTextWrap: {
+    flex: 1,
+    marginRight: 4,
+  },
+  gridAuthor: {
+    fontWeight: '700',
+  },
+  gridDate: {
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  gridBookmarkBtn: {
+    padding: 2,
   },
 });

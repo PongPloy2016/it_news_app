@@ -334,6 +334,9 @@ export function CategoryDetailScreen() {
         </View>
       ) : (
         <FlatList
+          key={settings.cardLayout === 'grid' ? 'grid-category-2cols' : 'list-category-1col'}
+          numColumns={settings.cardLayout === 'grid' ? 2 : 1}
+          columnWrapperStyle={settings.cardLayout === 'grid' ? styles.gridColumnWrap : undefined}
           data={categoryArticles}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
@@ -359,12 +362,14 @@ export function CategoryDetailScreen() {
             />
           }
           renderItem={({ item }) => (
-            <NewsCard
-              article={item}
-              isBookmarked={Boolean(bookmarks[item.id])}
-              onPress={() => handleOpenArticle(item)}
-              onToggleBookmark={() => toggleBookmark(item)}
-            />
+            <View style={settings.cardLayout === 'grid' ? styles.gridItemWrapper : undefined}>
+              <NewsCard
+                article={item}
+                isBookmarked={Boolean(bookmarks[item.id])}
+                onPress={() => handleOpenArticle(item)}
+                onToggleBookmark={() => toggleBookmark(item)}
+              />
+            </View>
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -407,6 +412,14 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 24,
+  },
+  gridColumnWrap: {
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+  },
+  gridItemWrapper: {
+    flex: 1,
   },
   listHeaderContainer: {
     marginBottom: 8,

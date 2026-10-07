@@ -34,6 +34,7 @@ const fontOptions: Array<[FontSizeOption, string]> = [
 const layoutOptions: Array<[CardLayoutOption, string, string, keyof typeof MaterialCommunityIcons.glyphMap]> = [
   ['compact', 'รายการกะทัดรัด (รูปที่ 1)', 'รูปย่อด้านขวา อ่านข่าวได้หลายข่าว', 'view-headline'],
   ['magazine', 'การ์ดรูปใหญ่ (รูปที่ 2)', 'รูปใหญ่เต็มความกว้าง สวยเด่นคมชัด', 'view-agenda-outline'],
+  ['grid', 'ตาราง 2 คอลัมน์ (Grid)', 'แสดงข่าวตารางคู่ 2 คอลัมน์ สวยกระชับ', 'view-grid-outline'],
 ];
 
 export function SettingsScreen() {

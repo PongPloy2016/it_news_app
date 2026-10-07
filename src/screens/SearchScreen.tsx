@@ -13,7 +13,7 @@ import { showInterstitialAndNavigate } from '../services/interstitialService';
 export function SearchScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
-  const { articles, bookmarks, searchHistory, colors, scale, toggleBookmark, addSearchHistory, clearSearchHistory } = useNews();
+  const { articles, bookmarks, searchHistory, colors, scale, settings, toggleBookmark, addSearchHistory, clearSearchHistory } = useNews();
   const [query, setQuery] = useState('');
   const results = useMemo(() => {
     const term = query.trim().toLocaleLowerCase('th');
@@ -50,16 +50,30 @@ export function SearchScreen() {
         </View> : <ScreenState icon="text-search" title="ค้นหาข่าวสาร"
           subtitle="ค้นหาจากข่าวที่ดาวน์โหลดไว้ ตามหัวข้อ เนื้อหา หรือชื่อผู้เขียน" />
       ) : results.length ? (
-        <FlatList data={results} keyExtractor={(item) => item.id} contentContainerStyle={[styles.results, { paddingBottom: 150 + insets.bottom }]}
+        <FlatList
+          key={settings.cardLayout === 'grid' ? 'grid-search-2cols' : 'list-search-1col'}
+          numColumns={settings.cardLayout === 'grid' ? 2 : 1}
+          columnWrapperStyle={settings.cardLayout === 'grid' ? styles.gridColumnWrap : undefined}
+          data={results}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.results, { paddingBottom: 150 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => <NewsCard article={item} isBookmarked={Boolean(bookmarks[item.id])}
-            onToggleBookmark={() => toggleBookmark(item)}
-            onPress={() => {
-              addSearchHistory(query);
-              void showInterstitialAndNavigate(() => {
-                navigation.navigate('Article', { articleId: item.id, article: item });
-              });
-            }} />} />
+          renderItem={({ item }) => (
+            <View style={settings.cardLayout === 'grid' ? styles.gridItemWrapper : undefined}>
+              <NewsCard
+                article={item}
+                isBookmarked={Boolean(bookmarks[item.id])}
+                onToggleBookmark={() => toggleBookmark(item)}
+                onPress={() => {
+                  addSearchHistory(query);
+                  void showInterstitialAndNavigate(() => {
+                    navigation.navigate('Article', { articleId: item.id, article: item });
+                  });
+                }}
+              />
+            </View>
+          )}
+        />
       ) : <ScreenState icon="magnify-close" title="ไม่พบผลการค้นหา" subtitle="ลองใช้คำค้นหาอื่นดูนะ" />}
     </View>
   );
@@ -75,4 +89,6 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   chip: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 9 },
   results: { paddingTop: 16, paddingBottom: 96 },
+  gridColumnWrap: { gap: 10, justifyContent: 'space-between' },
+  gridItemWrapper: { flex: 1 },
 });
