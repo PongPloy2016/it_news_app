@@ -485,7 +485,7 @@ export function LatestScreen() {
             onPress={() => {
               markAsRead(item.id);
               void showInterstitialAndNavigate(() => {
-                navigation.navigate('Article', { articleId: item.id });
+                navigation.navigate('Article', { articleId: item.id, article: item });
               });
             }}
           />

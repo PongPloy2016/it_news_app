@@ -66,13 +66,15 @@ export interface NewsArticle {
 }
 
 export type RootStackParamList = {
-  MainTabs: undefined;
-  Article: { articleId: string };
+  MainTabs: { screen?: keyof MainTabParamList } | undefined;
+  Article: { articleId: string; article?: NewsArticle };
   WebView: { url: string; title?: string };
+  CategoryDetail: { groupKey: string };
 };
 
 export type MainTabParamList = {
   Latest: undefined;
+  Categories: undefined;
   Search: undefined;
   Bookmarks: undefined;
   Settings: undefined;

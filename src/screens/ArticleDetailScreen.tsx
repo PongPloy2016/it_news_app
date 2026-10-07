@@ -17,10 +17,12 @@ import { ArticleImageSlider } from '../components/ArticleImageSlider';
 import { ArticleVideoPlayer } from '../components/ArticleVideoPlayer';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
+import { articleRepository } from '../data/database/articles';
+import { feedService } from '../services/feedService';
 import { imageService } from '../services/imageService';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
-import { RootStackParamList } from '../types';
+import { NewsArticle, RootStackParamList } from '../types';
 import { cleanNewsContent, generateAiSummary } from '../utils/aiSummary';
 import { formatRelative, sanitizeImageUrl, stripHtml } from '../utils/content';
 import { shareArticle } from '../utils/share';
@@ -48,9 +50,25 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
   const [speechRate, setSpeechRate] = useState<SpeechRate>(0.9);
 
+  const [fallbackArticle, setFallbackArticle] = useState<NewsArticle | undefined>(route.params.article);
+
   const article =
+    route.params.article ??
+    fallbackArticle ??
     articles.find((item) => item.id === route.params.articleId) ??
-    bookmarks[route.params.articleId];
+    bookmarks[route.params.articleId] ??
+    feedService.getArticleById(route.params.articleId);
+
+  useEffect(() => {
+    if (!article) {
+      void articleRepository.getCachedArticles().then((list) => {
+        const found = list.find((it) => it.id === route.params.articleId);
+        if (found) {
+          setFallbackArticle(found);
+        }
+      });
+    }
+  }, [article, route.params.articleId]);
 
   // Stop speaking when leaving the screen
   useEffect(() => {

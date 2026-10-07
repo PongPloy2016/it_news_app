@@ -7,9 +7,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { ImageViewerModal } from './ImageViewerModal';
 
 interface Props {
   images?: string[];
@@ -20,6 +22,8 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedIndices, setFailedIndices] = useState<Record<number, boolean>>({});
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
   // Consolidate & strictly sanitize valid article images
   const rawImages = images && images.length > 0 ? images : fallbackImageUrl ? [fallbackImageUrl] : [];
@@ -51,11 +55,31 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
 
     return (
       <View style={styles.container}>
-        <Image
-          source={{ uri: validImages[0] }}
-          style={styles.image}
-          resizeMode="cover"
-          onError={() => setFailedIndices((prev) => ({ ...prev, 0: true }))}
+        <TouchableOpacity
+          activeOpacity={0.92}
+          style={styles.touchableSlide}
+          onPress={() => {
+            setViewerInitialIndex(0);
+            setViewerVisible(true);
+          }}
+        >
+          <Image
+            source={{ uri: validImages[0] }}
+            style={styles.image}
+            resizeMode="cover"
+            onError={() => setFailedIndices((prev) => ({ ...prev, 0: true }))}
+          />
+          <View style={styles.counterBadge}>
+            <MaterialCommunityIcons name="magnify-plus-outline" size={13} color="#FFFFFF" />
+            <Text style={styles.counterText}>แตะเพื่อดูรูป / ซูม</Text>
+          </View>
+        </TouchableOpacity>
+
+        <ImageViewerModal
+          visible={viewerVisible}
+          images={validImages}
+          initialIndex={viewerInitialIndex}
+          onClose={() => setViewerVisible(false)}
         />
       </View>
     );
@@ -83,12 +107,21 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
         {validImages.map((uri, idx) => (
           <View key={`${uri}-${idx}`} style={[styles.slideItem, { width: screenWidth }]}>
             {!failedIndices[idx] ? (
-              <Image
-                source={{ uri }}
-                style={styles.image}
-                resizeMode="cover"
-                onError={() => setFailedIndices((prev) => ({ ...prev, [idx]: true }))}
-              />
+              <TouchableOpacity
+                activeOpacity={0.92}
+                style={styles.touchableSlide}
+                onPress={() => {
+                  setViewerInitialIndex(idx);
+                  setViewerVisible(true);
+                }}
+              >
+                <Image
+                  source={{ uri }}
+                  style={styles.image}
+                  resizeMode="cover"
+                  onError={() => setFailedIndices((prev) => ({ ...prev, [idx]: true }))}
+                />
+              </TouchableOpacity>
             ) : (
               <View style={styles.errorPlaceholder}>
                 <MaterialCommunityIcons name="image-broken-variant" size={32} color="#94A3B8" />
@@ -98,17 +131,24 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
         ))}
       </ScrollView>
 
-      {/* Floating Counter Badge (e.g. 1 / 3) */}
-      <View style={styles.counterBadge}>
-        <MaterialCommunityIcons name="image-multiple-outline" size={13} color="#FFFFFF" />
+      {/* Floating Counter Badge */}
+      <TouchableOpacity
+        style={styles.counterBadge}
+        activeOpacity={0.8}
+        onPress={() => {
+          setViewerInitialIndex(activeIndex);
+          setViewerVisible(true);
+        }}
+      >
+        <MaterialCommunityIcons name="magnify-plus-outline" size={13} color="#FFFFFF" />
         <Text style={styles.counterText}>
           {activeIndex + 1} / {validImages.length}
         </Text>
-      </View>
+      </TouchableOpacity>
 
       {/* Dots Indicator (shown when <= 6 images) */}
       {validImages.length <= 6 && (
-        <View style={styles.dotsWrap}>
+        <View style={styles.dotsWrap} pointerEvents="none">
           {validImages.map((_, idx) => (
             <View
               key={`dot-${idx}`}
@@ -117,6 +157,14 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
           ))}
         </View>
       )}
+
+      {/* Fullscreen Zoomable Image Viewer Modal */}
+      <ImageViewerModal
+        visible={viewerVisible}
+        images={validImages}
+        initialIndex={viewerInitialIndex}
+        onClose={() => setViewerVisible(false)}
+      />
     </View>
   );
 }
@@ -135,6 +183,11 @@ const styles = StyleSheet.create({
   slideItem: {
     backgroundColor: '#E2E8F0',
     height: '100%',
+  },
+  touchableSlide: {
+    flex: 1,
+    height: '100%',
+    width: '100%',
   },
   image: {
     height: '100%',

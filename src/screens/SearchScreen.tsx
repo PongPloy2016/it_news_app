@@ -57,7 +57,7 @@ export function SearchScreen() {
             onPress={() => {
               addSearchHistory(query);
               void showInterstitialAndNavigate(() => {
-                navigation.navigate('Article', { articleId: item.id });
+                navigation.navigate('Article', { articleId: item.id, article: item });
               });
             }} />} />
       ) : <ScreenState icon="magnify-close" title="ไม่พบผลการค้นหา" subtitle="ลองใช้คำค้นหาอื่นดูนะ" />}

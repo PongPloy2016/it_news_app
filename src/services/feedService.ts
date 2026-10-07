@@ -17,10 +17,23 @@ class FeedServiceQueue {
   private activeCount: number = 0;
   private concurrency: number = MAX_CONCURRENT_FEEDS;
   private cache: Map<string, { articles: NewsArticle[]; timestamp: number }> = new Map();
+  private articleMap: Map<string, NewsArticle> = new Map();
   private feedGroups: FeedGroup[] = FEED_GROUPS;
 
   constructor(concurrency: number = MAX_CONCURRENT_FEEDS) {
     this.concurrency = concurrency;
+  }
+
+  registerArticles(articles: NewsArticle[]): void {
+    for (const a of articles) {
+      if (a && a.id) {
+        this.articleMap.set(a.id, a);
+      }
+    }
+  }
+
+  getArticleById(id: string): NewsArticle | undefined {
+    return this.articleMap.get(id);
   }
 
   setFeedGroups(groups: FeedGroup[]): void {
@@ -128,6 +141,7 @@ class FeedServiceQueue {
     // Deduplicate and sort by publishedMillis descending (newest first)
     const sorted = dedupeAndSortArticles(mergedArticles);
 
+    this.registerArticles(sorted);
     this.cache.set(aggregateFeed.key, { articles: sorted, timestamp: Date.now() });
     return sorted;
   }
@@ -156,6 +170,7 @@ class FeedServiceQueue {
           // ignore fallback error
         }
       }
+      this.registerArticles(articles);
       this.cache.set(task.feed.key, { articles, timestamp: Date.now() });
       task.resolve(articles);
     } catch (err) {
@@ -165,6 +180,7 @@ class FeedServiceQueue {
           const fallbackUrl = `https://news.google.com/rss/search?q=site:${domain}&hl=th&gl=TH&ceid=TH:th`;
           const fallbackArticles = await fetchAndParseFeed(fallbackUrl);
           if (fallbackArticles.length > 0) {
+            this.registerArticles(fallbackArticles);
             this.cache.set(task.feed.key, { articles: fallbackArticles, timestamp: Date.now() });
             task.resolve(fallbackArticles);
             return;
