@@ -196,6 +196,18 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
     default_feed_key TEXT NOT NULL DEFAULT 'tech-business',
     cache_ttl_minutes INTEGER NOT NULL DEFAULT 15,
 
+    -- Layout & UI Defaults
+    default_card_layout TEXT NOT NULL DEFAULT 'magazine',
+    default_theme_mode TEXT NOT NULL DEFAULT 'system',
+    default_link_open_mode TEXT NOT NULL DEFAULT 'in_app',
+    default_font_size TEXT NOT NULL DEFAULT 'medium',
+    data_saver_default BOOLEAN NOT NULL DEFAULT false,
+    cloud_sync_enabled BOOLEAN NOT NULL DEFAULT true,
+    related_news_limit INTEGER NOT NULL DEFAULT 10,
+    rss_source_name TEXT NOT NULL DEFAULT 'Blognone',
+    rss_source_url TEXT NOT NULL DEFAULT 'https://www.blognone.com',
+    contact_custom_url TEXT,
+
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -223,7 +235,16 @@ INSERT INTO public.app_settings (
     interstitial_min_delay_sec,
     min_supported_version,
     latest_version,
-    default_feed_key
+    default_feed_key,
+    default_card_layout,
+    default_theme_mode,
+    default_link_open_mode,
+    default_font_size,
+    data_saver_default,
+    cloud_sync_enabled,
+    related_news_limit,
+    rss_source_name,
+    rss_source_url
 )
 VALUES (
     'default',
@@ -235,7 +256,16 @@ VALUES (
     60,
     '1.0.0',
     '1.0.0',
-    'tech-business'
+    'tech-business',
+    'magazine',
+    'system',
+    'in_app',
+    'medium',
+    false,
+    true,
+    10,
+    'Blognone',
+    'https://www.blognone.com'
 )
 ON CONFLICT (id) DO NOTHING;
 

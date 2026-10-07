@@ -34,6 +34,16 @@ export const DEFAULT_REMOTE_SETTINGS: RemoteAppSettings = {
   breaking_news_url: null,
   default_feed_key: 'tech-business',
   cache_ttl_minutes: 15,
+  default_card_layout: 'magazine',
+  default_theme_mode: 'system',
+  default_link_open_mode: 'in_app',
+  default_font_size: 'medium',
+  data_saver_default: false,
+  cloud_sync_enabled: true,
+  related_news_limit: 10,
+  rss_source_name: 'Blognone',
+  rss_source_url: 'https://www.blognone.com',
+  contact_custom_url: null,
 };
 
 let inMemoryRemoteSettings: RemoteAppSettings = DEFAULT_REMOTE_SETTINGS;

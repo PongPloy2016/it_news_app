@@ -31,6 +31,7 @@ export function BookmarksScreen() {
     clearBookmarks,
     syncCloudBookmarks,
     isSyncingBookmarks,
+    remoteSettings,
     colors,
     scale,
     isDark,
@@ -46,12 +47,13 @@ export function BookmarksScreen() {
   // Sync with Supabase on screen focus
   useFocusEffect(
     useCallback(() => {
+      if (remoteSettings.cloud_sync_enabled === false) return;
       void syncCloudBookmarks().then((res) => {
         if (res.success) {
           setLastSyncedTime(new Date());
         }
       });
-    }, [syncCloudBookmarks]),
+    }, [remoteSettings.cloud_sync_enabled, syncCloudBookmarks]),
   );
 
   // Base sorted articles
@@ -131,9 +133,13 @@ export function BookmarksScreen() {
   // Clear all confirmation alert
   const handleConfirmClearAll = () => {
     if (allArticles.length === 0) return;
+    const confirmMessage =
+      remoteSettings.cloud_sync_enabled !== false
+        ? `คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด (${allArticles.length} รายการ) ออกจากเครื่องและ Supabase Cloud ใช่หรือไม่?`
+        : `คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด (${allArticles.length} รายการ) ออกจากเครื่องใช่หรือไม่?`;
     Alert.alert(
       'ล้างข่าวที่บันทึกทั้งหมด',
-      `คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด (${allArticles.length} รายการ) ออกจากเครื่องและ Supabase Cloud ใช่หรือไม่?`,
+      confirmMessage,
       [
         { text: 'ยกเลิก', style: 'cancel' },
         {
@@ -161,90 +167,92 @@ export function BookmarksScreen() {
   // Header showing Supabase Cloud status, sync button, search, and source filter chips
   const renderListHeader = () => (
     <View style={styles.syncHeaderWrap}>
-      {/* 1. Main Cloud Sync Card Banner */}
-      <View
-        style={[
-          styles.syncBanner,
-          {
-            backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : '#F1F5F9',
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.syncBannerLeft}>
-          <View
-            style={[
-              styles.cloudIconBadge,
-              { backgroundColor: isDark ? 'rgba(14, 165, 233, 0.18)' : '#E0F2FE' },
-            ]}
-          >
-            <MaterialCommunityIcons name="cloud-check" size={20} color="#0284C7" />
-          </View>
-          <View style={styles.syncTextWrap}>
-            <View style={styles.syncTitleRow}>
-              <Text style={[styles.syncTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
-                Supabase Cloud
-              </Text>
-              {/* Offline Ready Badge */}
-              <View style={[styles.offlineBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ECFDF5' }]}>
-                <MaterialCommunityIcons name="check-decagram" size={11} color="#10B981" />
-                <Text style={styles.offlineBadgeText}>พร้อมอ่านออฟไลน์</Text>
-              </View>
-            </View>
-
-            {/* Last Synced Timestamp */}
-            <Text style={[styles.syncSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
-              {allArticles.length > 0 ? `${allArticles.length} ข่าว · ` : ''}
-              ซิงค์ล่าสุด: {formatSyncTime(lastSyncedTime)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Action Buttons: Sync Down & Clear All */}
-        <View style={styles.bannerActions}>
-          <Pressable
-            onPress={() => void handleSyncDown(true)}
-            disabled={isSyncingBookmarks}
-            style={({ pressed }) => [
-              styles.syncDownBtn,
-              {
-                backgroundColor: colors.primary,
-                opacity: pressed || isSyncingBookmarks ? 0.75 : 1,
-              },
-            ]}
-            accessibilityLabel="ดึงข่าวลงจาก Supabase"
-          >
-            {isSyncingBookmarks ? (
-              <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 4 }} />
-            ) : (
-              <MaterialCommunityIcons
-                name="cloud-download-outline"
-                size={15}
-                color="#FFFFFF"
-                style={{ marginRight: 4 }}
-              />
-            )}
-            <Text style={[styles.syncDownBtnText, { fontSize: 12 * scale }]}>
-              {isSyncingBookmarks ? 'กำลังดึง...' : 'ดึงข่าวลง'}
-            </Text>
-          </Pressable>
-
-          {allArticles.length > 0 && (
-            <Pressable
-              onPress={handleConfirmClearAll}
-              disabled={isSyncingBookmarks}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.clearAllBtn,
-                { opacity: pressed ? 0.6 : 1 },
+      {/* 1. Main Cloud Sync Card Banner (Shown only when cloud_sync_enabled is true) */}
+      {remoteSettings.cloud_sync_enabled !== false && (
+        <View
+          style={[
+            styles.syncBanner,
+            {
+              backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : '#F1F5F9',
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.syncBannerLeft}>
+            <View
+              style={[
+                styles.cloudIconBadge,
+                { backgroundColor: isDark ? 'rgba(14, 165, 233, 0.18)' : '#E0F2FE' },
               ]}
-              accessibilityLabel="ล้างข่าวที่บันทึกทั้งหมด"
             >
-              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
+              <MaterialCommunityIcons name="cloud-check" size={20} color="#0284C7" />
+            </View>
+            <View style={styles.syncTextWrap}>
+              <View style={styles.syncTitleRow}>
+                <Text style={[styles.syncTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
+                  Supabase Cloud
+                </Text>
+                {/* Offline Ready Badge */}
+                <View style={[styles.offlineBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ECFDF5' }]}>
+                  <MaterialCommunityIcons name="check-decagram" size={11} color="#10B981" />
+                  <Text style={styles.offlineBadgeText}>พร้อมอ่านออฟไลน์</Text>
+                </View>
+              </View>
+
+              {/* Last Synced Timestamp */}
+              <Text style={[styles.syncSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
+                {allArticles.length > 0 ? `${allArticles.length} ข่าว · ` : ''}
+                ซิงค์ล่าสุด: {formatSyncTime(lastSyncedTime)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Action Buttons: Sync Down & Clear All */}
+          <View style={styles.bannerActions}>
+            <Pressable
+              onPress={() => void handleSyncDown(true)}
+              disabled={isSyncingBookmarks}
+              style={({ pressed }) => [
+                styles.syncDownBtn,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: pressed || isSyncingBookmarks ? 0.75 : 1,
+                },
+              ]}
+              accessibilityLabel="ดึงข่าวลงจาก Supabase"
+            >
+              {isSyncingBookmarks ? (
+                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 4 }} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="cloud-download-outline"
+                  size={15}
+                  color="#FFFFFF"
+                  style={{ marginRight: 4 }}
+                />
+              )}
+              <Text style={[styles.syncDownBtnText, { fontSize: 12 * scale }]}>
+                {isSyncingBookmarks ? 'กำลังดึง...' : 'ดึงข่าวลง'}
+              </Text>
             </Pressable>
-          )}
+
+            {allArticles.length > 0 && (
+              <Pressable
+                onPress={handleConfirmClearAll}
+                disabled={isSyncingBookmarks}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.clearAllBtn,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+                accessibilityLabel="ล้างข่าวที่บันทึกทั้งหมด"
+              >
+                <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
+              </Pressable>
+            )}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* 2. Sync Feedback Toast Banner */}
       {syncFeedback && (

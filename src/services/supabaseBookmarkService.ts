@@ -74,6 +74,28 @@ export const supabaseBookmarkService = {
   },
 
   /**
+   * Fetch bookmarks belonging to a specific device ID (e.g. for import/syncing from another device).
+   */
+  async fetchBookmarksByDeviceId(targetDeviceId: string): Promise<{ success: boolean; articles: NewsArticle[]; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('user_bookmarks')
+        .select('*')
+        .eq('device_id', targetDeviceId.trim())
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return { success: false, articles: [], error: error.message };
+      }
+
+      const articles: NewsArticle[] = (data || []).map((row: RemoteBookmarkRow) => mapRowToArticle(row));
+      return { success: true, articles };
+    } catch (err: any) {
+      return { success: false, articles: [], error: err?.message || 'Network error' };
+    }
+  },
+
+  /**
    * Save / Upsert a single bookmarked article to Supabase user_bookmarks table.
    */
   async saveRemoteBookmark(article: NewsArticle): Promise<{ success: boolean; error?: string }> {

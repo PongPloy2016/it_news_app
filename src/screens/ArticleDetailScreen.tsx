@@ -92,8 +92,9 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
 
   const otherArticles = useMemo(() => {
     if (!article) return [];
-    return articles.filter((item) => item.id !== article.id).slice(0, 10);
-  }, [articles, article]);
+    const limit = remoteSettings.related_news_limit ?? 10;
+    return articles.filter((item) => item.id !== article.id).slice(0, limit);
+  }, [articles, article, remoteSettings.related_news_limit]);
 
   const [imageError, setImageError] = useState(false);
   const displayImageUrl = !imageError ? sanitizeImageUrl(article?.imageUrl) : undefined;

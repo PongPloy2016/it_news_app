@@ -42,6 +42,16 @@ export interface RemoteAppSettings {
   breaking_news_url?: string | null;
   default_feed_key: string;
   cache_ttl_minutes: number;
+  default_card_layout?: CardLayoutOption;
+  default_theme_mode?: ThemeMode;
+  default_link_open_mode?: LinkOpenMode;
+  default_font_size?: FontSizeOption;
+  data_saver_default?: boolean;
+  cloud_sync_enabled?: boolean;
+  related_news_limit?: number;
+  rss_source_name?: string;
+  rss_source_url?: string;
+  contact_custom_url?: string | null;
   updated_at?: string;
 }
 

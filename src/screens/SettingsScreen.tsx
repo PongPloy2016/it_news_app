@@ -46,10 +46,16 @@ export function SettingsScreen() {
     clearSearchHistory,
     syncCloudBookmarks,
     isSyncingBookmarks,
+    importBookmarksFromDevice,
   } = useNews();
 
   const [deviceId, setDeviceId] = useState<string>('');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
+
+  // Import Device Modal State
+  const [isImportModalVisible, setIsImportModalVisible] = useState(false);
+  const [targetDeviceId, setTargetDeviceId] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   // Feedback Modal State
   const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState(false);
@@ -98,6 +104,23 @@ export function SettingsScreen() {
       });
     } catch {
       Alert.alert('รหัสประจำเครื่อง (Device ID)', deviceId);
+    }
+  };
+
+  const handleImportBookmarks = async () => {
+    if (!targetDeviceId.trim()) {
+      Alert.alert('แจ้งเตือน', 'กรุณาระบุรหัสประจำเครื่อง (Device ID)');
+      return;
+    }
+    setIsImporting(true);
+    const result = await importBookmarksFromDevice(targetDeviceId.trim());
+    setIsImporting(false);
+    if (result.success) {
+      setIsImportModalVisible(false);
+      setTargetDeviceId('');
+      Alert.alert('นำเข้าสำเร็จ', `ดึงข่าวที่บันทึกไว้เข้าเครื่องเรียบร้อยแล้ว ${result.count} รายการ`);
+    } else {
+      Alert.alert('เกิดข้อผิดพลาด', result.error || 'ไม่สามารถดึงข้อมูลได้');
     }
   };
 
@@ -633,93 +656,116 @@ export function SettingsScreen() {
         )}
       </Section>
 
-      {/* 7. Section: Supabase Cloud Sync (iCloud/Google Account Style) */}
-      <Section
-        icon="cloud-sync-outline"
-        iconColor="#0284C7"
-        iconBg={isDark ? '#082F49' : '#E0F2FE'}
-        title="ระบบคลาวด์ (Supabase Cloud Sync)"
-        subtitle="ซิงค์และสำรองข้อมูลบุ๊กมาร์กข้ามเครื่องอัตโนมัติ"
-      >
-        <View
-          style={[
-            styles.cloudCardBox,
-            {
-              backgroundColor: isDark ? '#141620' : '#F8FAFC',
-              borderColor: colors.border,
-            },
-          ]}
+      {/* 7. Section: Supabase Cloud Sync (Controlled by remoteSettings.cloud_sync_enabled) */}
+      {remoteSettings.cloud_sync_enabled !== false && (
+        <Section
+          icon="cloud-sync-outline"
+          iconColor="#0284C7"
+          iconBg={isDark ? '#082F49' : '#E0F2FE'}
+          title="ระบบคลาวด์ (Supabase Cloud Sync)"
+          subtitle="ซิงค์และสำรองข้อมูลบุ๊กมาร์กข้ามเครื่องอัตโนมัติ"
         >
-          {/* Cloud Status Row */}
-          <View style={styles.cloudStatusRow}>
-            <View style={styles.cloudPulseWrap}>
-              <View style={styles.cloudDot} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.cloudStatusTitle, { color: colors.text, fontSize: 13 * scale }]}>
-                เชื่อมต่อกับ Supabase Cloud เรียบร้อย
-              </Text>
-              <Text style={[styles.cloudStatusSub, { color: colors.muted, fontSize: 11 * scale }]}>
-                ข้อมูลบุ๊กมาร์กจะถูกสำรองอย่างปลอดภัยโดยไม่ต้องล็อกอิน
-              </Text>
-            </View>
-          </View>
-
-          {/* Device ID Chip & Share Action */}
           <View
             style={[
-              styles.deviceIdBar,
-              { backgroundColor: isDark ? '#1C1F2B' : '#EEF2F6', borderColor: colors.border },
+              styles.cloudCardBox,
+              {
+                backgroundColor: isDark ? '#141620' : '#F8FAFC',
+                borderColor: colors.border,
+              },
             ]}
           >
-            <MaterialCommunityIcons name="identifier" size={17} color={colors.primary} />
-            <View style={{ flex: 1, marginHorizontal: 8 }}>
-              <Text style={[styles.deviceIdLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>
-                รหัสประจำเครื่อง (Device ID):
-              </Text>
-              <Text
-                selectable
-                numberOfLines={1}
-                ellipsizeMode="middle"
-                style={[styles.deviceIdValue, { color: colors.text, fontSize: 12 * scale }]}
-              >
-                {deviceId || 'กำลังตรวจสอบ...'}
-              </Text>
-            </View>
-            <Pressable
-              hitSlop={8}
-              onPress={() => void handleShareDeviceId()}
-              style={[styles.sharePillBtn, { backgroundColor: colors.surface }]}
-              accessibilityLabel="แชร์หรือคัดลอก Device ID"
-            >
-              <MaterialCommunityIcons name="share-variant-outline" size={15} color={colors.primary} />
-              <Text style={[styles.sharePillText, { color: colors.primary, fontSize: 11 * scale }]}>แชร์</Text>
-            </Pressable>
-          </View>
-
-          {/* Manual Sync Button */}
-          <Pressable
-            disabled={isManualSyncing || isSyncingBookmarks}
-            onPress={() => void handleManualSync()}
-            style={[
-              styles.cloudSyncActionBtn,
-              { backgroundColor: colors.primary },
-              (isManualSyncing || isSyncingBookmarks) && { opacity: 0.7 },
-            ]}
-          >
-            {isManualSyncing || isSyncingBookmarks ? (
-              <ActivityIndicator color={colors.onPrimary} size="small" />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="cloud-sync-outline" size={18} color={colors.onPrimary} />
-                <Text style={[styles.cloudSyncActionBtnText, { color: colors.onPrimary, fontSize: 13.5 * scale }]}>
-                  ซิงค์บุ๊กมาร์กกับ Cloud ทันที ({bookmarkCount} ข่าว)
+            {/* Cloud Status Row */}
+            <View style={styles.cloudStatusRow}>
+              <View style={styles.cloudPulseWrap}>
+                <View style={styles.cloudDot} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.cloudStatusTitle, { color: colors.text, fontSize: 13 * scale }]}>
+                  เชื่อมต่อกับ Supabase Cloud เรียบร้อย
                 </Text>
-              </>
-            )}
-          </Pressable>
-        </View>
-      </Section>
+                <Text style={[styles.cloudStatusSub, { color: colors.muted, fontSize: 11 * scale }]}>
+                  ข้อมูลบุ๊กมาร์กจะถูกสำรองอย่างปลอดภัยโดยไม่ต้องล็อกอิน
+                </Text>
+              </View>
+            </View>
+
+            {/* Device ID Chip & Share Action */}
+            <View
+              style={[
+                styles.deviceIdBar,
+                { backgroundColor: isDark ? '#1C1F2B' : '#EEF2F6', borderColor: colors.border },
+              ]}
+            >
+              <MaterialCommunityIcons name="identifier" size={17} color={colors.primary} />
+              <View style={{ flex: 1, marginHorizontal: 8 }}>
+                <Text style={[styles.deviceIdLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>
+                  รหัสประจำเครื่อง (Device ID):
+                </Text>
+                <Text
+                  selectable
+                  numberOfLines={1}
+                  ellipsizeMode="middle"
+                  style={[styles.deviceIdValue, { color: colors.text, fontSize: 12 * scale }]}
+                >
+                  {deviceId || 'กำลังตรวจสอบ...'}
+                </Text>
+              </View>
+              <Pressable
+                hitSlop={8}
+                onPress={() => void handleShareDeviceId()}
+                style={[styles.sharePillBtn, { backgroundColor: colors.surface }]}
+                accessibilityLabel="แชร์หรือคัดลอก Device ID"
+              >
+                <MaterialCommunityIcons name="share-variant-outline" size={15} color={colors.primary} />
+                <Text style={[styles.sharePillText, { color: colors.primary, fontSize: 11 * scale }]}>แชร์</Text>
+              </Pressable>
+            </View>
+
+            {/* Action Buttons Row: Sync & Connect Another Device */}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Pressable
+                disabled={isManualSyncing || isSyncingBookmarks}
+                onPress={() => void handleManualSync()}
+                style={[
+                  styles.cloudSyncActionBtn,
+                  { backgroundColor: colors.primary, flex: 1 },
+                  (isManualSyncing || isSyncingBookmarks) && { opacity: 0.7 },
+                ]}
+              >
+                {isManualSyncing || isSyncingBookmarks ? (
+                  <ActivityIndicator color={colors.onPrimary} size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="cloud-sync-outline" size={17} color={colors.onPrimary} />
+                    <Text style={[styles.cloudSyncActionBtnText, { color: colors.onPrimary, fontSize: 13 * scale }]}>
+                      ซิงค์ Cloud ({bookmarkCount})
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => setIsImportModalVisible(true)}
+                style={[
+                  styles.cloudSyncActionBtn,
+                  {
+                    backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: 12,
+                  },
+                ]}
+                accessibilityLabel="เพิ่มหรือเชื่อมต่อ Device ID อื่น"
+              >
+                <MaterialCommunityIcons name="plus-circle-outline" size={17} color={colors.primary} />
+                <Text style={[styles.cloudSyncActionBtnText, { color: colors.text, fontSize: 13 * scale }]}>
+                  เชื่อมต่อเครื่องอื่น
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </Section>
+      )}
 
       {/* 8. Section: พื้นที่จัดเก็บและประวัติ (Storage & Data Management) */}
       <Section
@@ -875,15 +921,23 @@ export function SettingsScreen() {
                 ล้างข่าวที่บันทึกไว้ทั้งหมด
               </Text>
               <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                {bookmarkCount > 0 ? `ลบ ${bookmarkCount} ข่าวออกจากเครื่องและ Cloud` : 'ไม่มีบุ๊กมาร์ก'}
+                {bookmarkCount > 0
+                  ? remoteSettings.cloud_sync_enabled !== false
+                    ? `ลบ ${bookmarkCount} ข่าวออกจากเครื่องและ Cloud`
+                    : `ลบ ${bookmarkCount} ข่าวออกจากเครื่อง`
+                  : 'ไม่มีบุ๊กมาร์ก'}
               </Text>
             </View>
             <Pressable
               disabled={bookmarkCount === 0}
               onPress={() => {
+                const message =
+                  remoteSettings.cloud_sync_enabled !== false
+                    ? `ข่าวที่บันทึกไว้ทั้งหมด (${bookmarkCount} ข่าว) จะถูกลบออกจากเครื่องและ Supabase Cloud ถาวรและไม่สามารถย้อนกลับได้`
+                    : `ข่าวที่บันทึกไว้ทั้งหมด (${bookmarkCount} ข่าว) จะถูกลบออกจากเครื่องถาวรและไม่สามารถย้อนกลับได้`;
                 Alert.alert(
                   'ล้างข่าวที่บันทึกไว้?',
-                  `ข่าวที่บันทึกไว้ทั้งหมด (${bookmarkCount} ข่าว) จะถูกลบถาวรและไม่สามารถย้อนกลับได้`,
+                  message,
                   [
                     { text: 'ยกเลิก', style: 'cancel' },
                     { text: 'ลบทั้งหมด', style: 'destructive', onPress: clearBookmarks },
@@ -996,24 +1050,45 @@ export function SettingsScreen() {
             </Pressable>
           )}
 
-          {/* Blognone RSS Source */}
+          {/* Main RSS Source Info (Dynamically configured) */}
           <Pressable
-            onPress={() => void Linking.openURL(BLOGNONE_HOME)}
-            style={[styles.linkRowItem, { borderBottomWidth: 0 }]}
+            onPress={() => void Linking.openURL(remoteSettings.rss_source_url || BLOGNONE_HOME)}
+            style={[styles.linkRowItem, { borderBottomColor: colors.border, borderBottomWidth: remoteSettings.contact_custom_url ? StyleSheet.hairlineWidth : 0 }]}
           >
             <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#431407' : '#FFEDD5' }]}>
               <MaterialCommunityIcons name="rss" size={17} color="#EA580C" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-                แหล่งข่าวต้นฉบับ Blognone RSS
+                {`แหล่งข่าวต้นฉบับ ${remoteSettings.rss_source_name || 'Blognone'} RSS`}
               </Text>
               <Text style={[styles.linkItemSub, { color: colors.muted, fontSize: 11 * scale }]}>
-                {FEED_URL}
+                {remoteSettings.rss_source_url || FEED_URL}
               </Text>
             </View>
             <MaterialCommunityIcons name="open-in-new" size={16} color={colors.muted} />
           </Pressable>
+
+          {/* Optional Community / Custom Contact Link */}
+          {remoteSettings.contact_custom_url && (
+            <Pressable
+              onPress={() => void Linking.openURL(remoteSettings.contact_custom_url!)}
+              style={[styles.linkRowItem, { borderBottomWidth: 0 }]}
+            >
+              <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#1E1B4B' : '#EEF2FF' }]}>
+                <MaterialCommunityIcons name="earth" size={17} color="#6366F1" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
+                  ชุมชนและเว็บไซต์ผู้พัฒนา
+                </Text>
+                <Text style={[styles.linkItemSub, { color: colors.muted, fontSize: 11 * scale }]}>
+                  {remoteSettings.contact_custom_url}
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="open-in-new" size={16} color={colors.muted} />
+            </Pressable>
+          )}
         </View>
       </Section>
 
@@ -1127,6 +1202,69 @@ export function SettingsScreen() {
               ) : (
                 <Text style={[styles.submitModalBtnText, { color: colors.onPrimary }]}>
                   ส่งข้อมูลไปยังทีมงาน
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Import / Connect Other Device Modal */}
+      <Modal
+        visible={isImportModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsImportModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialCommunityIcons name="cloud-download-outline" size={22} color={colors.primary} />
+                <Text style={[styles.modalTitle, { color: colors.text }]}>เชื่อมต่อ Device ID อื่น</Text>
+              </View>
+              <Pressable hitSlop={8} onPress={() => setIsImportModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={colors.muted} />
+              </Pressable>
+            </View>
+
+            <Text style={[styles.fieldSubLabel, { color: colors.muted, marginBottom: 12, lineHeight: 18 }]}>
+              นำเข้าข่าวที่บันทึกไว้จากเครื่องอื่น หรือกู้คืนบุ๊กมาร์กโดยกรอก Device ID ของเครื่องต้นทาง
+            </Text>
+
+            <Text style={[styles.inputLabel, { color: colors.muted }]}>รหัสประจำเครื่องต้นทาง (Device ID) *</Text>
+            <TextInput
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+                  color: colors.text,
+                  borderColor: colors.border,
+                  height: 48,
+                },
+              ]}
+              placeholder="เช่น d1e2f3a4-..."
+              placeholderTextColor={colors.muted}
+              value={targetDeviceId}
+              onChangeText={setTargetDeviceId}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <Pressable
+              disabled={isImporting}
+              onPress={() => void handleImportBookmarks()}
+              style={[
+                styles.submitModalBtn,
+                { backgroundColor: colors.primary, marginTop: 12 },
+                isImporting && { opacity: 0.6 },
+              ]}
+            >
+              {isImporting ? (
+                <ActivityIndicator color={colors.onPrimary} size="small" />
+              ) : (
+                <Text style={[styles.submitModalBtnText, { color: colors.onPrimary }]}>
+                  ดึงและนำเข้าบุ๊กมาร์ก
                 </Text>
               )}
             </Pressable>

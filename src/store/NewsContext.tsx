@@ -65,6 +65,7 @@ interface NewsContextValue {
   scale: number;
   refresh: (forceRefresh?: boolean) => Promise<void>;
   syncCloudBookmarks: () => Promise<{ success: boolean; count: number }>;
+  importBookmarksFromDevice: (targetDeviceId: string) => Promise<{ success: boolean; count: number; error?: string }>;
   setSelectedFeedKey: (key: string) => void;
   toggleBookmark: (article: NewsArticle) => void;
   addSearchHistory: (query: string) => void;
@@ -306,6 +307,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
   }, [isHydrated, lastUpdated, refresh, selectedFeedKey]);
 
   const syncCloudBookmarks = useCallback(async (): Promise<{ success: boolean; count: number }> => {
+    if (remoteSettings.cloud_sync_enabled === false) {
+      return { success: false, count: 0 };
+    }
     setIsSyncingBookmarks(true);
     try {
       const res = await supabaseBookmarkService.fetchRemoteBookmarks(true);
@@ -340,14 +344,46 @@ export function NewsProvider({ children }: PropsWithChildren) {
     } finally {
       setIsSyncingBookmarks(false);
     }
-  }, []);
+  }, [remoteSettings.cloud_sync_enabled]);
+
+  const importBookmarksFromDevice = useCallback(
+    async (targetDeviceId: string): Promise<{ success: boolean; count: number; error?: string }> => {
+      const trimmed = targetDeviceId.trim();
+      if (!trimmed) {
+        return { success: false, count: 0, error: 'กรุณาระบุ Device ID' };
+      }
+      try {
+        const res = await supabaseBookmarkService.fetchBookmarksByDeviceId(trimmed);
+        if (!res.success) {
+          return { success: false, count: 0, error: res.error || 'ไม่สามารถดึงข้อมูลได้' };
+        }
+        if (res.articles.length === 0) {
+          return { success: false, count: 0, error: 'ไม่พบข่าวที่บันทึกไว้ใน Device ID นี้' };
+        }
+
+        setBookmarks((current) => {
+          const merged = { ...current };
+          for (const item of res.articles) {
+            merged[item.id] = item;
+          }
+          void bookmarkRepository.saveBookmarks(merged);
+          return merged;
+        });
+
+        return { success: true, count: res.articles.length };
+      } catch (err: any) {
+        return { success: false, count: 0, error: err?.message || 'เกิดข้อผิดพลาดในการนำเข้า' };
+      }
+    },
+    [],
+  );
 
   // Background cloud bookmark sync on app launch
   useEffect(() => {
-    if (isHydrated) {
+    if (isHydrated && remoteSettings.cloud_sync_enabled !== false) {
       void syncCloudBookmarks();
     }
-  }, [isHydrated, syncCloudBookmarks]);
+  }, [isHydrated, remoteSettings.cloud_sync_enabled, syncCloudBookmarks]);
 
   const toggleBookmark = useCallback((article: NewsArticle) => {
     setBookmarks((current) => {
@@ -355,15 +391,19 @@ export function NewsProvider({ children }: PropsWithChildren) {
       const isRemoving = Boolean(next[article.id]);
       if (isRemoving) {
         delete next[article.id];
-        void supabaseBookmarkService.removeRemoteBookmark(article.id);
+        if (remoteSettings.cloud_sync_enabled !== false) {
+          void supabaseBookmarkService.removeRemoteBookmark(article.id);
+        }
       } else {
         next[article.id] = article;
-        void supabaseBookmarkService.saveRemoteBookmark(article);
+        if (remoteSettings.cloud_sync_enabled !== false) {
+          void supabaseBookmarkService.saveRemoteBookmark(article);
+        }
       }
       void bookmarkRepository.saveBookmarks(next);
       return next;
     });
-  }, []);
+  }, [remoteSettings.cloud_sync_enabled]);
 
   const addSearchHistory = useCallback((query: string) => {
     void (async () => {
@@ -380,8 +420,10 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const clearBookmarks = useCallback(() => {
     setBookmarks({});
     void bookmarkRepository.clearBookmarks();
-    void supabaseBookmarkService.clearRemoteBookmarks();
-  }, []);
+    if (remoteSettings.cloud_sync_enabled !== false) {
+      void supabaseBookmarkService.clearRemoteBookmarks();
+    }
+  }, [remoteSettings.cloud_sync_enabled]);
 
   const clearNewsCache = useCallback(async () => {
     setArticles([]);
@@ -507,6 +549,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       scale: fontScale[settings.fontSize],
       refresh,
       syncCloudBookmarks,
+      importBookmarksFromDevice,
       setSelectedFeedKey,
       toggleBookmark,
       addSearchHistory,
@@ -551,6 +594,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       colors,
       refresh,
       syncCloudBookmarks,
+      importBookmarksFromDevice,
       setSelectedFeedKey,
       toggleBookmark,
       addSearchHistory,
