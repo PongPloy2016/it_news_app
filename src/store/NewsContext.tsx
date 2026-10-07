@@ -17,7 +17,7 @@ import {
   historyRepository,
   storage,
 } from '../data/database';
-import { feedService, imageService, loadFeedConfiguration } from '../services';
+import { feedService, imageService, loadFeedConfiguration, supabaseBookmarkService } from '../services';
 import {
   DEFAULT_REMOTE_SETTINGS,
   fetchRemoteAppSettings,
@@ -53,6 +53,7 @@ interface NewsContextValue {
   isOnlineFeeds: boolean;
   isHydrated: boolean;
   isRefreshing: boolean;
+  isSyncingBookmarks: boolean;
   hasFetchError: boolean;
   isShowingCachedFeed: boolean;
   lastUpdated?: number;
@@ -60,6 +61,7 @@ interface NewsContextValue {
   colors: AppColors;
   scale: number;
   refresh: (forceRefresh?: boolean) => Promise<void>;
+  syncCloudBookmarks: () => Promise<{ success: boolean; count: number }>;
   setSelectedFeedKey: (key: string) => void;
   toggleBookmark: (article: NewsArticle) => void;
   addSearchHistory: (query: string) => void;
@@ -97,6 +99,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const [lastUpdated, setLastUpdated] = useState<number>();
   const [isHydrated, setIsHydrated] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSyncingBookmarks, setIsSyncingBookmarks] = useState(false);
   const [hasFetchError, setHasFetchError] = useState(false);
   const [isShowingCachedFeed, setIsShowingCachedFeed] = useState(false);
   const [lastRefreshNewCount, setLastRefreshNewCount] = useState<number>(0);
@@ -294,11 +297,61 @@ export function NewsProvider({ children }: PropsWithChildren) {
     }
   }, [isHydrated, lastUpdated, refresh, selectedFeedKey]);
 
+  const syncCloudBookmarks = useCallback(async (): Promise<{ success: boolean; count: number }> => {
+    setIsSyncingBookmarks(true);
+    try {
+      const res = await supabaseBookmarkService.fetchRemoteBookmarks(true);
+      if (res.success) {
+        const remoteArticles = res.articles;
+        const remoteIds = new Set(remoteArticles.map((a) => a.id));
+
+        setBookmarks((current) => {
+          const merged = { ...current };
+
+          // 1. Pull down: Add any remote articles to local state
+          for (const item of remoteArticles) {
+            merged[item.id] = item;
+          }
+
+          // 2. Push up: If user has bookmarks locally not yet in Supabase, upload them
+          for (const [id, localArticle] of Object.entries(current)) {
+            if (!remoteIds.has(id)) {
+              void supabaseBookmarkService.saveRemoteBookmark(localArticle);
+            }
+          }
+
+          void bookmarkRepository.saveBookmarks(merged);
+          return merged;
+        });
+        return { success: true, count: remoteArticles.length };
+      }
+      return { success: false, count: 0 };
+    } catch (err) {
+      console.warn('[NewsContext] syncCloudBookmarks error:', err);
+      return { success: false, count: 0 };
+    } finally {
+      setIsSyncingBookmarks(false);
+    }
+  }, []);
+
+  // Background cloud bookmark sync on app launch
+  useEffect(() => {
+    if (isHydrated) {
+      void syncCloudBookmarks();
+    }
+  }, [isHydrated, syncCloudBookmarks]);
+
   const toggleBookmark = useCallback((article: NewsArticle) => {
     setBookmarks((current) => {
       const next = { ...current };
-      if (next[article.id]) delete next[article.id];
-      else next[article.id] = article;
+      const isRemoving = Boolean(next[article.id]);
+      if (isRemoving) {
+        delete next[article.id];
+        void supabaseBookmarkService.removeRemoteBookmark(article.id);
+      } else {
+        next[article.id] = article;
+        void supabaseBookmarkService.saveRemoteBookmark(article);
+      }
       void bookmarkRepository.saveBookmarks(next);
       return next;
     });
@@ -319,6 +372,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const clearBookmarks = useCallback(() => {
     setBookmarks({});
     void bookmarkRepository.clearBookmarks();
+    void supabaseBookmarkService.clearRemoteBookmarks();
   }, []);
 
   const clearNewsCache = useCallback(async () => {
@@ -424,6 +478,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       isOnlineFeeds,
       isHydrated,
       isRefreshing,
+      isSyncingBookmarks,
       hasFetchError,
       isShowingCachedFeed,
       lastUpdated,
@@ -431,6 +486,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       colors,
       scale: fontScale[settings.fontSize],
       refresh,
+      syncCloudBookmarks,
       setSelectedFeedKey,
       toggleBookmark,
       addSearchHistory,
@@ -464,12 +520,14 @@ export function NewsProvider({ children }: PropsWithChildren) {
       isOnlineFeeds,
       isHydrated,
       isRefreshing,
+      isSyncingBookmarks,
       hasFetchError,
       isShowingCachedFeed,
       lastUpdated,
       isDark,
       colors,
       refresh,
+      syncCloudBookmarks,
       setSelectedFeedKey,
       toggleBookmark,
       addSearchHistory,

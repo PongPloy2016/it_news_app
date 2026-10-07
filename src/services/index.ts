@@ -7,3 +7,5 @@ export * from './supabaseFeedService';
 export * from './appSettingsService';
 export * from './crashlyticsService';
 export * from './notificationService';
+export * from './deviceIdService';
+export * from './supabaseBookmarkService';

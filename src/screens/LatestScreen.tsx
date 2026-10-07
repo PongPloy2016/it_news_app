@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -19,6 +19,7 @@ import { AdCard } from '../components/AdCard';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
 import { SkeletonFeed } from '../components/SkeletonCard';
+import { CustomRefreshHeader } from '../components/CustomRefreshIndicator';
 import { UnderlineTabBar, UnderlineTabItem } from '../components/UnderlineTabBar';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
@@ -107,6 +108,40 @@ export function LatestScreen() {
     const matchedGroup = feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey));
     if (matchedGroup) setActiveGroupKey(matchedGroup.key);
   }, [feedGroups, selectedFeedKey]);
+
+  // Handle waiting loading when entering the screen ("ที่เข้าหน้า ให้ขึ้นรอ loading")
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isSwitchingFeed, setIsSwitchingFeed] = useState(false);
+  const prevFeedKeyRef = useRef(selectedFeedKey);
+
+  useEffect(() => {
+    let mounted = true;
+    if (isRefreshing) return;
+    const timer = setTimeout(() => {
+      if (mounted) setIsInitialLoading(false);
+    }, 600);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [isRefreshing]);
+
+  // When switching feed or category, show waiting loading until fresh feed arrives
+  useEffect(() => {
+    if (prevFeedKeyRef.current !== selectedFeedKey) {
+      prevFeedKeyRef.current = selectedFeedKey;
+      setIsSwitchingFeed(true);
+    }
+  }, [selectedFeedKey]);
+
+  useEffect(() => {
+    if (isSwitchingFeed && !isRefreshing) {
+      const timer = setTimeout(() => {
+        setIsSwitchingFeed(false);
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [isSwitchingFeed, isRefreshing]);
 
   const visibleArticles = filteredArticles.slice(0, visibleCount);
   const hasMore = visibleCount < filteredArticles.length;
@@ -307,14 +342,25 @@ export function LatestScreen() {
     );
   }
 
-  if (!isHydrated || (isRefreshing && !articles.length)) {
+  const isWaitingForLoading =
+    !isHydrated ||
+    isInitialLoading ||
+    isSwitchingFeed ||
+    (isRefreshing && !articles.length);
+
+  if (isWaitingForLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
           {renderCategoryTabBar()}
           {renderSourceTabBar()}
         </View>
-        <SkeletonFeed layout={settings.cardLayout} count={4} />
+        <CustomRefreshHeader
+          visible={true}
+          label={`กำลังโหลดข่าว${selectedFeed?.label ? ` ${selectedFeed.label}` : ''}...`}
+          color={activeGroup?.color}
+        />
+        <SkeletonFeed layout={settings.cardLayout} count={5} />
       </View>
     );
   }
@@ -337,17 +383,31 @@ export function LatestScreen() {
         data={visibleArticles}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: 24 }]}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh(true)} tintColor={colors.primary} />}
-      onEndReached={() => {
-        if (!isRefreshing && hasMore) {
-          setVisibleCount((current) => Math.min(current + PAGE_SIZE, filteredArticles.length));
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void refresh(true)}
+            tintColor={activeGroup?.color ?? colors.primary}
+            colors={[activeGroup?.color ?? colors.primary]}
+          />
         }
-      }}
-      onEndReachedThreshold={0.5}
-      ListHeaderComponent={
-        <View style={styles.headerSection}>
-          {renderCategoryTabBar()}
-          {renderSourceTabBar()}
+        onEndReached={() => {
+          if (!isRefreshing && hasMore) {
+            setVisibleCount((current) => Math.min(current + PAGE_SIZE, filteredArticles.length));
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={
+          <View style={styles.headerSection}>
+            {renderCategoryTabBar()}
+            {renderSourceTabBar()}
+
+            {/* Custom Refresh Indicator Header during pull-to-refresh */}
+            <CustomRefreshHeader
+              visible={isRefreshing}
+              label="กำลังอัปเดตข่าวล่าสุด..."
+              color={activeGroup?.color}
+            />
 
           {/* New Articles Banner on Refresh */}
           {lastRefreshNewCount > 0 && (

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useNews } from '../store/NewsContext';
 import { CardLayoutOption } from '../types';
 
@@ -148,6 +148,9 @@ export function SkeletonCard({ layout = 'magazine' }: Props) {
 }
 
 export function SkeletonFeed({ layout = 'magazine', count = 4 }: { layout?: CardLayoutOption; count?: number }) {
+  if (layout === 'compact') {
+    return <CustomListSkeleton count={count} />;
+  }
   return (
     <View style={styles.feedContainer}>
       {Array.from({ length: count }).map((_, index) => (
@@ -157,7 +160,124 @@ export function SkeletonFeed({ layout = 'magazine', count = 4 }: { layout?: Card
   );
 }
 
+/**
+ * Custom Refresh / Bookmark Loading Skeleton matching the custom_refresh_indicator design:
+ * Left: Rounded square thumbnail
+ * Right: 3 horizontal placeholder lines
+ */
+export function BookmarkListSkeleton({
+  count = 5,
+  style,
+}: {
+  count?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { isDark } = useNews();
+  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.85,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.3,
+          duration: 750,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulseAnim]);
+
+  const skeletonColor = isDark ? 'rgba(255, 255, 255, 0.12)' : '#E2E8F0';
+
+  return (
+    <View style={[styles.customSkeletonFeed, style]}>
+      {Array.from({ length: count }).map((_, index) => (
+        <View
+          key={index}
+          style={[
+            styles.customSkeletonRow,
+            {
+              borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
+            },
+          ]}
+        >
+          {/* Rounded square thumbnail on left */}
+          <Animated.View
+            style={[
+              styles.customThumbSkeleton,
+              { backgroundColor: skeletonColor, opacity: pulseAnim },
+            ]}
+          />
+
+          {/* 3 horizontal placeholder lines on right */}
+          <View style={styles.customLinesWrap}>
+            <Animated.View
+              style={[
+                styles.customLine,
+                { backgroundColor: skeletonColor, opacity: pulseAnim, width: '96%' },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.customLine,
+                { backgroundColor: skeletonColor, opacity: pulseAnim, width: '82%' },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.customLineSmall,
+                { backgroundColor: skeletonColor, opacity: pulseAnim, width: '54%' },
+              ]}
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export const CustomListSkeleton = BookmarkListSkeleton;
+
 const styles = StyleSheet.create({
+  customSkeletonFeed: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    width: '100%',
+  },
+  customSkeletonRow: {
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+  },
+  customThumbSkeleton: {
+    borderRadius: 12,
+    height: 68,
+    width: 68,
+  },
+  customLinesWrap: {
+    flex: 1,
+    gap: 9,
+    justifyContent: 'center',
+    marginLeft: 14,
+  },
+  customLine: {
+    borderRadius: 5,
+    height: 14,
+  },
+  customLineSmall: {
+    borderRadius: 4,
+    height: 12,
+  },
   feedContainer: {
     paddingHorizontal: 16,
     paddingTop: 8,

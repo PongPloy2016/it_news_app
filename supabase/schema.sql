@@ -266,3 +266,60 @@ CREATE POLICY "Service role can view feedback"
     USING (true)
     WITH CHECK (true);
 
+-- ==============================================================================
+-- 9. Create User Bookmarks Table (Cloud Bookmarks)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.user_bookmarks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_id TEXT NOT NULL,
+    article_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    link TEXT NOT NULL,
+    description TEXT,
+    content TEXT,
+    image_url TEXT,
+    video_url TEXT,
+    author TEXT,
+    published_at TEXT,
+    published_millis BIGINT,
+    reading_time INTEGER DEFAULT 1,
+    images JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT user_bookmarks_device_article_unique UNIQUE (device_id, article_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_bookmarks_device_id ON public.user_bookmarks(device_id);
+CREATE INDEX IF NOT EXISTS idx_user_bookmarks_created_at ON public.user_bookmarks(created_at DESC);
+
+ALTER TABLE public.user_bookmarks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own bookmarks by device_id" ON public.user_bookmarks;
+CREATE POLICY "Users can read own bookmarks by device_id"
+    ON public.user_bookmarks FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "Users can insert own bookmarks by device_id" ON public.user_bookmarks;
+CREATE POLICY "Users can insert own bookmarks by device_id"
+    ON public.user_bookmarks FOR INSERT
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can update own bookmarks by device_id" ON public.user_bookmarks;
+CREATE POLICY "Users can update own bookmarks by device_id"
+    ON public.user_bookmarks FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can delete own bookmarks by device_id" ON public.user_bookmarks;
+CREATE POLICY "Users can delete own bookmarks by device_id"
+    ON public.user_bookmarks FOR DELETE
+    USING (true);
+
+DROP POLICY IF EXISTS "Service role can manage user_bookmarks" ON public.user_bookmarks;
+CREATE POLICY "Service role can manage user_bookmarks"
+    ON public.user_bookmarks FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+

@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   lastUpdated: 'blognone.lastUpdated',
   selectedFeedKey: 'blognone.selectedFeedKey',
   readArticles: 'blognone.readArticles',
+  deviceId: 'blognone.deviceId',
 } as const;
 
 export const STALE_AFTER_MS = 30 * 60 * 1_000; // 30 mins

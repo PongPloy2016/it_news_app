@@ -22,6 +22,7 @@ interface ImageViewerModalProps {
   images: string[];
   initialIndex?: number;
   onClose: () => void;
+  onIndexChange?: (index: number) => void;
 }
 
 const MIN_SCALE = 1.0;
@@ -32,6 +33,7 @@ export function ImageViewerModal({
   images,
   initialIndex = 0,
   onClose,
+  onIndexChange,
 }: ImageViewerModalProps) {
   const insets = useSafeAreaInsets();
   const [dimensions, setDimensions] = useState(() => Dimensions.get('window'));
@@ -99,6 +101,13 @@ export function ImageViewerModal({
       resetZoomImmediate();
     }
   }, [visible, initialIndex, images.length]);
+
+  // Notify parent component of current image index
+  useEffect(() => {
+    if (visible) {
+      onIndexChange?.(currentIndex);
+    }
+  }, [visible, currentIndex, onIndexChange]);
 
   // Handle Android hardware back button
   useEffect(() => {
@@ -400,7 +409,7 @@ export function ImageViewerModal({
           if (gestureState.dy > 90 && Math.abs(gestureState.dx) < 80) {
             onCloseRef.current();
             return;
-          } else if (gestureState.dy > 0) {
+          } else {
             Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
           }
 
@@ -423,6 +432,10 @@ export function ImageViewerModal({
 
   const currentUri = images[currentIndex] || '';
   const hasMultipleImages = images.length > 1;
+  const topInset =
+    Platform.OS === 'android'
+      ? Math.max(insets.top, StatusBar.currentHeight ?? 0, 16)
+      : Math.max(insets.top, 16);
 
   return (
     <Modal
@@ -437,7 +450,7 @@ export function ImageViewerModal({
         <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
         {/* Top Header Bar */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+        <View style={[styles.header, { paddingTop: topInset }]}>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={onClose}

@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
   NativeScrollEvent,
@@ -20,30 +20,64 @@ interface Props {
 
 export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
   const { width: screenWidth } = useWindowDimensions();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedIndices, setFailedIndices] = useState<Record<number, boolean>>({});
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
-  // Consolidate & strictly sanitize valid article images
-  const rawImages = images && images.length > 0 ? images : fallbackImageUrl ? [fallbackImageUrl] : [];
-  const validImages = rawImages
-    .filter((url): url is string => Boolean(url && typeof url === 'string'))
-    .map((url) => url.trim())
-    .filter((url) => {
-      // Must be absolute http/https
-      if (!/^https?:\/\//i.test(url)) return false;
-      // Filter layout/tracking/job ad artifacts
-      if (
-        /badge|banner|gtag|doubleclick|feedburner|feedsportal|statcounter|avatar|gravatar|defaultcover|\/jobs\//i.test(
-          url,
-        )
-      ) {
-        return false;
+  // Consolidate, deduplicate & strictly sanitize valid article images
+  // Place cover image (fallbackImageUrl) first if available
+  const candidateUrls = [
+    ...(fallbackImageUrl ? [fallbackImageUrl] : []),
+    ...(images || []),
+  ];
+
+  const seenUrls = new Set<string>();
+  const validImages: string[] = [];
+
+  for (const rawUrl of candidateUrls) {
+    if (!rawUrl || typeof rawUrl !== 'string') continue;
+    const url = rawUrl.trim();
+    if (!/^https?:\/\//i.test(url)) continue;
+    if (
+      /badge|banner|gtag|doubleclick|feedburner|feedsportal|statcounter|avatar|gravatar|defaultcover|\/jobs\//i.test(
+        url,
+      )
+    ) {
+      continue;
+    }
+    if (!seenUrls.has(url)) {
+      seenUrls.add(url);
+      validImages.push(url);
+      if (validImages.length >= 6) break;
+    }
+  }
+
+  // Keep scroll position aligned when screen orientation/width changes
+  useEffect(() => {
+    scrollViewRef.current?.scrollTo({ x: activeIndex * screenWidth, animated: false });
+  }, [screenWidth, activeIndex]);
+
+  // Handle modal 2-way sync
+  const handleIndexChangeFromModal = useCallback(
+    (newIndex: number) => {
+      if (newIndex >= 0 && newIndex < validImages.length && newIndex !== activeIndex) {
+        setActiveIndex(newIndex);
+        scrollViewRef.current?.scrollTo({ x: newIndex * screenWidth, animated: false });
       }
-      return true;
-    })
-    .slice(0, 6); // Max 6 photos in carousel
+    },
+    [validImages.length, activeIndex, screenWidth],
+  );
+
+  // Handle direct dot press
+  const handleDotPress = useCallback(
+    (idx: number) => {
+      setActiveIndex(idx);
+      scrollViewRef.current?.scrollTo({ x: idx * screenWidth, animated: true });
+    },
+    [screenWidth],
+  );
 
   if (validImages.length === 0) {
     return null;
@@ -79,6 +113,7 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
           visible={viewerVisible}
           images={validImages}
           initialIndex={viewerInitialIndex}
+          onIndexChange={handleIndexChangeFromModal}
           onClose={() => setViewerVisible(false)}
         />
       </View>
@@ -86,22 +121,31 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
   }
 
   // Multiple Images - Interactive Slide Carousel
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
+  const updateIndexFromOffset = (offsetX: number) => {
     const index = Math.round(offsetX / screenWidth);
     if (index >= 0 && index < validImages.length && index !== activeIndex) {
       setActiveIndex(index);
     }
   };
 
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    updateIndexFromOffset(event.nativeEvent.contentOffset.x);
+  };
+
+  const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    updateIndexFromOffset(event.nativeEvent.contentOffset.x);
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollViewRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={handleScroll}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         style={styles.scroll}
       >
         {validImages.map((uri, idx) => (
@@ -131,9 +175,9 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
         ))}
       </ScrollView>
 
-      {/* Floating Counter Badge */}
+      {/* Floating Counter Badge on top-right */}
       <TouchableOpacity
-        style={styles.counterBadge}
+        style={styles.counterBadgeTop}
         activeOpacity={0.8}
         onPress={() => {
           setViewerInitialIndex(activeIndex);
@@ -146,13 +190,17 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
         </Text>
       </TouchableOpacity>
 
-      {/* Dots Indicator (shown when <= 6 images) */}
-      {validImages.length <= 6 && (
-        <View style={styles.dotsWrap} pointerEvents="none">
+      {/* Tappable Dots Indicator */}
+      {validImages.length > 1 && (
+        <View style={styles.dotsWrap}>
           {validImages.map((_, idx) => (
-            <View
+            <TouchableOpacity
               key={`dot-${idx}`}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              onPress={() => handleDotPress(idx)}
               style={[styles.dot, activeIndex === idx ? styles.activeDot : styles.inactiveDot]}
+              accessibilityLabel={`รูปที่ ${idx + 1}`}
             />
           ))}
         </View>
@@ -163,6 +211,7 @@ export function ArticleImageSlider({ images, fallbackImageUrl }: Props) {
         visible={viewerVisible}
         images={validImages}
         initialIndex={viewerInitialIndex}
+        onIndexChange={handleIndexChangeFromModal}
         onClose={() => setViewerVisible(false)}
       />
     </View>
@@ -212,6 +261,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
   },
+  counterBadgeTop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    zIndex: 5,
+  },
   counterText: {
     color: '#FFFFFF',
     fontSize: 11.5,
@@ -221,11 +283,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     bottom: 12,
     flexDirection: 'row',
-    gap: 5,
+    gap: 6,
     justifyContent: 'center',
     left: 0,
     position: 'absolute',
     right: 0,
+    zIndex: 4,
   },
   dot: {
     borderRadius: 3,

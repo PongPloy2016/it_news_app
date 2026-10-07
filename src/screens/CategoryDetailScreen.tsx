@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NewsCard } from '../components/NewsCard';
 import { SkeletonFeed } from '../components/SkeletonCard';
+import { CustomRefreshHeader } from '../components/CustomRefreshIndicator';
 import { getCategoryVisual } from '../config/categoryVisuals';
 import { FeedSource } from '../config/feeds';
 import { feedService } from '../services/feedService';
@@ -51,6 +52,7 @@ export function CategoryDetailScreen() {
     setSelectedFeedKey,
     selectedFeedKey,
     channelStats,
+    settings,
   } = useNews();
 
   const currentGroup = useMemo(() => {
@@ -323,13 +325,27 @@ export function CategoryDetailScreen() {
       {/* Main Content: News Feed with Header */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <SkeletonFeed count={4} />
+          <CustomRefreshHeader
+            visible={true}
+            label={`กำลังโหลดข่าว${visual.shortLabel}...`}
+            color={visual.color}
+          />
+          <SkeletonFeed layout={settings.cardLayout} count={5} />
         </View>
       ) : (
         <FlatList
           data={categoryArticles}
           keyExtractor={(item) => item.id}
-          ListHeaderComponent={renderListHeader}
+          ListHeaderComponent={
+            <View>
+              {renderListHeader()}
+              <CustomRefreshHeader
+                visible={isRefreshing}
+                label="กำลังอัปเดตข่าวล่าสุด..."
+                color={visual.color}
+              />
+            </View>
+          }
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: Math.max(insets.bottom + 20, 32) },
