@@ -1,12 +1,15 @@
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type FontSizeOption = 'small' | 'medium' | 'large';
 export type CardLayoutOption = 'compact' | 'magazine' | 'grid';
+export type LinkOpenMode = 'in_app' | 'external';
 
 export interface AppSettings {
   themeMode: ThemeMode;
   fontSize: FontSizeOption;
   cardLayout: CardLayoutOption;
   aiReaderEnabled: boolean;
+  linkOpenMode?: LinkOpenMode;
+  dataSaverEnabled?: boolean;
 }
 
 export interface RemoteAppSettings {

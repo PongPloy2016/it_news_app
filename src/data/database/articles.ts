@@ -36,4 +36,8 @@ export const articleRepository = {
   async clearCache(): Promise<void> {
     await storage.multiRemove([STORAGE_KEYS.articles, STORAGE_KEYS.lastUpdated]);
   },
+
+  async clearReadArticles(): Promise<void> {
+    await storage.remove(STORAGE_KEYS.readArticles);
+  },
 };

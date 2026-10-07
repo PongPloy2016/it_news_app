@@ -28,6 +28,7 @@ import {
   AppSettings,
   CardLayoutOption,
   FontSizeOption,
+  LinkOpenMode,
   NewsArticle,
   RemoteAppSettings,
   ThemeMode,
@@ -38,6 +39,8 @@ const defaultSettings: AppSettings = {
   fontSize: 'medium',
   cardLayout: 'magazine',
   aiReaderEnabled: true,
+  linkOpenMode: 'in_app',
+  dataSaverEnabled: false,
 };
 
 interface NewsContextValue {
@@ -68,10 +71,13 @@ interface NewsContextValue {
   clearSearchHistory: () => void;
   clearBookmarks: () => void;
   clearNewsCache: () => Promise<void>;
+  clearReadArticles: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => void;
   setFontSize: (size: FontSizeOption) => void;
   setCardLayout: (layout: CardLayoutOption) => void;
   setAiReaderEnabled: (enabled: boolean) => void;
+  setLinkOpenMode: (mode: LinkOpenMode) => void;
+  setDataSaverEnabled: (enabled: boolean) => void;
   readArticles: Record<string, number>;
   markAsRead: (articleId: string) => void;
   markAllAsRead: () => void;
@@ -172,6 +178,8 @@ export function NewsProvider({ children }: PropsWithChildren) {
             ...cachedSettings,
             cardLayout: cachedSettings.cardLayout ?? 'magazine',
             aiReaderEnabled: cachedSettings.aiReaderEnabled ?? true,
+            linkOpenMode: cachedSettings.linkOpenMode ?? 'in_app',
+            dataSaverEnabled: cachedSettings.dataSaverEnabled ?? false,
           });
         }
         if (cachedUpdated) setLastUpdated(cachedUpdated);
@@ -383,6 +391,18 @@ export function NewsProvider({ children }: PropsWithChildren) {
     await refresh();
   }, [refresh]);
 
+  const clearReadArticles = useCallback(async () => {
+    setReadArticles({});
+    await articleRepository.clearReadArticles();
+    setChannelStats((prev) => ({
+      ...prev,
+      [selectedFeed.key]: {
+        total: articles.length,
+        newCount: articles.length,
+      },
+    }));
+  }, [articles.length, selectedFeed.key]);
+
   const updateSettings = useCallback((next: AppSettings) => {
     setSettings(next);
     void storage.set('blognone.settings', next);
@@ -493,10 +513,13 @@ export function NewsProvider({ children }: PropsWithChildren) {
       clearSearchHistory,
       clearBookmarks,
       clearNewsCache,
+      clearReadArticles,
       setThemeMode: (themeMode) => updateSettings({ ...settings, themeMode }),
       setFontSize: (fontSize) => updateSettings({ ...settings, fontSize }),
       setCardLayout: (cardLayout) => updateSettings({ ...settings, cardLayout }),
       setAiReaderEnabled: (aiReaderEnabled) => updateSettings({ ...settings, aiReaderEnabled }),
+      setLinkOpenMode: (linkOpenMode) => updateSettings({ ...settings, linkOpenMode }),
+      setDataSaverEnabled: (dataSaverEnabled) => updateSettings({ ...settings, dataSaverEnabled }),
       readArticles,
       markAsRead,
       markAllAsRead,
@@ -534,6 +557,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       clearSearchHistory,
       clearBookmarks,
       clearNewsCache,
+      clearReadArticles,
       updateSettings,
       readArticles,
       markAsRead,

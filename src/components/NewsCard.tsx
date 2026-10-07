@@ -31,7 +31,7 @@ export function NewsCard({
   const { colors, scale, settings, isArticleNew, isArticleFresh, isArticleRead } =
     useNews();
   const [imageError, setImageError] = useState(false);
-  const displayImageUrl = !imageError ? sanitizeImageUrl(article.imageUrl) : undefined;
+  const displayImageUrl = !settings.dataSaverEnabled && !imageError ? sanitizeImageUrl(article.imageUrl) : undefined;
   const activeLayout = layout ?? settings.cardLayout;
   const isCompact = activeLayout === 'compact';
   const isGrid = activeLayout === 'grid';

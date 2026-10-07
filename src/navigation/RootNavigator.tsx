@@ -832,7 +832,7 @@ export function RootNavigator() {
       }}
     >
       <Stack.Screen name="MainTabs" component={MainDrawer} options={{ headerShown: false }} />
-      <Stack.Screen name="Article" component={ArticleDetailScreen} options={{ title: 'รายละเอียดข่าว' }} />
+      <Stack.Screen name="Article" component={ArticleDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="CategoryDetail"
         component={CategoryDetailScreen}
