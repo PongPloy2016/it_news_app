@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer';
+import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView, useDrawerStatus } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DrawerActions, getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScrollView as GHScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
@@ -56,10 +56,30 @@ function DrawerContent(props: DrawerContentComponentProps) {
   const [filterGroupKey, setFilterGroupKey] = useState<string>('all');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
+  const isDrawerOpen = useDrawerStatus() === 'open';
 
   const closeDrawer = () => {
-    props.navigation.dispatch(DrawerActions.closeDrawer());
+    try {
+      if (typeof (props.navigation as any).closeDrawer === 'function') {
+        (props.navigation as any).closeDrawer();
+      } else {
+        props.navigation.dispatch(DrawerActions.closeDrawer());
+      }
+    } catch {
+      props.navigation.dispatch(DrawerActions.closeDrawer());
+    }
   };
+
+  // Handle Android hardware back button when drawer is open
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+    const onBackPress = () => {
+      closeDrawer();
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [isDrawerOpen]);
 
   const navigateToTab = (screenName: keyof MainTabParamList) => {
     closeDrawer();
@@ -276,12 +296,18 @@ function DrawerContent(props: DrawerContentComponentProps) {
           </Pressable>
 
           <Pressable
-            hitSlop={8}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
             onPress={closeDrawer}
-            style={[styles.headerActionCircle, { backgroundColor: colors.surfaceVariant, marginLeft: 6 }]}
+            style={({ pressed }) => [
+              styles.headerActionCircle,
+              {
+                backgroundColor: pressed ? withAlpha(colors.primary, 0.22) : colors.surfaceVariant,
+                marginLeft: 6,
+              },
+            ]}
             accessibilityLabel="ปิดเมนูข้าง"
           >
-            <MaterialCommunityIcons name="close" size={18} color={colors.text} />
+            <MaterialCommunityIcons name="close" size={19} color={colors.text} />
           </Pressable>
         </View>
       </View>
@@ -780,7 +806,7 @@ function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined
 function MainDrawer() {
   const { colors, scale } = useNews();
   const screenWidth = Dimensions.get('window').width;
-  const drawerWidth = Math.min(345, Math.round(screenWidth * 0.86));
+  const drawerWidth = Math.min(320, Math.round(screenWidth * 0.80));
 
   return (
     <Drawer.Navigator

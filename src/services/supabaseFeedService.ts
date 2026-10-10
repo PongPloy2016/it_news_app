@@ -14,6 +14,7 @@ export interface RemoteFeedGroup {
   label: string;
   color: string;
   order_index: number;
+  is_active?: boolean;
 }
 
 export interface RemoteFeedSource {
@@ -93,7 +94,11 @@ export async function loadFeedConfiguration(): Promise<FeedConfigurationResult> 
         throw new Error(sourceErr?.message || 'Empty feed_sources returned from Supabase');
       }
 
-      const parsedGroups: FeedGroup[] = groups.map((g: RemoteFeedGroup) => {
+      // Filter out any groups that are inactive (hide disabled groups)
+      const activeGroups = groups.filter((g: RemoteFeedGroup) => g.is_active !== false);
+      const groupsToParse = activeGroups.length > 0 ? activeGroups : groups;
+
+      const parsedGroups: FeedGroup[] = groupsToParse.map((g: RemoteFeedGroup) => {
         const groupSources: FeedSource[] = sources
           .filter((s: RemoteFeedSource) => s.group_key === g.key)
           .map((s: RemoteFeedSource) => ({
@@ -108,6 +113,7 @@ export async function loadFeedConfiguration(): Promise<FeedConfigurationResult> 
           key: g.key,
           label: g.label,
           color: g.color || '#2F6FED',
+          is_active: g.is_active !== false,
           sources: [createAggregateSource(g.key, g.label), ...groupSources],
         };
       });

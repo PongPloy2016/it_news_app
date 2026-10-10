@@ -138,6 +138,12 @@ export function NewsProvider({ children }: PropsWithChildren) {
           setIsOnlineFeeds(config.isFromSupabase);
           feedService.setFeedGroups(config.groups);
           setRemoteSettings(cachedRemote);
+
+          // Auto-adjust if selected feed belongs to a category that was disabled
+          if (config.sources.length > 0 && !config.sources.some((s) => s.key === selectedFeedKey)) {
+            setSelectedFeedKeyState(config.sources[0].key);
+            void storage.set('blognone.selectedFeedKey', config.sources[0].key);
+          }
         }
 
         // Fetch fresh settings from Supabase
@@ -221,6 +227,10 @@ export function NewsProvider({ children }: PropsWithChildren) {
             const matched = config.sources.find((item) => item.key === selectedFeedKey);
             if (matched) {
               currentFeed = matched;
+            } else if (config.sources.length > 0) {
+              currentFeed = config.sources[0];
+              setSelectedFeedKeyState(config.sources[0].key);
+              void storage.set('blognone.selectedFeedKey', config.sources[0].key);
             }
           } catch (configErr) {
             console.warn('[NewsContext] Reload configuration error:', configErr);
@@ -287,7 +297,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
 
   const setSelectedFeedKey = useCallback(
     (key: string) => {
-      const nextKey = feedSources.some((item) => item.key === key) ? key : DEFAULT_FEED_KEY;
+      const nextKey = feedSources.some((item) => item.key === key)
+        ? key
+        : (feedSources[0]?.key || DEFAULT_FEED_KEY);
       setSelectedFeedKeyState(nextKey);
       void storage.set('blognone.selectedFeedKey', nextKey);
     },

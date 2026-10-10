@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.feed_groups (
     label TEXT NOT NULL,
     color TEXT NOT NULL DEFAULT '#2F6FED',
     order_index INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -36,7 +37,7 @@ ALTER TABLE public.feed_sources ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public can view active feed groups" ON public.feed_groups;
 CREATE POLICY "Public can view active feed groups"
     ON public.feed_groups FOR SELECT
-    USING (true);
+    USING (is_active = true);
 
 DROP POLICY IF EXISTS "Public can view active feed sources" ON public.feed_sources;
 CREATE POLICY "Public can view active feed sources"
@@ -58,14 +59,21 @@ CREATE POLICY "Service role can manage feed sources"
     USING (true)
     WITH CHECK (true);
 
--- 5. Insert Feed Groups
+-- -- 5. Insert Feed Groups
 INSERT INTO public.feed_groups (key, label, color, order_index)
 VALUES
     ('tech-business', 'ข่าวเทคโนโลยีและธุรกิจดิจิทัล', '#2F6FED', 1),
     ('international', 'ข่าวไอทีต่างประเทศ', '#0284C7', 2),
     ('thai-news', 'ข่าวสำนักข่าวไทย', '#D946EF', 3),
     ('mobile', 'ข่าวมือถือและอุปกรณ์', '#17A673', 4),
-    ('computer-games', 'ข่าวคอมพิวเตอร์และเกม', '#F59E0B', 5)
+    ('computer-games', 'ข่าวคอมพิวเตอร์และเกม', '#F59E0B', 5),
+    ('ai-innovation', 'ปัญญาประดิษฐ์และ AI', '#8B5CF6', 6),
+    ('weather-forecast', 'สภาพอากาศและฟ้าฝน', '#0284C7', 7),
+    ('cybersecurity', 'ความปลอดภัยไซเบอร์และเตือนภัย', '#EF4444', 8),
+    ('ev-vehicles', 'ยานยนต์ไฟฟ้าและเทคโนโลยี EV', '#10B981', 9),
+    ('science-space', 'วิทยาศาสตร์และสำรวจอวกาศ', '#6366F1', 10),
+    ('fintech-crypto', 'การเงินดิจิทัลและบล็อกเชน', '#F59E0B', 11),
+    ('developer-coding', 'โปรแกรมมิ่งและนักพัฒนา', '#06B6D4', 12)
 ON CONFLICT (key) DO UPDATE
 SET label = EXCLUDED.label,
     color = EXCLUDED.color,
@@ -83,7 +91,7 @@ VALUES
     ('techsauce', 'Techsauce', 'https://techsauce.co/feed', 'https://techsauce.co', 'rss', 'tech-business', 6, true),
     ('beartai', 'Beartai', 'https://www.beartai.com/feed/', 'https://www.beartai.com', 'rss', 'tech-business', 7, true),
     ('techtalkthai', 'TechTalkThai', 'https://www.techtalkthai.com/feed/', 'https://www.techtalkthai.com', 'rss', 'tech-business', 8, true),
-    ('techhub', 'Techhub', 'https://www.techhub.in.th/feed/', 'https://www.techhub.in.th', 'rss', 'tech-business', 9, true),
+    ('techhub', 'Techhub', 'https://www.techhub.in.th/feed/', 'https://techhub.in.th', 'rss', 'tech-business', 9, true),
     ('it24hrs', 'IT24Hrs', 'https://it24hrs.com/feed/', 'https://it24hrs.com', 'rss', 'tech-business', 10, true),
     ('spin9', 'spin9', 'https://spin9.me/feed/', 'https://spin9.me', 'rss', 'tech-business', 11, true),
     ('techoffside', 'TechOffside', 'https://www.techoffside.com/feed/', 'https://www.techoffside.com', 'rss', 'tech-business', 12, true),
@@ -140,7 +148,44 @@ VALUES
     ('game-ded', 'Game-Ded', 'https://www.game-ded.com/feed', 'https://www.game-ded.com', 'rss', 'computer-games', 3, true),
     ('gamemonday', 'GameMonday', 'https://www.gamemonday.com/feed', 'https://www.gamemonday.com', 'rss', 'computer-games', 4, true),
     ('extremeit', 'Extreme IT', 'https://www.extremeit.com/feed/', 'https://www.extremeit.com', 'rss', 'computer-games', 5, true),
-    ('google-cloud', 'Cloud / DC', 'https://news.google.com/rss/search?q=Cloud+OR+Data+Center&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'computer-games', 6, true)
+    ('google-cloud', 'Cloud / DC', 'https://news.google.com/rss/search?q=Cloud+OR+Data+Center&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'computer-games', 6, true),
+
+    -- AI Innovation (ปัญญาประดิษฐ์และ AI)
+    ('google-ai-th', 'Google ข่าว AI (ไทย)', 'https://news.google.com/rss/search?q=AI+OR+ปัญญาประดิษฐ์&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'ai-innovation', 1, true),
+    ('techcrunch-ai', 'TechCrunch AI', 'https://techcrunch.com/category/artificial-intelligence/feed/', 'https://techcrunch.com', 'rss', 'ai-innovation', 2, true),
+    ('venturebeat-ai', 'VentureBeat AI', 'https://venturebeat.com/category/ai/feed/', 'https://venturebeat.com', 'rss', 'ai-innovation', 3, true),
+
+    -- Weather Forecast (สภาพอากาศและฟ้าฝน)
+    ('tmd-warning', 'กรมอุตุนิยมวิทยา (เตือนภัย)', 'https://www.tmd.go.th/feed/warning', 'https://www.tmd.go.th', 'rss', 'weather-forecast', 1, true),
+    ('tmd-daily', 'กรมอุตุนิยมวิทยา (พยากรณ์ประจำวัน)', 'https://www.tmd.go.th/feed/daily', 'https://www.tmd.go.th', 'rss', 'weather-forecast', 2, true),
+    ('google-weather-th', 'ข่าวพยากรณ์อากาศ (Google News)', 'https://news.google.com/rss/search?q=พยากรณ์อากาศ+OR+ฝนตก&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'weather-forecast', 3, true),
+    ('google-storm-th', 'ข่าวพายุ & น้ำท่วม (Google News)', 'https://news.google.com/rss/search?q=พายุ+OR+น้ำท่วม&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'weather-forecast', 4, true),
+    ('google-pm25-th', 'รายงานฝุ่น PM2.5 (Google News)', 'https://news.google.com/rss/search?q=PM2.5+OR+คุณภาพอากาศ&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'weather-forecast', 5, true),
+    ('thaipbs-weather', 'Thai PBS สภาพแวดล้อม & อากาศ', 'https://www.thaipbs.or.th/rss/environment', 'https://www.thaipbs.or.th', 'rss', 'weather-forecast', 6, true),
+
+    -- Cybersecurity (ความปลอดภัยไซเบอร์และเตือนภัย)
+    ('thehackernews', 'The Hacker News', 'https://feeds.feedburner.com/TheHackersNews', 'https://thehackernews.com', 'rss', 'cybersecurity', 1, true),
+    ('google-cyber-th', 'Google เตือนภัยไซเบอร์ & แก๊งคอล', 'https://news.google.com/rss/search?q=ไซเบอร์+OR+แฮกเกอร์+OR+แก๊งคอลเซ็นเตอร์&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'cybersecurity', 2, true),
+    ('google-security-th', 'Google ข่าวความมั่นคงปลอดภัย', 'https://news.google.com/rss/search?q=ความมั่นคงปลอดภัยไซเบอร์+OR+ภัยไซเบอร์&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'cybersecurity', 3, true),
+
+    -- EV & Vehicles (ยานยนต์ไฟฟ้าและเทคโนโลยี EV)
+    ('autolifethailand', 'Autolife Thailand', 'https://autolifethailand.tv/feed/', 'https://autolifethailand.tv', 'rss', 'ev-vehicles', 1, true),
+    ('google-ev-th', 'Google ข่าวรถยนต์ไฟฟ้า EV', 'https://news.google.com/rss/search?q=รถยนต์ไฟฟ้า+OR+EV&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'ev-vehicles', 2, true),
+    ('insideevs', 'InsideEVs', 'https://insideevs.com/rss/news/all/', 'https://insideevs.com', 'rss', 'ev-vehicles', 3, true),
+
+    -- Science & Space (วิทยาศาสตร์และสำรวจอวกาศ)
+    ('google-space-th', 'Google ข่าวอวกาศ & ดาราศาสตร์', 'https://news.google.com/rss/search?q=อวกาศ+OR+ดาราศาสตร์+OR+SpaceX&hl=th&gl=TH&ceid=TH:th', 'https://news.google.com', 'rss', 'science-space', 1, true),
+    ('space-com', 'Space.com', 'https://www.space.com/feeds/all', 'https://www.space.com', 'rss', 'science-space', 2, true),
+
+    -- FinTech & Crypto (การเงินดิจิทัลและบล็อกเชน)
+    ('siamblockchain', 'Siam Blockchain', 'https://siamblockchain.com/feed/', 'https://siamblockchain.com', 'rss', 'fintech-crypto', 1, true),
+    ('bitcoinaddict', 'Bitcoin Addict', 'https://bitcoinaddict.org/feed/', 'https://bitcoinaddict.org', 'rss', 'fintech-crypto', 2, true),
+    ('cointelegraph', 'Cointelegraph', 'https://cointelegraph.com/rss', 'https://cointelegraph.com', 'rss', 'fintech-crypto', 3, true),
+
+    -- Developer & Coding (โปรแกรมมิ่งและนักพัฒนา)
+    ('dev-to', 'DEV Community', 'https://dev.to/feed', 'https://dev.to', 'rss', 'developer-coding', 1, true),
+    ('github-blog', 'GitHub Blog', 'https://github.blog/feed/', 'https://github.blog', 'rss', 'developer-coding', 2, true),
+    ('freecodecamp', 'freeCodeCamp', 'https://www.freecodecamp.org/news/rss/', 'https://www.freecodecamp.org', 'rss', 'developer-coding', 3, true)
 ON CONFLICT (key) DO UPDATE
 SET label = EXCLUDED.label,
     url = EXCLUDED.url,

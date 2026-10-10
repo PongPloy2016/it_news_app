@@ -160,3 +160,47 @@ export const computerSources: FeedSource[] = [
   { key: 'extremeit', label: 'Extreme IT', url: 'https://www.extremeit.com/feed/', homepage: 'https://www.extremeit.com', type: 'rss' },
   { key: 'google-cloud', label: 'Cloud / DC', url: 'https://news.google.com/rss/search?q=Cloud+OR+Data+Center&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
+
+export const aiSources: FeedSource[] = [
+  { key: 'google-ai-th', label: 'Google ข่าว AI (ไทย)', url: 'https://news.google.com/rss/search?q=AI+OR+ปัญญาประดิษฐ์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'techcrunch-ai', label: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', homepage: 'https://techcrunch.com', type: 'rss' },
+  { key: 'venturebeat-ai', label: 'VentureBeat AI', url: 'https://venturebeat.com/category/ai/feed/', homepage: 'https://venturebeat.com', type: 'rss' },
+];
+
+export const weatherSources: FeedSource[] = [
+  { key: 'tmd-warning', label: 'กรมอุตุนิยมวิทยา (เตือนภัย)', url: 'https://www.tmd.go.th/feed/warning', homepage: 'https://www.tmd.go.th', type: 'rss' },
+  { key: 'tmd-daily', label: 'กรมอุตุนิยมวิทยา (พยากรณ์ประจำวัน)', url: 'https://www.tmd.go.th/feed/daily', homepage: 'https://www.tmd.go.th', type: 'rss' },
+  { key: 'google-weather-th', label: 'Google ข่าวพยากรณ์อากาศ', url: 'https://news.google.com/rss/search?q=%E0%B8%9E%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%93%E0%B9%8C%E0%B8%AD%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A8+OR+%E0%B8%9D%E0%B8%99%E0%B8%95%E0%B8%81&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'google-storm-th', label: 'ข่าวพายุ & น้ำท่วม', url: 'https://news.google.com/rss/search?q=%E0%B8%9E%E0%B8%B2%E0%B8%A2%E0%B8%B8+OR+%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B8%97%E0%B9%88%E0%B8%A7%E0%B8%A1&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'google-pm25-th', label: 'รายงานฝุ่น PM2.5', url: 'https://news.google.com/rss/search?q=PM2.5+OR+%E0%B8%84%E0%B8%B8%E0%B8%93%E0%B8%A0%E0%B8%B2%E0%B8%9E%E0%B8%AD%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A8&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'thaipbs-weather', label: 'Thai PBS สภาพแวดล้อม & อากาศ', url: 'https://www.thaipbs.or.th/rss/environment', homepage: 'https://www.thaipbs.or.th', type: 'rss' },
+];
+
+export const cybersecuritySources: FeedSource[] = [
+  { key: 'thehackernews', label: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews', homepage: 'https://thehackernews.com', type: 'rss' },
+  { key: 'google-cyber-th', label: 'Google เตือนภัยไซเบอร์ & แก๊งคอล', url: 'https://news.google.com/rss/search?q=ไซเบอร์+OR+แฮกเกอร์+OR+แก๊งคอลเซ็นเตอร์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'google-security-th', label: 'Google ข่าวความมั่นคงปลอดภัย', url: 'https://news.google.com/rss/search?q=ความมั่นคงปลอดภัยไซเบอร์+OR+ภัยไซเบอร์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const evSources: FeedSource[] = [
+  { key: 'autolifethailand', label: 'Autolife Thailand', url: 'https://autolifethailand.tv/feed/', homepage: 'https://autolifethailand.tv', type: 'rss' },
+  { key: 'google-ev-th', label: 'Google ข่าวรถยนต์ไฟฟ้า EV', url: 'https://news.google.com/rss/search?q=รถยนต์ไฟฟ้า+OR+EV&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'insideevs', label: 'InsideEVs', url: 'https://insideevs.com/rss/news/all/', homepage: 'https://insideevs.com', type: 'rss' },
+];
+
+export const scienceSpaceSources: FeedSource[] = [
+  { key: 'google-space-th', label: 'Google ข่าวอวกาศ & ดาราศาสตร์', url: 'https://news.google.com/rss/search?q=%E0%B8%AD%E0%B8%A7%E0%B8%81%E0%B8%B2%E0%B8%A8+OR+%E0%B8%94%E0%B8%B2%E0%B8%A3%E0%B8%B2%E0%B8%A8%E0%B8%B2%E0%B8%AA%E0%B8%95%E0%B8%A3%E0%B9%8C+OR+SpaceX&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'space-com', label: 'Space.com', url: 'https://www.space.com/feeds/all', homepage: 'https://www.space.com', type: 'rss' },
+];
+
+export const fintechCryptoSources: FeedSource[] = [
+  { key: 'siamblockchain', label: 'Siam Blockchain', url: 'https://siamblockchain.com/feed/', homepage: 'https://siamblockchain.com', type: 'rss' },
+  { key: 'bitcoinaddict', label: 'Bitcoin Addict', url: 'https://bitcoinaddict.org/feed/', homepage: 'https://bitcoinaddict.org', type: 'rss' },
+  { key: 'cointelegraph', label: 'Cointelegraph', url: 'https://cointelegraph.com/rss', homepage: 'https://cointelegraph.com', type: 'rss' },
+];
+
+export const developerSources: FeedSource[] = [
+  { key: 'dev-to', label: 'DEV Community', url: 'https://dev.to/feed', homepage: 'https://dev.to', type: 'rss' },
+  { key: 'github-blog', label: 'GitHub Blog', url: 'https://github.blog/feed/', homepage: 'https://github.blog', type: 'rss' },
+  { key: 'freecodecamp', label: 'freeCodeCamp', url: 'https://www.freecodecamp.org/news/rss/', homepage: 'https://www.freecodecamp.org', type: 'rss' },
+];

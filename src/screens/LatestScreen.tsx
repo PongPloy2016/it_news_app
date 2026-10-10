@@ -106,7 +106,11 @@ export function LatestScreen() {
 
   useEffect(() => {
     const matchedGroup = feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey));
-    if (matchedGroup) setActiveGroupKey(matchedGroup.key);
+    if (matchedGroup) {
+      setActiveGroupKey(matchedGroup.key);
+    } else if (feedGroups.length > 0) {
+      setActiveGroupKey(feedGroups[0].key);
+    }
   }, [feedGroups, selectedFeedKey]);
 
   // Handle waiting loading when entering the screen ("ที่เข้าหน้า ให้ขึ้นรอ loading")

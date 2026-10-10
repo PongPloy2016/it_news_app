@@ -1,10 +1,17 @@
 import {
+  aiSources,
   computerSources,
+  cybersecuritySources,
+  developerSources,
+  evSources,
   FeedSource,
+  fintechCryptoSources,
   mobileSources,
+  scienceSpaceSources,
   techBusinessSources,
   techInternationalSources,
   thaiNewsSources,
+  weatherSources,
 } from './feeds';
 
 export type FeedGroup = {
@@ -12,6 +19,7 @@ export type FeedGroup = {
   label: string;
   color: string;
   sources: FeedSource[];
+  is_active?: boolean;
 };
 
 export const createAggregateSource = (groupKey: string, groupLabel: string): FeedSource => ({
@@ -66,6 +74,69 @@ export const FEED_GROUPS: FeedGroup[] = [
     sources: [
       createAggregateSource('computer-games', 'ข่าวคอมพิวเตอร์และเกม'),
       ...computerSources,
+    ],
+  },
+  {
+    key: 'ai-innovation',
+    label: 'ปัญญาประดิษฐ์และ AI',
+    color: '#8B5CF6',
+    sources: [
+      createAggregateSource('ai-innovation', 'ปัญญาประดิษฐ์และ AI'),
+      ...aiSources,
+    ],
+  },
+  {
+    key: 'weather-forecast',
+    label: 'สภาพอากาศและฟ้าฝน',
+    color: '#0284C7',
+    sources: [
+      createAggregateSource('weather-forecast', 'สภาพอากาศและฟ้าฝน'),
+      ...weatherSources,
+    ],
+  },
+  {
+    key: 'cybersecurity',
+    label: 'ความปลอดภัยไซเบอร์และเตือนภัย',
+    color: '#EF4444',
+    sources: [
+      createAggregateSource('cybersecurity', 'ความปลอดภัยไซเบอร์และเตือนภัย'),
+      ...cybersecuritySources,
+    ],
+  },
+  {
+    key: 'ev-vehicles',
+    label: 'ยานยนต์ไฟฟ้าและเทคโนโลยี EV',
+    color: '#10B981',
+    sources: [
+      createAggregateSource('ev-vehicles', 'ยานยนต์ไฟฟ้าและเทคโนโลยี EV'),
+      ...evSources,
+    ],
+  },
+  {
+    key: 'science-space',
+    label: 'วิทยาศาสตร์และสำรวจอวกาศ',
+    color: '#6366F1',
+    sources: [
+      createAggregateSource('science-space', 'วิทยาศาสตร์และสำรวจอวกาศ'),
+      ...scienceSpaceSources,
+    ],
+  },
+  {
+    key: 'fintech-crypto',
+    label: 'การเงินดิจิทัลและบล็อกเชน',
+    color: '#F59E0B',
+    sources: [
+      createAggregateSource('fintech-crypto', 'การเงินดิจิทัลและบล็อกเชน'),
+      ...fintechCryptoSources,
+    ],
+  },
+  {
+    key: 'developer-coding',
+    label: 'โปรแกรมมิ่งและนักพัฒนา',
+    color: '#06B6D4',
+    sources: [
+      createAggregateSource('developer-coding', 'โปรแกรมมิ่งและนักพัฒนา'),
+      ...developerSources,
     ],
   },
 ];
