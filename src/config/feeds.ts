@@ -204,3 +204,9 @@ export const developerSources: FeedSource[] = [
   { key: 'github-blog', label: 'GitHub Blog', url: 'https://github.blog/feed/', homepage: 'https://github.blog', type: 'rss' },
   { key: 'freecodecamp', label: 'freeCodeCamp', url: 'https://www.freecodecamp.org/news/rss/', homepage: 'https://www.freecodecamp.org', type: 'rss' },
 ];
+
+export const agricultureSources: FeedSource[] = [
+  { key: 'doae-news', label: 'ศูนย์ข่าวกรมส่งเสริมการเกษตร', url: 'https://doaenews.doae.go.th/feed', homepage: 'https://doaenews.doae.go.th', type: 'rss' },
+  { key: 'google-agri-th', label: 'Google ข่าวเกษตร', url: 'https://news.google.com/rss/search?q=เกษตร+OR+พืชสวน+OR+ปศุสัตว์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+

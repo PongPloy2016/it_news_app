@@ -12,6 +12,7 @@ import {
   techInternationalSources,
   thaiNewsSources,
   weatherSources,
+  agricultureSources,
 } from './feeds';
 
 export type FeedGroup = {
@@ -101,6 +102,15 @@ export const FEED_GROUPS: FeedGroup[] = [
     sources: [
       createAggregateSource('cybersecurity', 'ความปลอดภัยไซเบอร์และเตือนภัย'),
       ...cybersecuritySources,
+    ],
+  },
+  {
+    key: 'agriculture',
+    label: 'ข่าวเกษตร',
+    color: '#84CC16',
+    sources: [
+      createAggregateSource('agriculture', 'ข่าวเกษตร'),
+      ...agricultureSources,
     ],
   },
   {

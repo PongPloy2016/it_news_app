@@ -40,4 +40,21 @@ export const articleRepository = {
   async clearReadArticles(): Promise<void> {
     await storage.remove(STORAGE_KEYS.readArticles);
   },
+
+  async getCachedCategoryArticles(): Promise<Record<string, NewsArticle[]>> {
+    const raw = (await storage.get<Record<string, NewsArticle[]>>('blognone.categoryArticles')) || {};
+    const sanitized: Record<string, NewsArticle[]> = {};
+    for (const [key, list] of Object.entries(raw)) {
+      sanitized[key] = (list || []).map((item) => ({
+        ...item,
+        imageUrl: sanitizeImageUrl(item.imageUrl),
+      }));
+    }
+    return sanitized;
+  },
+
+  async saveCachedCategoryArticles(data: Record<string, NewsArticle[]>): Promise<void> {
+    await storage.set('blognone.categoryArticles', data);
+  },
 };
+

@@ -21,8 +21,14 @@ import { ScreenState } from '../components/ScreenState';
 import { SkeletonFeed } from '../components/SkeletonCard';
 import { CustomRefreshHeader } from '../components/CustomRefreshIndicator';
 import { UnderlineTabBar, UnderlineTabItem } from '../components/UnderlineTabBar';
+import { FlashDispatchTicker } from '../components/home/FlashDispatchTicker';
+import { HeroShowcase } from '../components/home/HeroShowcase';
+import { CategoryQuickNav } from '../components/home/CategoryQuickNav';
+import { CategorySectionBlock } from '../components/home/CategorySectionBlock';
+import { homeSectionsService } from '../services/homeSectionsService';
+import { imageService } from '../services/imageService';
 import { useNews } from '../store/NewsContext';
-import { CardLayoutOption, RootStackParamList } from '../types';
+import { CardLayoutOption, NewsArticle, RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
 
@@ -37,11 +43,21 @@ const withAlpha = (hex: string, alpha: number) => {
 };
 
 const GROUP_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  all: 'view-dashboard-outline',
   'tech-business': 'laptop',
-  'international': 'earth',
+  international: 'earth',
   'thai-news': 'newspaper',
-  'mobile': 'cellphone',
+  mobile: 'cellphone',
   'computer-games': 'gamepad-variant',
+  'weather-forecast': 'weather-partly-cloudy',
+  weather: 'weather-partly-cloudy',
+  cybersecurity: 'shield-alert',
+  agriculture: 'sprout',
+  'ai-innovation': 'robot',
+  'ev-vehicles': 'car-electric',
+  'science-space': 'telescope',
+  'fintech-crypto': 'bitcoin',
+  'developer-coding': 'code-tags',
 };
 
 const PAGE_SIZE = 10;
@@ -78,11 +94,21 @@ export function LatestScreen() {
     clearFreshCount,
   } = useNews();
 
+  // Active category tab key: 'all' (Home / รวมทุกหมวด) or group.key
+  const [activeGroupKey, setActiveGroupKey] = useState<string>('all');
+
+  // Category sections data for "รวมทุกหมวด"
+  const [categorySections, setCategorySections] = useState<Record<string, NewsArticle[]>>({});
+  const [isSectionsLoading, setIsSectionsLoading] = useState(true);
+  const [categoryLayouts, setCategoryLayouts] = useState<Record<string, number>>({});
+  const homeScrollRef = useRef<ScrollView>(null);
+
   const activeGroup = useMemo(
-    () => feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey)) ?? feedGroups[0],
-    [feedGroups, selectedFeedKey],
+    () => feedGroups.find((group) => group.key === activeGroupKey) ??
+          feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey)) ??
+          feedGroups[0],
+    [feedGroups, activeGroupKey, selectedFeedKey],
   );
-  const [activeGroupKey, setActiveGroupKey] = useState(activeGroup?.key ?? 'tech-business');
 
   const newArticlesCount = useMemo(
     () => articles.filter(isArticleNew).length,
@@ -104,16 +130,77 @@ export function LatestScreen() {
     setVisibleCount((current) => Math.min(Math.max(current, PAGE_SIZE), filteredArticles.length || PAGE_SIZE));
   }, [filteredArticles.length]);
 
+  // Load category sections on mount (offline cache first, then fetch fresh)
+  useEffect(() => {
+    let isMounted = true;
+    void (async () => {
+      try {
+        const cached = await homeSectionsService.getCachedCategorySections();
+        if (isMounted && Object.keys(cached).length > 0) {
+          setCategorySections(cached);
+          setIsSectionsLoading(false);
+        }
+
+        if (feedGroups.length > 0) {
+          const fresh = await homeSectionsService.fetchAllCategorySections(feedGroups);
+          if (isMounted && Object.keys(fresh).length > 0) {
+            setCategorySections(fresh);
+          }
+        }
+      } catch (err) {
+        console.warn('[LatestScreen] Category sections load error:', err);
+      } finally {
+        if (isMounted) setIsSectionsLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [feedGroups]);
+
+  // Enrich home articles without images with real OpenGraph thumbnails from web
+  const enrichedHomeIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const allArticles = Object.values(categorySections).flat();
+    const needImages = allArticles
+      .filter((a) => !a.imageUrl && !enrichedHomeIdsRef.current.has(a.id))
+      .slice(0, 15);
+
+    if (needImages.length === 0) return;
+
+    for (const a of needImages) {
+      enrichedHomeIdsRef.current.add(a.id);
+    }
+
+    void imageService.enrichArticlesWithOgImage(needImages, (updated) => {
+      const updatedMap = new Map(updated.map((item) => [item.id, item]));
+      setCategorySections((prev) => {
+        let hasChange = false;
+        const next: Record<string, NewsArticle[]> = {};
+        for (const [k, list] of Object.entries(prev)) {
+          next[k] = list.map((item) => {
+            const enriched = updatedMap.get(item.id);
+            if (enriched && enriched.imageUrl && enriched.imageUrl !== item.imageUrl) {
+              hasChange = true;
+              return { ...item, imageUrl: enriched.imageUrl };
+            }
+            return item;
+          });
+        }
+        return hasChange ? next : prev;
+      });
+    });
+  }, [categorySections]);
+
+  // Synchronize active group when selectedFeedKey changes externally (e.g. from drawer)
   useEffect(() => {
     const matchedGroup = feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey));
-    if (matchedGroup) {
+    if (matchedGroup && activeGroupKey !== 'all' && activeGroupKey !== matchedGroup.key) {
       setActiveGroupKey(matchedGroup.key);
-    } else if (feedGroups.length > 0) {
-      setActiveGroupKey(feedGroups[0].key);
     }
-  }, [feedGroups, selectedFeedKey]);
+  }, [feedGroups, selectedFeedKey, activeGroupKey]);
 
-  // Handle waiting loading when entering the screen ("ที่เข้าหน้า ให้ขึ้นรอ loading")
+  // Handle waiting loading when entering the screen
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSwitchingFeed, setIsSwitchingFeed] = useState(false);
   const prevFeedKeyRef = useRef(selectedFeedKey);
@@ -130,7 +217,6 @@ export function LatestScreen() {
     };
   }, [isRefreshing]);
 
-  // When switching feed or category, show waiting loading until fresh feed arrives
   useEffect(() => {
     if (prevFeedKeyRef.current !== selectedFeedKey) {
       prevFeedKeyRef.current = selectedFeedKey;
@@ -147,12 +233,65 @@ export function LatestScreen() {
     }
   }, [isSwitchingFeed, isRefreshing]);
 
+  const handleRefreshAll = async (force: boolean = true) => {
+    await Promise.allSettled([
+      refresh(force),
+      (async () => {
+        if (feedGroups.length > 0) {
+          const fresh = await homeSectionsService.fetchAllCategorySections(feedGroups);
+          setCategorySections(fresh);
+        }
+      })(),
+    ]);
+  };
+
+  const handlePressArticle = (item: NewsArticle) => {
+    markAsRead(item.id);
+    void showInterstitialAndNavigate(() => {
+      navigation.navigate('Article', { articleId: item.id, article: item });
+    });
+  };
+
+  const handleViewAllCategory = (groupKey: string) => {
+    setActiveGroupKey(groupKey);
+    const grp = feedGroups.find((g) => g.key === groupKey);
+    if (grp?.sources[0]) {
+      setSelectedFeedKey(grp.sources[0].key);
+    }
+  };
+
+  // Hero, highlights, and ticker derived data
+  const heroArticles = useMemo(() => {
+    return homeSectionsService.getFeaturedHeroArticles(categorySections);
+  }, [categorySections]);
+
+  const heroIds = useMemo(() => new Set(heroArticles.map((a) => a.id)), [heroArticles]);
+
+  const highlightArticles = useMemo(() => {
+    return homeSectionsService.getTrendingHighlights(categorySections, heroIds, 4);
+  }, [categorySections, heroIds]);
+
+  const tickerArticles = useMemo(() => {
+    return homeSectionsService.getFlashTickerArticles(categorySections);
+  }, [categorySections]);
+
+  const totalAllArticlesCount = useMemo(() => {
+    return Object.values(categorySections).reduce((acc, list) => acc + list.length, 0);
+  }, [categorySections]);
+
   const visibleArticles = filteredArticles.slice(0, visibleCount);
   const hasMore = visibleCount < filteredArticles.length;
   const activeSources = activeGroup?.sources ?? [];
 
+  // Top Category Tabs including "รวมทุกหมวด"
   const categoryTabs: UnderlineTabItem[] = useMemo(() => {
-    return feedGroups.map((group) => {
+    const allTab: UnderlineTabItem = {
+      key: 'all',
+      label: 'รวมทุกหมวด',
+      iconName: 'view-dashboard-outline',
+      color: '#0EA5E9',
+    };
+    const groupTabs: UnderlineTabItem[] = feedGroups.map((group) => {
       const cleanLabel = group.label.replace(/^ข่าว/, '');
       const icon = GROUP_ICONS[group.key] || 'newspaper';
       return {
@@ -162,6 +301,7 @@ export function LatestScreen() {
         color: group.color,
       };
     });
+    return [allTab, ...groupTabs];
   }, [feedGroups]);
 
   const renderCategoryTabBar = () => (
@@ -171,11 +311,17 @@ export function LatestScreen() {
       activeKey={activeGroupKey}
       onChange={(key) => {
         setActiveGroupKey(key);
-        const group = feedGroups.find((g) => g.key === key);
-        const firstFeed = group?.sources[0];
-        if (firstFeed) setSelectedFeedKey(firstFeed.key);
+        if (key !== 'all') {
+          const group = feedGroups.find((g) => g.key === key);
+          const firstFeed = group?.sources[0];
+          if (firstFeed) setSelectedFeedKey(firstFeed.key);
+        }
       }}
-      indicatorColor={activeGroup?.color ?? '#2F6FED'}
+      indicatorColor={
+        activeGroupKey === 'all'
+          ? '#0EA5E9'
+          : activeGroup?.color ?? '#2F6FED'
+      }
       style={styles.mainTabBarWrap}
     />
   );
@@ -190,7 +336,7 @@ export function LatestScreen() {
       {activeSources.map((feed) => {
         const active = feed.key === selectedFeedKey;
         const isAggregate = feed.type === 'aggregate';
-        const groupColor = activeGroup.color;
+        const groupColor = activeGroup?.color ?? '#2F6FED';
         return (
           <Pressable
             key={feed.key}
@@ -323,6 +469,107 @@ export function LatestScreen() {
     </View>
   );
 
+  // =========================================================================
+  // VIEW 1: "หน้าแรก (รวมทุกหมวด)" (All Categories Editorial Homepage)
+  // =========================================================================
+  if (activeGroupKey === 'all') {
+    if (isSectionsLoading && Object.keys(categorySections).length === 0) {
+      return (
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+            {renderCategoryTabBar()}
+          </View>
+          <CustomRefreshHeader
+            visible={true}
+            label="กำลังโหลดข่าวทุกหมวดหมู่..."
+            color="#0EA5E9"
+          />
+          <SkeletonFeed layout="magazine" count={4} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+        <ScrollView
+          ref={homeScrollRef}
+          contentContainerStyle={[styles.list, { paddingBottom: 24 }]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => void handleRefreshAll(true)}
+              tintColor="#0EA5E9"
+              colors={['#0EA5E9']}
+            />
+          }
+        >
+          {/* Top Category Tab Bar with "รวมทุกหมวด" active */}
+          {renderCategoryTabBar()}
+
+          {/* Custom Refresh Indicator during pull-to-refresh */}
+          <CustomRefreshHeader
+            visible={isRefreshing}
+            label="กำลังอัปเดตข่าวทุกหมวดหมู่..."
+            color="#0EA5E9"
+          />
+
+          {/* 1. Flash Dispatch Ticker (ข่าวด่วนหมุนเวียน) */}
+          <FlashDispatchTicker
+            articles={tickerArticles}
+            onPressArticle={handlePressArticle}
+          />
+
+          {/* 2. Hero Showcase Slider + Trending Highlights */}
+          <HeroShowcase
+            heroArticles={heroArticles}
+            highlightArticles={highlightArticles}
+            onPressArticle={handlePressArticle}
+          />
+
+          {/* 3. Quick Category Jump Bar (แถบทางลัดหมวดหมู่) */}
+          <CategoryQuickNav
+            groups={feedGroups}
+            totalArticlesCount={totalAllArticlesCount}
+            onSelectCategory={(groupKey) => {
+              const y = categoryLayouts[groupKey];
+              if (y !== undefined) {
+                homeScrollRef.current?.scrollTo({ y, animated: true });
+              } else {
+                handleViewAllCategory(groupKey);
+              }
+            }}
+          />
+
+          {/* 4. Category Section Blocks (รวมทุกหมวดในหน้าเดียว) */}
+          {feedGroups.map((group) => {
+            const groupArticles = categorySections[group.key] || [];
+            if (groupArticles.length === 0) return null;
+            return (
+              <View
+                key={`cat-section-${group.key}`}
+                onLayout={(e) => {
+                  const y = e.nativeEvent.layout.y;
+                  setCategoryLayouts((prev) => ({ ...prev, [group.key]: y }));
+                }}
+              >
+                <CategorySectionBlock
+                  group={group}
+                  articles={groupArticles}
+                  onPressArticle={handlePressArticle}
+                  onViewAll={handleViewAllCategory}
+                />
+              </View>
+            );
+          })}
+        </ScrollView>
+        <AdBanner style={[styles.bottomAdBanner, { backgroundColor: colors.surface, borderTopColor: colors.border }]} />
+      </View>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: INDIVIDUAL CATEGORY FEED
+  // =========================================================================
   if (selectedFeed.type === 'html') {
     return (
       <View style={[styles.htmlScreen, { backgroundColor: colors.background }]}>
@@ -416,168 +663,168 @@ export function LatestScreen() {
               color={activeGroup?.color}
             />
 
-          {/* New Articles Banner on Refresh */}
-          {lastRefreshNewCount > 0 && (
-            <View style={[styles.newAlertBanner, { backgroundColor: withAlpha('#EF4444', 0.12), borderColor: '#EF4444' }]}>
-              <View style={styles.newAlertTextWrap}>
-                <MaterialCommunityIcons name="lightning-bolt" size={18} color="#EF4444" />
-                <Text style={[styles.newAlertText, { color: colors.text, fontSize: 13 * scale }]}>
-                  พบข่าวใหม่มาเพิ่ม{' '}
-                  <Text style={{ fontWeight: '900', color: '#EF4444' }}>{lastRefreshNewCount}</Text> ข่าว!
+            {/* New Articles Banner on Refresh */}
+            {lastRefreshNewCount > 0 && (
+              <View style={[styles.newAlertBanner, { backgroundColor: withAlpha('#EF4444', 0.12), borderColor: '#EF4444' }]}>
+                <View style={styles.newAlertTextWrap}>
+                  <MaterialCommunityIcons name="lightning-bolt" size={18} color="#EF4444" />
+                  <Text style={[styles.newAlertText, { color: colors.text, fontSize: 13 * scale }]}>
+                    พบข่าวใหม่มาเพิ่ม{' '}
+                    <Text style={{ fontWeight: '900', color: '#EF4444' }}>{lastRefreshNewCount}</Text> ข่าว!
+                  </Text>
+                </View>
+                <View style={styles.newAlertActionWrap}>
+                  <Pressable
+                    onPress={() => {
+                      setStatusFilter('new');
+                      clearFreshCount();
+                    }}
+                    style={styles.newAlertBtn}
+                  >
+                    <Text style={styles.newAlertBtnText}>ดูข่าวใหม่</Text>
+                  </Pressable>
+                  <Pressable hitSlop={8} onPress={clearFreshCount} style={styles.newAlertCloseBtn}>
+                    <MaterialCommunityIcons name="close" size={16} color={colors.muted} />
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {isShowingCachedFeed ? (
+              <View style={[styles.banner, { backgroundColor: colors.surfaceVariant }]}>
+                <Text style={[styles.bannerText, { color: colors.muted, fontSize: 13 * scale }]}>
+                  ออฟไลน์ — กำลังแสดงข่าวที่บันทึกไว้
                 </Text>
               </View>
-              <View style={styles.newAlertActionWrap}>
+            ) : null}
+
+            <View style={styles.headingRow}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={[styles.heading, { color: colors.text, fontSize: 21 * scale }]}>
+                    {selectedFeed.label}
+                  </Text>
+                  {newArticlesCount > 0 && (
+                    <View style={styles.newHeaderBadge}>
+                      <Text style={styles.newHeaderBadgeText}>{newArticlesCount} ใหม่</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.updated, { color: colors.muted, fontSize: 12 * scale }]}>
+                  {lastUpdated ? `อัปเดต ${formatRelative(lastUpdated)}` : 'ดึงลงเพื่อรีเฟรช'}
+                </Text>
+              </View>
+
+              <View style={styles.headingActions}>
                 <Pressable
+                  hitSlop={8}
                   onPress={() => {
-                    setStatusFilter('new');
-                    clearFreshCount();
+                    const next: CardLayoutOption =
+                      settings.cardLayout === 'compact'
+                        ? 'magazine'
+                        : settings.cardLayout === 'magazine'
+                        ? 'grid'
+                        : 'compact';
+                    setCardLayout(next);
                   }}
-                  style={styles.newAlertBtn}
+                  style={[
+                    styles.layoutToggleBtn,
+                    { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
+                  ]}
+                  accessibilityLabel="เปลี่ยนรูปแบบการแสดงผล"
                 >
-                  <Text style={styles.newAlertBtnText}>ดูข่าวใหม่</Text>
+                  <MaterialCommunityIcons
+                    name={
+                      settings.cardLayout === 'compact'
+                        ? 'view-agenda-outline'
+                        : settings.cardLayout === 'magazine'
+                        ? 'view-grid-outline'
+                        : 'view-headline'
+                    }
+                    size={19}
+                    color={colors.primary}
+                  />
                 </Pressable>
-                <Pressable hitSlop={8} onPress={clearFreshCount} style={styles.newAlertCloseBtn}>
-                  <MaterialCommunityIcons name="close" size={16} color={colors.muted} />
-                </Pressable>
-              </View>
-            </View>
-          )}
 
-          {isShowingCachedFeed ? (
-            <View style={[styles.banner, { backgroundColor: colors.surfaceVariant }]}>
-              <Text style={[styles.bannerText, { color: colors.muted, fontSize: 13 * scale }]}>
-                ออฟไลน์ — กำลังแสดงข่าวที่บันทึกไว้
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.headingRow}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={[styles.heading, { color: colors.text, fontSize: 21 * scale }]}>
-                  {selectedFeed.label}
-                </Text>
-                {newArticlesCount > 0 && (
-                  <View style={styles.newHeaderBadge}>
-                    <Text style={styles.newHeaderBadgeText}>{newArticlesCount} ใหม่</Text>
+                {newArticlesCount > 0 ? (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={markAllAsRead}
+                    style={[styles.markAllReadBtn, { backgroundColor: withAlpha(colors.primary, 0.12) }]}
+                  >
+                    <MaterialCommunityIcons name="check-all" size={15} color={colors.primary} />
+                    <Text style={[styles.markAllReadText, { color: colors.primary, fontSize: 11 * scale }]}>
+                      อ่านหมด
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <View style={[styles.countBadge, { backgroundColor: withAlpha(activeGroup?.color ?? '#2F6FED', 0.12) }]}>
+                    <Text style={[styles.countText, { color: activeGroup?.color ?? '#2F6FED', fontSize: 13 * scale }]}>
+                      {articles.length} ข่าว
+                    </Text>
                   </View>
                 )}
               </View>
-              <Text style={[styles.updated, { color: colors.muted, fontSize: 12 * scale }]}>
-                {lastUpdated ? `อัปเดต ${formatRelative(lastUpdated)}` : 'ดึงลงเพื่อรีเฟรช'}
-              </Text>
             </View>
 
-            <View style={styles.headingActions}>
+            {/* Status Filter Bar (ทั้งหมด / ข่าวใหม่ / อ่านแล้ว) */}
+            {renderStatusFilterBar()}
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <MaterialCommunityIcons
+              name={statusFilter === 'new' ? 'check-circle-outline' : 'newspaper-variant-outline'}
+              size={44}
+              color={statusFilter === 'new' ? '#10B981' : colors.muted}
+            />
+            <Text style={[styles.emptyTitle, { color: colors.text, fontSize: 15 * scale }]}>
+              {statusFilter === 'new'
+                ? 'คุณอ่านข่าวใหม่ครบทั้งหมดแล้ว!'
+                : statusFilter === 'read'
+                ? 'ยังไม่มีข่าวที่อ่านแล้ว'
+                : 'ไม่พบข่าวในหมวดนี้'}
+            </Text>
+            {statusFilter !== 'all' && (
               <Pressable
-                hitSlop={8}
-                onPress={() => {
-                  const next: CardLayoutOption =
-                    settings.cardLayout === 'compact'
-                      ? 'magazine'
-                      : settings.cardLayout === 'magazine'
-                      ? 'grid'
-                      : 'compact';
-                  setCardLayout(next);
-                }}
-                style={[
-                  styles.layoutToggleBtn,
-                  { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
-                ]}
-                accessibilityLabel="เปลี่ยนรูปแบบการแสดงผล"
+                onPress={() => setStatusFilter('all')}
+                style={[styles.emptyResetBtn, { backgroundColor: colors.surfaceVariant }]}
               >
-                <MaterialCommunityIcons
-                  name={
-                    settings.cardLayout === 'compact'
-                      ? 'view-agenda-outline'
-                      : settings.cardLayout === 'magazine'
-                      ? 'view-grid-outline'
-                      : 'view-headline'
-                  }
-                  size={19}
-                  color={colors.primary}
-                />
+                <Text style={[styles.emptyResetText, { color: colors.primary, fontSize: 13 * scale }]}>
+                  ดูข่าวทั้งหมด
+                </Text>
               </Pressable>
-
-              {newArticlesCount > 0 ? (
-                <Pressable
-                  hitSlop={8}
-                  onPress={markAllAsRead}
-                  style={[styles.markAllReadBtn, { backgroundColor: withAlpha(colors.primary, 0.12) }]}
-                >
-                  <MaterialCommunityIcons name="check-all" size={15} color={colors.primary} />
-                  <Text style={[styles.markAllReadText, { color: colors.primary, fontSize: 11 * scale }]}>
-                    อ่านหมด
-                  </Text>
-                </Pressable>
-              ) : (
-                <View style={[styles.countBadge, { backgroundColor: withAlpha(activeGroup.color, 0.12) }]}>
-                  <Text style={[styles.countText, { color: activeGroup.color, fontSize: 13 * scale }]}>
-                    {articles.length} ข่าว
-                  </Text>
-                </View>
-              )}
+            )}
+          </View>
+        }
+        ListFooterComponent={
+          hasMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
+          ) : null
+        }
+        renderItem={({ item, index }) => (
+          <View style={settings.cardLayout === 'grid' ? styles.gridItemWrapper : undefined}>
+            <NewsCard
+              article={item}
+              isBookmarked={Boolean(bookmarks[item.id])}
+              onToggleBookmark={() => toggleBookmark(item)}
+              onPress={() => {
+                markAsRead(item.id);
+                void showInterstitialAndNavigate(() => {
+                  navigation.navigate('Article', { articleId: item.id, article: item });
+                });
+              }}
+            />
+            {settings.cardLayout !== 'grid' && (index + 1) % 5 === 0 && (
+              <AdCard style={styles.inFeedAdCard} />
+            )}
           </View>
-
-          {/* Status Filter Bar (ทั้งหมด / ข่าวใหม่ / อ่านแล้ว) */}
-          {renderStatusFilterBar()}
-        </View>
-      }
-      ListEmptyComponent={
-        <View style={styles.emptyWrap}>
-          <MaterialCommunityIcons
-            name={statusFilter === 'new' ? 'check-circle-outline' : 'newspaper-variant-outline'}
-            size={44}
-            color={statusFilter === 'new' ? '#10B981' : colors.muted}
-          />
-          <Text style={[styles.emptyTitle, { color: colors.text, fontSize: 15 * scale }]}>
-            {statusFilter === 'new'
-              ? 'คุณอ่านข่าวใหม่ครบทั้งหมดแล้ว!'
-              : statusFilter === 'read'
-              ? 'ยังไม่มีข่าวที่อ่านแล้ว'
-              : 'ไม่พบข่าวในหมวดนี้'}
-          </Text>
-          {statusFilter !== 'all' && (
-            <Pressable
-              onPress={() => setStatusFilter('all')}
-              style={[styles.emptyResetBtn, { backgroundColor: colors.surfaceVariant }]}
-            >
-              <Text style={[styles.emptyResetText, { color: colors.primary, fontSize: 13 * scale }]}>
-                ดูข่าวทั้งหมด
-              </Text>
-            </Pressable>
-          )}
-        </View>
-      }
-      ListFooterComponent={
-        hasMore ? (
-          <View style={styles.footerLoader}>
-            <ActivityIndicator size="small" color={colors.primary} />
-          </View>
-        ) : null
-      }
-      renderItem={({ item, index }) => (
-        <View style={settings.cardLayout === 'grid' ? styles.gridItemWrapper : undefined}>
-          <NewsCard
-            article={item}
-            isBookmarked={Boolean(bookmarks[item.id])}
-            onToggleBookmark={() => toggleBookmark(item)}
-            onPress={() => {
-              markAsRead(item.id);
-              void showInterstitialAndNavigate(() => {
-                navigation.navigate('Article', { articleId: item.id, article: item });
-              });
-            }}
-          />
-          {settings.cardLayout !== 'grid' && (index + 1) % 5 === 0 && (
-            <AdCard style={styles.inFeedAdCard} />
-          )}
-        </View>
-      )}
-    />
-    <AdBanner style={[styles.bottomAdBanner, { backgroundColor: colors.surface, borderTopColor: colors.border }]} />
-  </View>
+        )}
+      />
+      <AdBanner style={[styles.bottomAdBanner, { backgroundColor: colors.surface, borderTopColor: colors.border }]} />
+    </View>
   );
 }
 
@@ -609,17 +856,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.65)',
   },
-  mainTabBarWrap: { marginBottom: 8 },
-  mainTabBar: { gap: 8, paddingVertical: 4 },
-  mainTabButton: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    flexDirection: 'row',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  tabLabel: { textAlign: 'center' },
+  mainTabBarWrap: { marginBottom: 10 },
   subTabBarWrap: { marginBottom: 12 },
   subTabBar: { gap: 6, paddingVertical: 2 },
   subTabItem: {
@@ -650,83 +887,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
-  newAlertText: {
-    fontWeight: '600',
-  },
+  newAlertText: { fontWeight: '700' },
   newAlertActionWrap: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   newAlertBtn: {
     backgroundColor: '#EF4444',
-    borderRadius: 999,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   newAlertBtnText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '800',
   },
-  newAlertCloseBtn: {
-    padding: 2,
-  },
+  newAlertCloseBtn: { padding: 4 },
   headingRow: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
-    marginTop: 2,
   },
+  heading: { fontWeight: '900', letterSpacing: -0.3 },
+  updated: { marginTop: 2 },
   headingActions: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   layoutToggleBtn: {
     alignItems: 'center',
-    borderRadius: 999,
+    borderRadius: 8,
     borderWidth: 1,
-    height: 34,
     justifyContent: 'center',
-    width: 34,
-  },
-  heading: { fontWeight: '800' },
-  newHeaderBadge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  newHeaderBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.3,
+    padding: 6,
   },
   markAllReadBtn: {
     alignItems: 'center',
-    borderRadius: 999,
+    borderRadius: 8,
     flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 10,
+    gap: 3,
+    paddingHorizontal: 8,
     paddingVertical: 6,
   },
-  markAllReadText: {
-    fontWeight: '700',
-  },
-  updated: { marginTop: 2 },
+  markAllReadText: { fontWeight: '800' },
   countBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  countText: { fontWeight: '800' },
+  countText: { fontWeight: '700' },
   statusFilterBar: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    gap: 6,
+    marginBottom: 10,
   },
   statusChip: {
     alignItems: 'center',
@@ -734,31 +951,37 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 5.5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  statusChipText: {
-    letterSpacing: 0.1,
-  },
+  statusChipText: {},
   emptyWrap: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 48,
-    gap: 8,
   },
   emptyTitle: {
     fontWeight: '700',
-    marginTop: 4,
+    marginTop: 10,
     textAlign: 'center',
   },
   emptyResetBtn: {
-    borderRadius: 999,
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
-  emptyResetText: {
-    fontWeight: '700',
+  emptyResetText: { fontWeight: '700' },
+  footerLoader: { paddingVertical: 16 },
+  newHeaderBadge: {
+    backgroundColor: '#EF4444',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  footerLoader: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
+  newHeaderBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
 });

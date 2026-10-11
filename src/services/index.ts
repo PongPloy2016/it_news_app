@@ -9,3 +9,4 @@ export * from './crashlyticsService';
 export * from './notificationService';
 export * from './deviceIdService';
 export * from './supabaseBookmarkService';
+export * from './homeSectionsService';
