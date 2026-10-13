@@ -39,6 +39,7 @@
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
       "@react-native-firebase/messaging",
+      "@react-native-firebase/analytics",
       "expo-font",
       [
         "react-native-google-mobile-ads",

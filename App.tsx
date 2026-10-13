@@ -1,21 +1,25 @@
-import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, DefaultTheme, useNavigationContainerRef } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NewsProvider, useNews } from './src/store/NewsContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { initializeMobileAds } from './src/config/ads';
 import { initInterstitialAd } from './src/services/interstitialService';
 import { crashlyticsService } from './src/services/crashlyticsService';
 import { notificationService } from './src/services/notificationService';
+import { analyticsService } from './src/services/analyticsService';
 
 function AppShell() {
   const { colors, isDark, remoteSettings } = useNews();
+  const navigationRef = useNavigationContainerRef<any>();
+  const routeNameRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     crashlyticsService.log('App initialized');
+    void analyticsService.logAppOpen();
 
     // Request notification permission and retrieve FCM token
     void notificationService.requestPermission().then((granted) => {
@@ -54,7 +58,27 @@ function AppShell() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer theme={navigationTheme}>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={navigationTheme}
+        onReady={() => {
+          const currentRoute = navigationRef.getCurrentRoute();
+          routeNameRef.current = currentRoute?.name;
+          if (currentRoute?.name) {
+            void analyticsService.logScreenView(currentRoute.name);
+          }
+        }}
+        onStateChange={() => {
+          const previousRouteName = routeNameRef.current;
+          const currentRoute = navigationRef.getCurrentRoute();
+          const currentRouteName = currentRoute?.name;
+
+          if (currentRouteName && previousRouteName !== currentRouteName) {
+            routeNameRef.current = currentRouteName;
+            void analyticsService.logScreenView(currentRouteName);
+          }
+        }}
+      >
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <RootNavigator />
       </NavigationContainer>

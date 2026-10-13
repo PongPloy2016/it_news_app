@@ -21,6 +21,7 @@ import { getCategoryVisual } from '../config/categoryVisuals';
 import { FeedSource } from '../config/feeds';
 import { feedService } from '../services/feedService';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
+import { analyticsService } from '../services/analyticsService';
 import { useNews } from '../store/NewsContext';
 import { NewsArticle, RootStackParamList } from '../types';
 
@@ -58,6 +59,12 @@ export function CategoryDetailScreen() {
   const currentGroup = useMemo(() => {
     return feedGroups.find((g) => g.key === groupKey) ?? feedGroups[0];
   }, [feedGroups, groupKey]);
+
+  useEffect(() => {
+    if (currentGroup) {
+      void analyticsService.logCategoryView(currentGroup.key, currentGroup.label);
+    }
+  }, [currentGroup?.key]);
 
   const visual = useMemo(() => {
     return getCategoryVisual(currentGroup?.key ?? groupKey, currentGroup?.label, currentGroup?.color);

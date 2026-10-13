@@ -17,7 +17,7 @@ import {
   historyRepository,
   storage,
 } from '../data/database';
-import { feedService, imageService, loadFeedConfiguration, supabaseBookmarkService } from '../services';
+import { feedService, imageService, loadFeedConfiguration, supabaseBookmarkService, analyticsService } from '../services';
 import {
   DEFAULT_REMOTE_SETTINGS,
   fetchRemoteAppSettings,
@@ -412,6 +412,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
           void supabaseBookmarkService.saveRemoteBookmark(article);
         }
       }
+      void analyticsService.logBookmarkToggle(article.id, article.title, !isRemoving);
       void bookmarkRepository.saveBookmarks(next);
       return next;
     });
@@ -419,6 +420,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
 
   const addSearchHistory = useCallback((query: string) => {
     void (async () => {
+      if (query.trim()) {
+        void analyticsService.logSearch(query.trim());
+      }
       const updated = await historyRepository.addQuery(query);
       setSearchHistory(updated);
     })();

@@ -181,13 +181,13 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
           </View>
 
           <View style={styles.highlightsList}>
-            {highlightArticles.map((article) => {
+            {highlightArticles.map((article, idx) => {
               const imgUri = getImageUrl(article);
               const authorLabel = article.author?.split('·')[0]?.trim() || '';
 
               return (
                 <Pressable
-                  key={`hl-${article.id}`}
+                  key={`hl-${article.id}-${idx}`}
                   onPress={() => onPressArticle(article)}
                   style={({ pressed }) => [
                     styles.highlightItem,

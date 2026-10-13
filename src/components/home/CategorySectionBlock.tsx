@@ -119,14 +119,14 @@ export function CategorySectionBlock({
 
       {/* ================= 2. 2x2 CARDS GRID ================= */}
       <View style={styles.grid}>
-        {displayArticles.map((article) => {
+        {displayArticles.map((article, idx) => {
           const imgUri = getImageUrl(article);
           const isBookmarked = Boolean(bookmarks[article.id]);
           const sourceLabel = article.author?.split('·')[0]?.trim() || visual.shortLabel;
 
           return (
             <Pressable
-              key={`cat-card-${article.id}`}
+              key={`cat-card-${group.key}-${article.id}-${idx}`}
               onPress={() => onPressArticle(article)}
               style={({ pressed }) => [
                 styles.card,

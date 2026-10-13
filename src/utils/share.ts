@@ -1,5 +1,6 @@
 import { Share } from 'react-native';
 import { NewsArticle } from '../types';
+import { analyticsService } from '../services/analyticsService';
 
 export async function shareArticle(article: NewsArticle, sourceLabel?: string): Promise<void> {
   const parts: string[] = [];
@@ -16,6 +17,7 @@ export async function shareArticle(article: NewsArticle, sourceLabel?: string): 
   const message = parts.join('\n');
 
   try {
+    void analyticsService.logShare(article.id, article.title, 'system_dialog');
     await Share.share({
       title: article.title,
       message,

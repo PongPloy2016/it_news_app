@@ -28,6 +28,7 @@ import { articleRepository } from '../data/database/articles';
 import { feedService } from '../services/feedService';
 import { imageService } from '../services/imageService';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
+import { analyticsService } from '../services/analyticsService';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { NewsArticle, RootStackParamList } from '../types';
@@ -107,6 +108,18 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
       });
     }
   }, [article, route.params.articleId]);
+
+  useEffect(() => {
+    if (article) {
+      void analyticsService.logArticleView({
+        articleId: article.id,
+        title: article.title,
+        category: selectedFeed?.label,
+        source: article.author || selectedFeed?.label,
+        url: article.link,
+      });
+    }
+  }, [article?.id, selectedFeed?.label]);
 
   // Stop speaking when leaving the screen
   useEffect(() => {
