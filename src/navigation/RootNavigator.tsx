@@ -803,6 +803,36 @@ function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined
   }
 }
 
+function BookmarksHeaderRight() {
+  const { syncCloudBookmarks, isSyncingBookmarks, isCloudSyncActive, colors } = useNews();
+
+  if (!isCloudSyncActive) return null;
+
+  return (
+    <Pressable
+      hitSlop={12}
+      onPress={() => void syncCloudBookmarks()}
+      disabled={isSyncingBookmarks}
+      style={{
+        marginRight: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 16,
+        backgroundColor: colors.surfaceVariant,
+      }}
+      accessibilityLabel="ซิงค์บุ๊กมาร์กกับ Supabase Cloud"
+    >
+      {isSyncingBookmarks ? (
+        <ActivityIndicator size="small" color={colors.primary} />
+      ) : (
+        <MaterialCommunityIcons name="cloud-sync-outline" size={21} color={colors.primary} />
+      )}
+    </Pressable>
+  );
+}
+
 function MainDrawer() {
   const { colors, scale } = useNews();
   const screenWidth = Dimensions.get('window').width;
@@ -838,9 +868,13 @@ function MainDrawer() {
       <Drawer.Screen
         name="DrawerHome"
         component={MainTabs}
-        options={({ route }) => ({
-          headerTitle: getDrawerHeaderTitle(route),
-        })}
+        options={({ route }) => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
+          return {
+            headerTitle: getDrawerHeaderTitle(route),
+            headerRight: routeName === 'Bookmarks' ? () => <BookmarksHeaderRight /> : undefined,
+          };
+        }}
       />
     </Drawer.Navigator>
   );

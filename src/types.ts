@@ -10,6 +10,7 @@ export interface AppSettings {
   aiReaderEnabled: boolean;
   linkOpenMode?: LinkOpenMode;
   dataSaverEnabled?: boolean;
+  cloudSyncEnabled?: boolean;
 }
 
 export interface RemoteAppSettings {

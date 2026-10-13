@@ -41,6 +41,7 @@ const defaultSettings: AppSettings = {
   aiReaderEnabled: true,
   linkOpenMode: 'in_app',
   dataSaverEnabled: false,
+  cloudSyncEnabled: true,
 };
 
 interface NewsContextValue {
@@ -57,6 +58,7 @@ interface NewsContextValue {
   isHydrated: boolean;
   isRefreshing: boolean;
   isSyncingBookmarks: boolean;
+  isCloudSyncActive: boolean;
   hasFetchError: boolean;
   isShowingCachedFeed: boolean;
   lastUpdated?: number;
@@ -79,6 +81,7 @@ interface NewsContextValue {
   setAiReaderEnabled: (enabled: boolean) => void;
   setLinkOpenMode: (mode: LinkOpenMode) => void;
   setDataSaverEnabled: (enabled: boolean) => void;
+  setCloudSyncEnabled: (enabled: boolean) => void;
   readArticles: Record<string, number>;
   markAsRead: (articleId: string) => void;
   markAllAsRead: () => void;
@@ -318,8 +321,12 @@ export function NewsProvider({ children }: PropsWithChildren) {
     }
   }, [isHydrated, lastUpdated, refresh, selectedFeedKey]);
 
+  const isCloudSyncActive = useMemo(() => {
+    return (settings.cloudSyncEnabled ?? true) && remoteSettings.cloud_sync_enabled !== false;
+  }, [settings.cloudSyncEnabled, remoteSettings.cloud_sync_enabled]);
+
   const syncCloudBookmarks = useCallback(async (): Promise<{ success: boolean; count: number }> => {
-    if (remoteSettings.cloud_sync_enabled === false) {
+    if (!isCloudSyncActive) {
       return { success: false, count: 0 };
     }
     setIsSyncingBookmarks(true);
@@ -356,7 +363,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
     } finally {
       setIsSyncingBookmarks(false);
     }
-  }, [remoteSettings.cloud_sync_enabled]);
+  }, [isCloudSyncActive]);
 
   const importBookmarksFromDevice = useCallback(
     async (targetDeviceId: string): Promise<{ success: boolean; count: number; error?: string }> => {
@@ -392,10 +399,10 @@ export function NewsProvider({ children }: PropsWithChildren) {
 
   // Background cloud bookmark sync on app launch
   useEffect(() => {
-    if (isHydrated && remoteSettings.cloud_sync_enabled !== false) {
+    if (isHydrated && isCloudSyncActive) {
       void syncCloudBookmarks();
     }
-  }, [isHydrated, remoteSettings.cloud_sync_enabled, syncCloudBookmarks]);
+  }, [isHydrated, isCloudSyncActive, syncCloudBookmarks]);
 
   const toggleBookmark = useCallback((article: NewsArticle) => {
     setBookmarks((current) => {
@@ -403,12 +410,12 @@ export function NewsProvider({ children }: PropsWithChildren) {
       const isRemoving = Boolean(next[article.id]);
       if (isRemoving) {
         delete next[article.id];
-        if (remoteSettings.cloud_sync_enabled !== false) {
+        if (isCloudSyncActive) {
           void supabaseBookmarkService.removeRemoteBookmark(article.id);
         }
       } else {
         next[article.id] = article;
-        if (remoteSettings.cloud_sync_enabled !== false) {
+        if (isCloudSyncActive) {
           void supabaseBookmarkService.saveRemoteBookmark(article);
         }
       }
@@ -416,7 +423,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       void bookmarkRepository.saveBookmarks(next);
       return next;
     });
-  }, [remoteSettings.cloud_sync_enabled]);
+  }, [isCloudSyncActive]);
 
   const addSearchHistory = useCallback((query: string) => {
     void (async () => {
@@ -436,10 +443,10 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const clearBookmarks = useCallback(() => {
     setBookmarks({});
     void bookmarkRepository.clearBookmarks();
-    if (remoteSettings.cloud_sync_enabled !== false) {
+    if (isCloudSyncActive) {
       void supabaseBookmarkService.clearRemoteBookmarks();
     }
-  }, [remoteSettings.cloud_sync_enabled]);
+  }, [isCloudSyncActive]);
 
   const clearNewsCache = useCallback(async () => {
     setArticles([]);
@@ -579,6 +586,8 @@ export function NewsProvider({ children }: PropsWithChildren) {
       setAiReaderEnabled: (aiReaderEnabled) => updateSettings({ ...settings, aiReaderEnabled }),
       setLinkOpenMode: (linkOpenMode) => updateSettings({ ...settings, linkOpenMode }),
       setDataSaverEnabled: (dataSaverEnabled) => updateSettings({ ...settings, dataSaverEnabled }),
+      setCloudSyncEnabled: (cloudSyncEnabled) => updateSettings({ ...settings, cloudSyncEnabled }),
+      isCloudSyncActive,
       readArticles,
       markAsRead,
       markAllAsRead,
@@ -603,6 +612,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
       isHydrated,
       isRefreshing,
       isSyncingBookmarks,
+      isCloudSyncActive,
       hasFetchError,
       isShowingCachedFeed,
       lastUpdated,

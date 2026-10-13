@@ -47,6 +47,8 @@ export function SettingsScreen() {
     syncCloudBookmarks,
     isSyncingBookmarks,
     importBookmarksFromDevice,
+    isCloudSyncActive,
+    setCloudSyncEnabled,
   } = useNews();
 
   const [deviceId, setDeviceId] = useState<string>('');
@@ -674,6 +676,36 @@ export function SettingsScreen() {
               },
             ]}
           >
+            {/* Cloud Sync Toggle Row */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: 12,
+                marginBottom: 12,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.border,
+              }}
+            >
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={{ fontWeight: '700', color: colors.text, fontSize: 13.5 * scale }}>
+                  เปิดใช้งาน Supabase Cloud Sync
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 11.5 * scale, marginTop: 2 }}>
+                  {isCloudSyncActive
+                    ? 'กำลังซิงค์และสำรองข้อมูลบุ๊กมาร์กข้ามเครื่องอัตโนมัติ'
+                    : 'ปิดอยู่ (บันทึกบุ๊กมาร์กเฉพาะในเครื่องนี้)'}
+                </Text>
+              </View>
+              <Switch
+                value={isCloudSyncActive}
+                onValueChange={setCloudSyncEnabled}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={isCloudSyncActive ? '#FFFFFF' : '#94A3B8'}
+              />
+            </View>
+
             {/* Cloud Status Row */}
             <View style={styles.cloudStatusRow}>
               <View style={styles.cloudPulseWrap}>

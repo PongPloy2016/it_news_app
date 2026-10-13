@@ -10,6 +10,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -31,6 +32,8 @@ export function BookmarksScreen() {
     clearBookmarks,
     syncCloudBookmarks,
     isSyncingBookmarks,
+    isCloudSyncActive,
+    setCloudSyncEnabled,
     remoteSettings,
     colors,
     scale,
@@ -47,13 +50,13 @@ export function BookmarksScreen() {
   // Sync with Supabase on screen focus
   useFocusEffect(
     useCallback(() => {
-      if (remoteSettings.cloud_sync_enabled === false) return;
+      if (!isCloudSyncActive) return;
       void syncCloudBookmarks().then((res) => {
         if (res.success) {
           setLastSyncedTime(new Date());
         }
       });
-    }, [remoteSettings.cloud_sync_enabled, syncCloudBookmarks]),
+    }, [isCloudSyncActive, syncCloudBookmarks]),
   );
 
   // Base sorted articles
@@ -167,48 +170,70 @@ export function BookmarksScreen() {
   // Header showing Supabase Cloud status, sync button, search, and source filter chips
   const renderListHeader = () => (
     <View style={styles.syncHeaderWrap}>
-      {/* 1. Main Cloud Sync Card Banner (Shown only when cloud_sync_enabled is true) */}
-      {remoteSettings.cloud_sync_enabled !== false && (
-        <View
-          style={[
-            styles.syncBanner,
-            {
-              backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : '#F1F5F9',
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={styles.syncBannerLeft}>
-            <View
-              style={[
-                styles.cloudIconBadge,
-                { backgroundColor: isDark ? 'rgba(14, 165, 233, 0.18)' : '#E0F2FE' },
-              ]}
-            >
-              <MaterialCommunityIcons name="cloud-check" size={20} color="#0284C7" />
-            </View>
-            <View style={styles.syncTextWrap}>
-              <View style={styles.syncTitleRow}>
-                <Text style={[styles.syncTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
-                  Supabase Cloud
-                </Text>
-                {/* Offline Ready Badge */}
+      {/* 1. Main Cloud Sync Card Banner */}
+      <View
+        style={[
+          styles.syncBanner,
+          {
+            backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : '#F1F5F9',
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <View style={styles.syncBannerLeft}>
+          <View
+            style={[
+              styles.cloudIconBadge,
+              {
+                backgroundColor: isCloudSyncActive
+                  ? isDark ? 'rgba(14, 165, 233, 0.18)' : '#E0F2FE'
+                  : isDark ? 'rgba(148, 163, 184, 0.15)' : '#F1F5F9',
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={isCloudSyncActive ? 'cloud-check' : 'cloud-off-outline'}
+              size={20}
+              color={isCloudSyncActive ? '#0284C7' : colors.muted}
+            />
+          </View>
+          <View style={styles.syncTextWrap}>
+            <View style={styles.syncTitleRow}>
+              <Text style={[styles.syncTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
+                Supabase Cloud Sync
+              </Text>
+              {isCloudSyncActive ? (
                 <View style={[styles.offlineBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ECFDF5' }]}>
                   <MaterialCommunityIcons name="check-decagram" size={11} color="#10B981" />
-                  <Text style={styles.offlineBadgeText}>พร้อมอ่านออฟไลน์</Text>
+                  <Text style={styles.offlineBadgeText}>ซิงค์อัตโนมัติ</Text>
                 </View>
-              </View>
-
-              {/* Last Synced Timestamp */}
-              <Text style={[styles.syncSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                {allArticles.length > 0 ? `${allArticles.length} ข่าว · ` : ''}
-                ซิงค์ล่าสุด: {formatSyncTime(lastSyncedTime)}
-              </Text>
+              ) : (
+                <View style={[styles.offlineBadge, { backgroundColor: isDark ? 'rgba(148, 163, 184, 0.18)' : '#F1F5F9' }]}>
+                  <Text style={[styles.offlineBadgeText, { color: colors.muted }]}>ปิดอยู่</Text>
+                </View>
+              )}
             </View>
-          </View>
 
-          {/* Action Buttons: Sync Down & Clear All */}
-          <View style={styles.bannerActions}>
+            {/* Last Synced Timestamp */}
+            <Text style={[styles.syncSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
+              {isCloudSyncActive
+                ? `${allArticles.length > 0 ? `${allArticles.length} ข่าว · ` : ''}ซิงค์ล่าสุด: ${formatSyncTime(lastSyncedTime)}`
+                : 'บันทึกเฉพาะในเครื่องนี้ ไม่ได้ซิงค์ขึ้น Cloud'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Action Buttons: Toggle Switch, Sync Down & Clear All */}
+        <View style={styles.bannerActions}>
+          <Switch
+            value={isCloudSyncActive}
+            onValueChange={setCloudSyncEnabled}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={isCloudSyncActive ? '#FFFFFF' : '#94A3B8'}
+            style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+          />
+
+          {isCloudSyncActive && (
             <Pressable
               onPress={() => void handleSyncDown(true)}
               disabled={isSyncingBookmarks}
@@ -235,24 +260,24 @@ export function BookmarksScreen() {
                 {isSyncingBookmarks ? 'กำลังดึง...' : 'ดึงข่าวลง'}
               </Text>
             </Pressable>
+          )}
 
-            {allArticles.length > 0 && (
-              <Pressable
-                onPress={handleConfirmClearAll}
-                disabled={isSyncingBookmarks}
-                hitSlop={8}
-                style={({ pressed }) => [
-                  styles.clearAllBtn,
-                  { opacity: pressed ? 0.6 : 1 },
-                ]}
-                accessibilityLabel="ล้างข่าวที่บันทึกทั้งหมด"
-              >
-                <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
-              </Pressable>
-            )}
-          </View>
+          {allArticles.length > 0 && (
+            <Pressable
+              onPress={handleConfirmClearAll}
+              disabled={isSyncingBookmarks}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.clearAllBtn,
+                { opacity: pressed ? 0.6 : 1 },
+              ]}
+              accessibilityLabel="ล้างข่าวที่บันทึกทั้งหมด"
+            >
+              <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
+            </Pressable>
+          )}
         </View>
-      )}
+      </View>
 
       {/* 2. Sync Feedback Toast Banner */}
       {syncFeedback && (
