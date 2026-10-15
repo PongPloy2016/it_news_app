@@ -101,22 +101,46 @@ export class HomeSectionsService {
       const aggregateSource = group.sources.find((s) => s.type === 'aggregate') || group.sources[0];
       if (aggregateSource) {
         const fetched = await feedService.fetchFeed(aggregateSource, 2);
-        return fetched;
+        if (fetched.length > 0) {
+          void articleRepository.saveCachedFeedArticles(group.key, fetched);
+          return fetched;
+        }
       }
     } catch {
       // local feed fallback failed
+    }
+
+    // 3. Fallback to persistent offline cache if network is unavailable
+    try {
+      const offlineCached = await articleRepository.getCachedFeedArticles(group.key);
+      if (offlineCached && offlineCached.length > 0) {
+        return offlineCached;
+      }
+    } catch {
+      // offline cache read failed
     }
 
     return [];
   }
 
   /**
-   * Fetch all category sections concurrently
+   * Fetch all category sections concurrently with progress callback
    */
-  async fetchAllCategorySections(groups: FeedGroup[]): Promise<Record<string, NewsArticle[]>> {
+  async fetchAllCategorySections(
+    groups: FeedGroup[],
+    onProgress?: (progressRatio: number, lastGroupLabel?: string) => void
+  ): Promise<Record<string, NewsArticle[]>> {
+    let completedCount = 0;
+    const totalCount = groups.length;
+
     const results = await Promise.allSettled(
       groups.map(async (group) => {
         const articles = await this.fetchCategoryArticles(group);
+        completedCount++;
+        if (onProgress) {
+          const ratio = totalCount > 0 ? completedCount / totalCount : 1;
+          onProgress(ratio, group.label);
+        }
         return { key: group.key, articles };
       })
     );

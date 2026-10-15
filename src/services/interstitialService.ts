@@ -1,5 +1,5 @@
 import { InterstitialAd, AdEventType } from 'react-native-google-mobile-ads';
-import { INTERSTITIAL_AD_UNIT_ID } from '../config/ads';
+import { getInterstitialAdUnitId } from '../config/ads';
 import { getCurrentRemoteSettings } from './appSettingsService';
 
 let interstitialAd: InterstitialAd | null = null;
@@ -43,7 +43,7 @@ function setupAdInstance(): void {
   isLoaded = false;
   isLoading = false;
 
-  const adUnitId = remote.admob_interstitial_id_android || INTERSTITIAL_AD_UNIT_ID;
+  const adUnitId = getInterstitialAdUnitId(remote.admob_interstitial_id_android);
 
   try {
     interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {

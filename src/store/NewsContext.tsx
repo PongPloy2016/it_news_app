@@ -178,7 +178,17 @@ export function NewsProvider({ children }: PropsWithChildren) {
             storage.get<string>('blognone.selectedFeedKey'),
           ]);
 
-        if (cachedArticles?.length) setArticles(cachedArticles);
+        if (cachedFeedKey) {
+          setSelectedFeedKeyState(cachedFeedKey);
+          const perFeed = await articleRepository.getCachedFeedArticles(cachedFeedKey);
+          if (perFeed && perFeed.length > 0) {
+            setArticles(perFeed);
+          } else if (cachedArticles?.length) {
+            setArticles(cachedArticles);
+          }
+        } else if (cachedArticles?.length) {
+          setArticles(cachedArticles);
+        }
         if (cachedBookmarks) setBookmarks(cachedBookmarks);
         if (cachedHistory) setSearchHistory(cachedHistory);
         if (cachedRead) setReadArticles(cachedRead);
@@ -193,7 +203,6 @@ export function NewsProvider({ children }: PropsWithChildren) {
           });
         }
         if (cachedUpdated) setLastUpdated(cachedUpdated);
-        if (cachedFeedKey) setSelectedFeedKeyState(cachedFeedKey);
       } catch {
         // Fallback gracefully on corrupt cache
       } finally {
@@ -277,9 +286,10 @@ export function NewsProvider({ children }: PropsWithChildren) {
         setHasFetchError(false);
         setIsShowingCachedFeed(false);
 
-        // Persist to storage
+        // Persist to storage (both active and per-feed key for instant loading)
         await Promise.all([
           articleRepository.saveCachedArticles(merged),
+          articleRepository.saveCachedFeedArticles(currentFeed.key, merged),
           articleRepository.saveLastUpdated(now),
         ]);
 
@@ -287,6 +297,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
         void imageService.enrichArticlesWithOgImage(merged, (nextArticles) => {
           setArticles(nextArticles);
           void articleRepository.saveCachedArticles(nextArticles);
+          void articleRepository.saveCachedFeedArticles(currentFeed.key, nextArticles);
         });
       } catch {
         if (articles.length) setIsShowingCachedFeed(true);
@@ -305,6 +316,19 @@ export function NewsProvider({ children }: PropsWithChildren) {
         : (feedSources[0]?.key || DEFAULT_FEED_KEY);
       setSelectedFeedKeyState(nextKey);
       void storage.set('blognone.selectedFeedKey', nextKey);
+
+      // Instant Cache First: immediately load cached articles for this feed!
+      void (async () => {
+        try {
+          const cached = await articleRepository.getCachedFeedArticles(nextKey);
+          if (cached && cached.length > 0) {
+            setArticles(cached);
+            setHasFetchError(false);
+          }
+        } catch {
+          // fallback to network fetch
+        }
+      })();
     },
     [feedSources],
   );

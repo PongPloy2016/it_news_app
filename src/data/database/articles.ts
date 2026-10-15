@@ -41,6 +41,19 @@ export const articleRepository = {
     await storage.remove(STORAGE_KEYS.readArticles);
   },
 
+  async getCachedFeedArticles(feedKey: string): Promise<NewsArticle[]> {
+    const list = (await storage.get<NewsArticle[]>(`blognone.feed_${feedKey}`)) || [];
+    return list.map((item) => ({
+      ...item,
+      imageUrl: sanitizeImageUrl(item.imageUrl),
+    }));
+  },
+
+  async saveCachedFeedArticles(feedKey: string, articles: NewsArticle[], limit: number = 60): Promise<void> {
+    if (!articles || articles.length === 0) return;
+    await storage.set(`blognone.feed_${feedKey}`, articles.slice(0, limit));
+  },
+
   async getCachedCategoryArticles(): Promise<Record<string, NewsArticle[]>> {
     const raw = (await storage.get<Record<string, NewsArticle[]>>('blognone.categoryArticles')) || {};
     const sanitized: Record<string, NewsArticle[]> = {};
@@ -54,7 +67,18 @@ export const articleRepository = {
   },
 
   async saveCachedCategoryArticles(data: Record<string, NewsArticle[]>): Promise<void> {
-    await storage.set('blognone.categoryArticles', data);
+    if (!data || Object.keys(data).length === 0) return;
+    const existing = (await storage.get<Record<string, NewsArticle[]>>('blognone.categoryArticles')) || {};
+    const merged: Record<string, NewsArticle[]> = { ...existing };
+
+    for (const [key, list] of Object.entries(data)) {
+      if (list && list.length > 0) {
+        merged[key] = list;
+        // Also save to per-feed cache for instant tab switching
+        void storage.set(`blognone.feed_${key}`, list.slice(0, 50));
+      }
+    }
+    await storage.set('blognone.categoryArticles', merged);
   },
 };
 

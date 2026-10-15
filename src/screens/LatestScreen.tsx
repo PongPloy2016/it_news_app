@@ -18,8 +18,9 @@ import { AdBanner } from '../components/AdBanner';
 import { AdCard } from '../components/AdCard';
 import { NewsCard } from '../components/NewsCard';
 import { ScreenState } from '../components/ScreenState';
-import { SkeletonFeed } from '../components/SkeletonCard';
+import { HomeEditorialSkeleton, SkeletonFeed } from '../components/SkeletonCard';
 import { CustomRefreshHeader } from '../components/CustomRefreshIndicator';
+import { TopProgressBar, HomeLoadingProgressCard } from '../components/LoadingProgressBar';
 import { UnderlineTabBar, UnderlineTabItem } from '../components/UnderlineTabBar';
 import { FlashDispatchTicker } from '../components/home/FlashDispatchTicker';
 import { HeroShowcase } from '../components/home/HeroShowcase';
@@ -100,6 +101,8 @@ export function LatestScreen() {
   // Category sections data for "รวมทุกหมวด"
   const [categorySections, setCategorySections] = useState<Record<string, NewsArticle[]>>({});
   const [isSectionsLoading, setIsSectionsLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0.12);
+  const [loadingStageText, setLoadingStageText] = useState('กำลังเชื่อมต่อแหล่งข่าว...');
   const [categoryLayouts, setCategoryLayouts] = useState<Record<string, number>>({});
   const homeScrollRef = useRef<ScrollView>(null);
 
@@ -139,12 +142,26 @@ export function LatestScreen() {
         if (isMounted && Object.keys(cached).length > 0) {
           setCategorySections(cached);
           setIsSectionsLoading(false);
+          setLoadProgress(0.85);
+          setLoadingStageText('โหลดข้อมูลแคชเรียบร้อยแล้ว');
         }
 
         if (feedGroups.length > 0) {
-          const fresh = await homeSectionsService.fetchAllCategorySections(feedGroups);
+          const fresh = await homeSectionsService.fetchAllCategorySections(
+            feedGroups,
+            (ratio, label) => {
+              if (isMounted) {
+                setLoadProgress(0.15 + ratio * 0.85);
+                if (label) {
+                  setLoadingStageText(`กำลังโหลด${label}...`);
+                }
+              }
+            }
+          );
           if (isMounted && Object.keys(fresh).length > 0) {
             setCategorySections(fresh);
+            setLoadProgress(1);
+            setLoadingStageText('โหลดข้อมูลข่าวสารครบถ้วนแล้ว');
           }
         }
       } catch (err) {
@@ -200,46 +217,55 @@ export function LatestScreen() {
     }
   }, [feedGroups, selectedFeedKey, activeGroupKey]);
 
-  // Handle waiting loading when entering the screen
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  // Handle waiting loading when entering the screen (Instant Cache First)
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isSwitchingFeed, setIsSwitchingFeed] = useState(false);
   const prevFeedKeyRef = useRef(selectedFeedKey);
 
   useEffect(() => {
-    let mounted = true;
-    if (isRefreshing) return;
-    const timer = setTimeout(() => {
-      if (mounted) setIsInitialLoading(false);
-    }, 600);
-    return () => {
-      mounted = false;
-      clearTimeout(timer);
-    };
-  }, [isRefreshing]);
+    if (articles.length > 0 || Object.keys(categorySections).length > 0) {
+      setIsInitialLoading(false);
+      setIsSwitchingFeed(false);
+    }
+  }, [articles.length, categorySections]);
 
   useEffect(() => {
     if (prevFeedKeyRef.current !== selectedFeedKey) {
       prevFeedKeyRef.current = selectedFeedKey;
-      setIsSwitchingFeed(true);
+      // Only set switching wait if there are no cached articles for this feed yet
+      if (!articles.length) {
+        setIsSwitchingFeed(true);
+      }
     }
-  }, [selectedFeedKey]);
+  }, [selectedFeedKey, articles.length]);
 
   useEffect(() => {
     if (isSwitchingFeed && !isRefreshing) {
       const timer = setTimeout(() => {
         setIsSwitchingFeed(false);
-      }, 250);
+      }, 150);
       return () => clearTimeout(timer);
     }
   }, [isSwitchingFeed, isRefreshing]);
 
   const handleRefreshAll = async (force: boolean = true) => {
+    setLoadProgress(0.12);
+    setLoadingStageText('กำลังเริ่มดึงข้อมูลข่าวสาร...');
     await Promise.allSettled([
       refresh(force),
       (async () => {
         if (feedGroups.length > 0) {
-          const fresh = await homeSectionsService.fetchAllCategorySections(feedGroups);
+          const fresh = await homeSectionsService.fetchAllCategorySections(
+            feedGroups,
+            (ratio, label) => {
+              setLoadProgress(0.15 + ratio * 0.85);
+              if (label) {
+                setLoadingStageText(`กำลังอัปเดต${label}...`);
+              }
+            }
+          );
           setCategorySections(fresh);
+          setLoadProgress(1);
         }
       })(),
     ]);
@@ -475,22 +501,35 @@ export function LatestScreen() {
   if (activeGroupKey === 'all') {
     if (isSectionsLoading && Object.keys(categorySections).length === 0) {
       return (
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
-          <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+        <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+          {/* Top slim animated progress bar */}
+          <TopProgressBar progress={loadProgress} visible={true} color="#0EA5E9" />
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.list, { paddingBottom: 24 }]}
+          >
+            {/* Top Category Tab Bar with "รวมทุกหมวด" active */}
             {renderCategoryTabBar()}
-          </View>
-          <CustomRefreshHeader
-            visible={true}
-            label="กำลังโหลดข่าวทุกหมวดหมู่..."
-            color="#0EA5E9"
-          />
-          <SkeletonFeed layout="magazine" count={4} />
+
+            {/* Loading Process Card with % and stage status */}
+            <HomeLoadingProgressCard
+              progress={loadProgress}
+              statusText={loadingStageText}
+              color="#0EA5E9"
+            />
+
+            {/* Editorial Homepage Skeleton (Matches loaded UI 1:1) */}
+            <HomeEditorialSkeleton />
+          </ScrollView>
+          <AdBanner style={[styles.bottomAdBanner, { backgroundColor: colors.surface, borderTopColor: colors.border }]} />
         </View>
       );
     }
 
     return (
       <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+        {/* Top slim animated progress bar during refresh */}
+        <TopProgressBar progress={loadProgress} visible={isRefreshing} color="#0EA5E9" />
         <ScrollView
           ref={homeScrollRef}
           contentContainerStyle={[styles.list, { paddingBottom: 24 }]}
@@ -505,6 +544,15 @@ export function LatestScreen() {
         >
           {/* Top Category Tab Bar with "รวมทุกหมวด" active */}
           {renderCategoryTabBar()}
+
+          {/* Loading Process Card during pull-to-refresh */}
+          {isRefreshing && (
+            <HomeLoadingProgressCard
+              progress={loadProgress}
+              statusText={loadingStageText}
+              color="#0EA5E9"
+            />
+          )}
 
           {/* Custom Refresh Indicator during pull-to-refresh */}
           <CustomRefreshHeader
@@ -595,22 +643,24 @@ export function LatestScreen() {
 
   const isWaitingForLoading =
     !isHydrated ||
-    isInitialLoading ||
-    isSwitchingFeed ||
-    (isRefreshing && !articles.length);
+    (!articles.length && (isInitialLoading || isSwitchingFeed || isRefreshing));
 
   if (isWaitingForLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Top slim progress bar for category view */}
+        <TopProgressBar progress={0.65} visible={true} color={activeGroup?.color ?? colors.primary} />
         <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
           {renderCategoryTabBar()}
           {renderSourceTabBar()}
         </View>
-        <CustomRefreshHeader
-          visible={true}
-          label={`กำลังโหลดข่าว${selectedFeed?.label ? ` ${selectedFeed.label}` : ''}...`}
-          color={activeGroup?.color}
-        />
+        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+          <HomeLoadingProgressCard
+            progress={0.65}
+            statusText={`กำลังโหลดข่าว${selectedFeed?.label ? ` ${selectedFeed.label}` : ''}...`}
+            color={activeGroup?.color ?? colors.primary}
+          />
+        </View>
         <SkeletonFeed layout={settings.cardLayout} count={5} />
       </View>
     );
@@ -630,6 +680,8 @@ export function LatestScreen() {
 
   return (
     <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+      {/* Top slim progress bar during refresh */}
+      <TopProgressBar progress={0.8} visible={isRefreshing} color={activeGroup?.color ?? colors.primary} />
       <FlatList
         key={settings.cardLayout === 'grid' ? 'grid-latest-2cols' : 'list-latest-1col'}
         numColumns={settings.cardLayout === 'grid' ? 2 : 1}

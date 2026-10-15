@@ -32,11 +32,15 @@ export function CategorySectionBlock({
   onPressArticle,
   onViewAll,
 }: Props) {
-  const { colors, scale, bookmarks, toggleBookmark } = useNews();
+  const { colors, scale, bookmarks, toggleBookmark, isDark } = useNews();
   const visual = getCategoryVisual(group.key, group.label, group.color);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [displayLimit, setDisplayLimit] = useState(4);
 
-  const displayArticles = articles.slice(0, 4);
+  const displayArticles = articles.slice(0, displayLimit);
+  const remainingCount = Math.max(0, articles.length - displayLimit);
+  const nextBatchSize = Math.min(4, remainingCount);
+
   if (displayArticles.length === 0) return null;
 
   const getImageUrl = (article: NewsArticle) => {
@@ -194,6 +198,46 @@ export function CategorySectionBlock({
           );
         })}
       </View>
+
+      {/* ================= 3. LOAD MORE BUTTON: ดูอีก 4 ข่าว ================= */}
+      {remainingCount > 0 ? (
+        <Pressable
+          onPress={() => setDisplayLimit((prev) => prev + 4)}
+          style={({ pressed }) => [
+            styles.loadMoreBtn,
+            {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+              borderColor: group.color,
+              opacity: pressed ? 0.75 : 1,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons name="plus-circle-outline" size={15 * scale} color={group.color} />
+          <Text style={[styles.loadMoreText, { color: group.color, fontSize: 12 * scale }]}>
+            ดูอีก {nextBatchSize} ข่าว{' '}
+            <Text style={{ color: colors.muted, fontWeight: '500' }}>
+              (เหลืออีก {remainingCount} ข่าว)
+            </Text>
+          </Text>
+        </Pressable>
+      ) : displayLimit > 4 ? (
+        <Pressable
+          onPress={() => setDisplayLimit(4)}
+          style={({ pressed }) => [
+            styles.loadMoreBtn,
+            {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+              borderColor: colors.border,
+              opacity: pressed ? 0.75 : 1,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons name="chevron-up" size={16 * scale} color={colors.muted} />
+          <Text style={[styles.loadMoreText, { color: colors.muted, fontSize: 11.5 * scale }]}>
+            ย่อกลับ (แสดง 4 ข่าวแรก)
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -322,5 +366,19 @@ const styles = StyleSheet.create({
   },
   bookmarkIconBtn: {
     padding: 2,
+  },
+  loadMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 10,
+    gap: 6,
+  },
+  loadMoreText: {
+    fontWeight: '700',
   },
 });

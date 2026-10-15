@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
-import { BANNER_AD_UNIT_ID, initializeMobileAds } from '../config/ads';
+import { getBannerAdUnitId, initializeMobileAds } from '../config/ads';
 import { useNews } from '../store/NewsContext';
 
 interface AdBannerProps {
@@ -32,7 +32,7 @@ export function AdBanner({
     return null;
   }
 
-  const effectiveUnitId = unitId || remoteSettings.admob_banner_id_android || BANNER_AD_UNIT_ID;
+  const effectiveUnitId = getBannerAdUnitId(unitId || remoteSettings.admob_banner_id_android);
 
   return (
     <View style={[styles.container, style]}>

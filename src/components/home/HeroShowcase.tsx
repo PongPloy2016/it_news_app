@@ -28,7 +28,7 @@ interface Props {
 }
 
 export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }: Props) {
-  const { colors, scale } = useNews();
+  const { colors, scale, isDark } = useNews();
   const [activeSlide, setActiveSlide] = useState(0);
   const sliderRef = useRef<FlatList<NewsArticle>>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -106,6 +106,16 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
                     style={styles.gradientOverlay}
                   />
 
+                  {/* Top Slide Counter Badge */}
+                  {heroArticles.length > 1 && (
+                    <View style={styles.topSlideBadge}>
+                      <MaterialCommunityIcons name="lightning-bolt" size={11 * scale} color="#FDE047" />
+                      <Text style={[styles.topSlideBadgeText, { fontSize: 10 * scale }]}>
+                        {activeSlide + 1}/{heroArticles.length} ข่าวเด่น • อีก {heroArticles.length - 1} ข่าว
+                      </Text>
+                    </View>
+                  )}
+
                   {/* Floating Content */}
                   <View style={styles.slideContent}>
                     {/* Vibrant Editorial Kicker Badge */}
@@ -176,6 +186,11 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
               <MaterialCommunityIcons name="trending-up" size={16 * scale} color="#0EA5E9" />
               <Text style={[styles.highlightsHeading, { color: colors.text, fontSize: 13.5 * scale }]}>
                 ประเด็นร้อนน่าสนใจ
+              </Text>
+            </View>
+            <View style={[styles.highlightsCountBadge, { backgroundColor: isDark ? 'rgba(14, 165, 233, 0.15)' : 'rgba(14, 165, 233, 0.1)' }]}>
+              <Text style={[styles.highlightsCountText, { fontSize: 11 * scale }]}>
+                อีก {highlightArticles.length} ข่าว
               </Text>
             </View>
           </View>
@@ -367,5 +382,36 @@ const styles = StyleSheet.create({
   },
   highlightTime: {
     fontWeight: '500',
+  },
+  topSlideBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    zIndex: 10,
+  },
+  topSlideBadgeText: {
+    color: '#F8FAFC',
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  highlightsCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.35)',
+  },
+  highlightsCountText: {
+    color: '#0EA5E9',
+    fontWeight: '800',
   },
 });
