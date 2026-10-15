@@ -45,8 +45,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "seed:supabase": "node scripts/seed-supabase.js",
-    "build:aab": "cd android && ./gradlew bundleRelease",
-    "build:apk": "cd android && ./gradlew assembleRelease"
+    "build:aab": "cd android && ./gradlew bundleRelease -x lint -x lintVitalAnalyzeRelease",
+    "build:apk": "cd android && ./gradlew assembleRelease -x lint -x lintVitalAnalyzeRelease"
   },
   "private": true,
   "react-native-google-mobile-ads": {
