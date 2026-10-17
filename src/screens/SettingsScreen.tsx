@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Modal,
   Platform,
@@ -231,7 +232,7 @@ export function SettingsScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: 150 + insets.bottom }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. App Identity Header Banner (Clean, Lightweight & Vibrant) */}
+      {/* 1. App Identity Header Banner (Clean, Lightweight & Vibrant with Official Logo) */}
       <View
         style={[
           styles.brandBanner,
@@ -241,17 +242,24 @@ export function SettingsScreen() {
           },
         ]}
       >
-        <LinearGradient
-          colors={['#3B82F6', '#1D4ED8']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.brandLogoWrap}
+        <View
+          style={[
+            styles.brandLogoWrap,
+            {
+              backgroundColor: isDark ? '#1E2333' : '#F1F5F9',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+            },
+          ]}
         >
-          <MaterialCommunityIcons name="newspaper-variant" size={26} color="#FFFFFF" />
-        </LinearGradient>
-        <View style={{ flex: 1, marginLeft: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={[styles.brandTitle, { color: colors.text, fontSize: 18 * scale }]}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.brandLogoImage}
+            resizeMode="cover"
+          />
+        </View>
+        <View style={styles.brandTextCol}>
+          <View style={styles.brandTopRow}>
+            <Text style={[styles.brandTitle, { color: colors.text, fontSize: 17.5 * scale }]}>
               TechThaiNews
             </Text>
             <View
@@ -269,7 +277,10 @@ export function SettingsScreen() {
               </Text>
             </View>
           </View>
-          <Text style={[styles.brandTagline, { color: colors.muted, fontSize: 12 * scale }]}>
+          <Text
+            numberOfLines={2}
+            style={[styles.brandTagline, { color: colors.muted, fontSize: 11.5 * scale }]}
+          >
             {t.brand_tagline}
           </Text>
         </View>
@@ -1561,26 +1572,43 @@ const styles = StyleSheet.create({
 
   /* 1. App Brand Banner */
   brandBanner: {
-    borderRadius: 22,
+    alignItems: 'center',
+    borderRadius: 20,
     borderWidth: 1,
     elevation: 3,
-    padding: 16,
+    flexDirection: 'row',
+    gap: 14,
+    padding: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
   },
   brandLogoWrap: {
-    alignItems: 'center',
     borderRadius: 16,
+    borderWidth: 1,
     elevation: 4,
-    height: 52,
-    justifyContent: 'center',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    height: 56,
+    overflow: 'hidden',
+    shadowColor: '#00D2FF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    width: 52,
+    width: 56,
+  },
+  brandLogoImage: {
+    borderRadius: 15,
+    height: '100%',
+    width: '100%',
+  },
+  brandTextCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  brandTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   brandTitle: {
     fontWeight: '800',
@@ -1605,24 +1633,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   brandTagline: {
+    lineHeight: 16,
     marginTop: 3,
-  },
-  brandChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 12,
-  },
-  brandChipItem: {
-    alignItems: 'center',
-    borderRadius: 8,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-  },
-  brandChipText: {
-    fontWeight: '700',
   },
 
   /* Announcement */
