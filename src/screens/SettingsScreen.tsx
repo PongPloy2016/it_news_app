@@ -543,55 +543,204 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* Section 3: ธีม (Segmented Pill Selector) */}
+      {/* Section 3: ธีม (Visual Theme Cards Grid - 3x2) */}
       <Section
         icon="palette-outline"
         gradientColors={['#8B5CF6', '#7C3AED']}
         title={t.section_theme}
         subtitle={t.section_theme_sub}
       >
-        <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant }]}>
+        <View style={styles.themeCardsGrid}>
           {(
             [
-              ['system', t.theme_system, 'cellphone', '#3B82F6'],
-              ['light', t.theme_light, 'white-balance-sunny', '#F59E0B'],
-              ['dark', t.theme_dark, 'weather-night', '#8B5CF6'],
+              {
+                key: 'system' as const,
+                title: t.theme_system,
+                desc: t.theme_system_desc,
+                accent: '#3B82F6',
+                bgPreview: isDark ? '#11141E' : '#EDF2F7',
+                cardPreview: isDark ? '#1A1C22' : '#FFFFFF',
+                linePreview: '#3B82F6',
+              },
+              {
+                key: 'light' as const,
+                title: t.theme_light,
+                desc: t.theme_light_desc,
+                accent: '#1565C0',
+                bgPreview: '#F7F8FC',
+                cardPreview: '#FFFFFF',
+                linePreview: '#94A3B8',
+              },
+              {
+                key: 'dark' as const,
+                title: t.theme_dark,
+                desc: t.theme_dark_desc,
+                accent: '#8DB9FF',
+                bgPreview: '#111318',
+                cardPreview: '#1A1C22',
+                linePreview: '#64748B',
+              },
+              {
+                key: 'midnight' as const,
+                title: t.theme_midnight,
+                desc: t.theme_midnight_desc,
+                accent: '#38BDF8',
+                bgPreview: '#000000',
+                cardPreview: '#0B0D13',
+                linePreview: '#525252',
+              },
+              {
+                key: 'sepia' as const,
+                title: t.theme_sepia,
+                desc: t.theme_sepia_desc,
+                accent: '#B45309',
+                bgPreview: '#FAF4E8',
+                cardPreview: '#FFFDF9',
+                linePreview: '#A89985',
+              },
+              {
+                key: 'tech' as const,
+                title: t.theme_tech,
+                desc: t.theme_tech_desc,
+                accent: '#06B6D4',
+                bgPreview: '#060B17',
+                cardPreview: '#0F172A',
+                linePreview: '#38BDF8',
+              },
             ] as const
-          ).map(([themeKey, themeLabel, themeIcon, themeColor]) => {
-            const isSelected = settings.themeMode === themeKey;
+          ).map((themeItem) => {
+            const isSelected = settings.themeMode === themeItem.key;
             return (
               <Pressable
-                key={themeKey}
-                onPress={() => setThemeMode(themeKey)}
+                key={themeItem.key}
+                onPress={() => setThemeMode(themeItem.key)}
                 style={[
-                  styles.segmentedTab,
-                  isSelected && [
-                    styles.segmentedTabActive,
-                    {
-                      backgroundColor: isDark ? '#22283A' : '#FFFFFF',
-                      shadowColor: '#000000',
-                      borderColor: isDark ? '#374151' : '#E2E8F0',
-                    },
-                  ],
+                  styles.themeCardItem,
+                  {
+                    backgroundColor: isSelected
+                      ? isDark
+                        ? '#172238'
+                        : '#EFF6FF'
+                      : isDark
+                      ? '#181C28'
+                      : '#F8FAFC',
+                    borderColor: isSelected
+                      ? colors.primary
+                      : isDark
+                      ? 'rgba(255,255,255,0.06)'
+                      : colors.border,
+                    borderWidth: isSelected ? 2 : 1,
+                  },
                 ]}
               >
-                <MaterialCommunityIcons
-                  name={themeIcon}
-                  size={17}
-                  color={isSelected ? themeColor : colors.muted}
-                />
-                <Text
+                {/* Visual Wireframe Preview Box */}
+                <View
                   style={[
-                    styles.segmentedText,
+                    styles.themeSchematicBox,
                     {
-                      color: isSelected ? colors.text : colors.muted,
-                      fontWeight: isSelected ? '700' : '500',
-                      fontSize: 13 * scale,
+                      backgroundColor: themeItem.bgPreview,
+                      borderColor: isSelected
+                        ? themeItem.accent
+                        : isDark
+                        ? 'rgba(255,255,255,0.08)'
+                        : '#E2E8F0',
                     },
                   ]}
                 >
-                  {themeLabel}
-                </Text>
+                  {themeItem.key === 'system' ? (
+                    <View style={styles.themeSchematicSystemSplit}>
+                      {/* Left half (Light) */}
+                      <View style={[styles.themeSystemHalf, { backgroundColor: '#FFFFFF' }]}>
+                        <View style={[styles.themeMiniBar, { backgroundColor: '#1565C0', width: '70%' }]} />
+                        <View style={[styles.themeMiniLine, { backgroundColor: '#CBD5E1', width: '85%' }]} />
+                        <View style={[styles.themeMiniLine, { backgroundColor: '#E2E8F0', width: '55%' }]} />
+                      </View>
+                      {/* Right half (Dark) */}
+                      <View style={[styles.themeSystemHalf, { backgroundColor: '#111318' }]}>
+                        <View style={[styles.themeMiniBar, { backgroundColor: '#8DB9FF', width: '70%' }]} />
+                        <View style={[styles.themeMiniLine, { backgroundColor: '#475569', width: '85%' }]} />
+                        <View style={[styles.themeMiniLine, { backgroundColor: '#334155', width: '55%' }]} />
+                      </View>
+                      {/* Center icon indicator */}
+                      <View style={[styles.themeSystemBadge, { backgroundColor: colors.surface }]}>
+                        <MaterialCommunityIcons name="theme-light-dark" size={11} color={colors.primary} />
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={[styles.themeMiniWindow, { backgroundColor: themeItem.cardPreview }]}>
+                      {/* Top mini header bar */}
+                      <View
+                        style={[
+                          styles.themeMiniHeader,
+                          {
+                            borderBottomColor: isDark
+                              ? 'rgba(255,255,255,0.06)'
+                              : 'rgba(0,0,0,0.06)',
+                          },
+                        ]}
+                      >
+                        <View style={[styles.themeMiniDot, { backgroundColor: themeItem.accent }]} />
+                        <View style={[styles.themeMiniBar, { backgroundColor: themeItem.accent, width: '45%' }]} />
+                      </View>
+                      {/* Mini Article Card */}
+                      <View style={styles.themeMiniBody}>
+                        <View style={{ flex: 1, gap: 2.5 }}>
+                          <View
+                            style={[
+                              styles.themeMiniLine,
+                              { backgroundColor: themeItem.accent, width: '85%' },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.themeMiniLine,
+                              { backgroundColor: themeItem.linePreview, width: '60%' },
+                            ]}
+                          />
+                        </View>
+                        <View
+                          style={[
+                            styles.themeMiniThumb,
+                            { backgroundColor: themeItem.accent, opacity: 0.85 },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Card Title & Tagline */}
+                <View style={styles.themeCardLabelWrap}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.themeCardTitle,
+                      {
+                        color: isSelected ? colors.primary : colors.text,
+                        fontWeight: isSelected ? '700' : '600',
+                        fontSize: 12 * scale,
+                      },
+                    ]}
+                  >
+                    {themeItem.title}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.themeCardDesc,
+                      { color: colors.muted, fontSize: 9.5 * scale },
+                    ]}
+                  >
+                    {themeItem.desc}
+                  </Text>
+                </View>
+
+                {/* Checkmark Badge */}
+                {isSelected && (
+                  <View style={[styles.themeCheckBadge, { backgroundColor: colors.primary }]}>
+                    <MaterialCommunityIcons name="check" size={10} color={colors.onPrimary} />
+                  </View>
+                )}
               </Pressable>
             );
           })}
@@ -1774,6 +1923,118 @@ const styles = StyleSheet.create({
     right: 6,
     top: 6,
     width: 18,
+  },
+
+  /* Visual Theme Cards Grid */
+  themeCardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  themeCardItem: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexBasis: '31%',
+    flexGrow: 1,
+    padding: 7,
+    position: 'relative',
+  },
+  themeSchematicBox: {
+    borderRadius: 9,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: 'center',
+    marginBottom: 6,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  themeSchematicSystemSplit: {
+    flex: 1,
+    flexDirection: 'row',
+    position: 'relative',
+  },
+  themeSystemHalf: {
+    flex: 1,
+    gap: 3,
+    justifyContent: 'center',
+    padding: 5,
+  },
+  themeSystemBadge: {
+    alignItems: 'center',
+    borderRadius: 9,
+    elevation: 2,
+    height: 18,
+    justifyContent: 'center',
+    left: '50%',
+    marginLeft: -9,
+    marginTop: -9,
+    position: 'absolute',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    top: '50%',
+    width: 18,
+  },
+  themeMiniWindow: {
+    borderRadius: 5,
+    flex: 1,
+    margin: 3,
+    overflow: 'hidden',
+    padding: 4,
+  },
+  themeMiniHeader: {
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 4,
+    paddingBottom: 2,
+  },
+  themeMiniDot: {
+    borderRadius: 2,
+    height: 4,
+    width: 4,
+  },
+  themeMiniBar: {
+    borderRadius: 2,
+    height: 4,
+  },
+  themeMiniBody: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  themeMiniThumb: {
+    borderRadius: 3,
+    height: 14,
+    width: 14,
+  },
+  themeMiniLine: {
+    borderRadius: 1.5,
+    height: 3,
+  },
+  themeCardLabelWrap: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  themeCardTitle: {
+    textAlign: 'center',
+  },
+  themeCardDesc: {
+    marginTop: 1,
+    textAlign: 'center',
+  },
+  themeCheckBadge: {
+    alignItems: 'center',
+    borderRadius: 8,
+    height: 16,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 5,
+    top: 5,
+    width: 16,
   },
 
   /* Segmented Pill Track */

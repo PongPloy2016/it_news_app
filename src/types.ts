@@ -1,4 +1,4 @@
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type ThemeMode = 'system' | 'light' | 'dark' | 'midnight' | 'sepia' | 'tech';
 export type FontSizeOption = 'small' | 'medium' | 'large';
 export type CardLayoutOption = 'compact' | 'magazine' | 'grid';
 export type LinkOpenMode = 'in_app' | 'external';

@@ -39,6 +39,45 @@ export const darkColors: AppColors = {
   onPrimary: '#002F65',
 };
 
+export const midnightColors: AppColors = {
+  primary: '#38BDF8',
+  accent: '#818CF8',
+  background: '#000000',
+  surface: '#0B0D13',
+  surfaceVariant: '#151821',
+  text: '#F8FAFC',
+  muted: '#94A3B8',
+  border: '#242834',
+  error: '#F87171',
+  onPrimary: '#000000',
+};
+
+export const sepiaColors: AppColors = {
+  primary: '#B45309',
+  accent: '#D97706',
+  background: '#FAF4E8',
+  surface: '#FFFDF9',
+  surfaceVariant: '#F3E8D3',
+  text: '#382A1C',
+  muted: '#7A6B5B',
+  border: '#E8DBC3',
+  error: '#DC2626',
+  onPrimary: '#FFFFFF',
+};
+
+export const techColors: AppColors = {
+  primary: '#06B6D4',
+  accent: '#3B82F6',
+  background: '#070D19',
+  surface: '#0F172A',
+  surfaceVariant: '#1E293B',
+  text: '#F1F5F9',
+  muted: '#94A3B8',
+  border: '#1E293B',
+  error: '#F87171',
+  onPrimary: '#001E2B',
+};
+
 export const fontScale = { small: 0.88, medium: 1, large: 1.16 } as const;
 
 /**

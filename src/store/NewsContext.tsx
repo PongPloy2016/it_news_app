@@ -23,7 +23,15 @@ import {
   fetchRemoteAppSettings,
   getCachedRemoteAppSettings,
 } from '../services/appSettingsService';
-import { AppColors, darkColors, fontScale, lightColors } from '../theme';
+import {
+  AppColors,
+  darkColors,
+  fontScale,
+  lightColors,
+  midnightColors,
+  sepiaColors,
+  techColors,
+} from '../theme';
 import {
   AppSettings,
   CardLayoutOption,
@@ -125,8 +133,27 @@ export function NewsProvider({ children }: PropsWithChildren) {
 
   const isDark =
     settings.themeMode === 'dark' ||
+    settings.themeMode === 'midnight' ||
+    settings.themeMode === 'tech' ||
     (settings.themeMode === 'system' && systemScheme === 'dark');
-  const colors = isDark ? darkColors : lightColors;
+
+  const colors: AppColors = useMemo(() => {
+    switch (settings.themeMode) {
+      case 'light':
+        return lightColors;
+      case 'dark':
+        return darkColors;
+      case 'midnight':
+        return midnightColors;
+      case 'sepia':
+        return sepiaColors;
+      case 'tech':
+        return techColors;
+      case 'system':
+      default:
+        return systemScheme === 'dark' ? darkColors : lightColors;
+    }
+  }, [settings.themeMode, systemScheme]);
   const selectedFeed = useMemo(
     () => feedSources.find((item) => item.key === selectedFeedKey) ?? feedSources[0] ?? FEED_SOURCES[0],
     [feedSources, selectedFeedKey],
