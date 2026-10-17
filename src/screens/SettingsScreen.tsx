@@ -167,36 +167,30 @@ export function SettingsScreen() {
   /* Category Group Divider Header */
   const CategoryGroupHeader = ({
     title,
-    icon,
     color,
   }: {
     title: string;
-    icon: keyof typeof MaterialCommunityIcons.glyphMap;
     color: string;
   }) => (
     <View style={styles.groupHeaderWrap}>
-      <View style={[styles.groupHeaderIconWrap, { backgroundColor: color + '18' }]}>
-        <MaterialCommunityIcons name={icon} size={14} color={color} />
-      </View>
-      <Text style={[styles.groupHeaderText, { color: colors.muted, fontSize: 11.5 * scale }]}>
+      <View style={[styles.groupHeaderDot, { backgroundColor: color }]} />
+      <Text style={[styles.groupHeaderText, { color, fontSize: 11.5 * scale }]}>
         {title.toUpperCase()}
       </Text>
-      <View style={[styles.groupHeaderLine, { backgroundColor: colors.border }]} />
+      <View style={[styles.groupHeaderLine, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)' }]} />
     </View>
   );
 
-  /* Grouped iOS/Material style Section container */
+  /* Grouped iOS/Material style Section container with vibrant LinearGradient icon */
   const Section = ({
     icon,
-    iconColor,
-    iconBg,
+    gradientColors,
     title,
     subtitle,
     children,
   }: {
     icon: keyof typeof MaterialCommunityIcons.glyphMap;
-    iconColor: string;
-    iconBg: string;
+    gradientColors: [string, string];
     title: string;
     subtitle?: string;
     children: React.ReactNode;
@@ -205,15 +199,20 @@ export function SettingsScreen() {
       style={[
         styles.sectionContainer,
         {
-          backgroundColor: colors.surface,
+          backgroundColor: isDark ? '#141722' : '#FFFFFF',
           borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
         },
       ]}
     >
       <View style={styles.sectionHeaderRow}>
-        <View style={[styles.sectionIconBadge, { backgroundColor: iconBg }]}>
-          <MaterialCommunityIcons name={icon} size={18} color={iconColor} />
-        </View>
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.sectionIconBadge}
+        >
+          <MaterialCommunityIcons name={icon} size={18} color="#FFFFFF" />
+        </LinearGradient>
         <View style={{ flex: 1 }}>
           <Text style={[styles.sectionTitleText, { color: colors.text, fontSize: 15 * scale }]}>{title}</Text>
           {subtitle ? (
@@ -232,91 +231,69 @@ export function SettingsScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: 150 + insets.bottom }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. App Identity Header Banner (Modern LinearGradient Hero) */}
-      <LinearGradient
-        colors={
-          isDark
-            ? ['#131D31', '#0E1524', '#090D17']
-            : ['#EEF5FF', '#E1EDFF', '#D8E8FE']
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      {/* 1. App Identity Header Banner (Clean, Lightweight & Vibrant) */}
+      <View
         style={[
           styles.brandBanner,
           {
-            borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.22)',
+            backgroundColor: isDark ? '#141722' : '#FFFFFF',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
           },
         ]}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <LinearGradient
-            colors={['#3B82F6', '#1D4ED8']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.brandLogoWrap}
-          >
-            <MaterialCommunityIcons name="newspaper-variant" size={26} color="#FFFFFF" />
-          </LinearGradient>
-          <View style={{ flex: 1, marginLeft: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={[styles.brandTitle, { color: colors.text, fontSize: 18 * scale }]}>
-                TechThaiNews
+        <LinearGradient
+          colors={['#3B82F6', '#1D4ED8']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.brandLogoWrap}
+        >
+          <MaterialCommunityIcons name="newspaper-variant" size={26} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={{ flex: 1, marginLeft: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={[styles.brandTitle, { color: colors.text, fontSize: 18 * scale }]}>
+              TechThaiNews
+            </Text>
+            <View
+              style={[
+                styles.brandVersionPill,
+                {
+                  backgroundColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF',
+                  borderColor: isDark ? 'rgba(59, 130, 246, 0.25)' : '#BFDBFE',
+                },
+              ]}
+            >
+              <View style={styles.brandLiveDot} />
+              <Text style={[styles.brandVersionText, { color: colors.primary, fontSize: 11 * scale }]}>
+                v{remoteSettings.latest_version || '1.0.1'}
               </Text>
-              <View
-                style={[
-                  styles.brandVersionPill,
-                  {
-                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : '#FFFFFF',
-                    borderColor: isDark ? '#334155' : '#E2E8F0',
-                  },
-                ]}
-              >
-                <View style={styles.brandLiveDot} />
-                <Text style={[styles.brandVersionText, { color: colors.text, fontSize: 10.5 * scale }]}>
-                  v{remoteSettings.latest_version || '1.0.1'}
-                </Text>
-              </View>
             </View>
-            <Text style={[styles.brandTagline, { color: colors.muted, fontSize: 12 * scale }]}>
-              {t.brand_tagline}
-            </Text>
           </View>
+          <Text style={[styles.brandTagline, { color: colors.muted, fontSize: 12 * scale }]}>
+            {t.brand_tagline}
+          </Text>
         </View>
-
-        {/* Feature Highlights Pills */}
-        <View style={styles.brandChipsRow}>
-          <View style={[styles.brandChipItem, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.18)' : 'rgba(99, 102, 241, 0.12)' }]}>
-            <MaterialCommunityIcons name="lightning-bolt" size={11} color="#6366F1" />
-            <Text style={[styles.brandChipText, { color: isDark ? '#A5B4FC' : '#4F46E5', fontSize: 10 * scale }]}>
-              {t.badge_quick_ai}
-            </Text>
-          </View>
-          <View style={[styles.brandChipItem, { backgroundColor: isDark ? 'rgba(2, 132, 199, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}>
-            <MaterialCommunityIcons name="cloud-sync" size={11} color="#0284C7" />
-            <Text style={[styles.brandChipText, { color: isDark ? '#7DD3FC' : '#0369A1', fontSize: 10 * scale }]}>
-              {t.badge_quick_cloud}
-            </Text>
-          </View>
-          <View style={[styles.brandChipItem, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.12)' }]}>
-            <MaterialCommunityIcons name="translate" size={11} color="#10B981" />
-            <Text style={[styles.brandChipText, { color: isDark ? '#6EE7B7' : '#047857', fontSize: 10 * scale }]}>
-              {t.badge_quick_lang}
-            </Text>
-          </View>
-        </View>
-      </LinearGradient>
+      </View>
 
       {/* 2. Global Announcement Banner (if active from Supabase) */}
       {remoteSettings.announcement_active && remoteSettings.announcement_message && (
-        <LinearGradient
-          colors={isDark ? ['#1E293B', '#151D2A'] : ['#EFF6FF', '#DBEAFE']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.announcementCard, { borderColor: '#3B82F6' }]}
+        <View
+          style={[
+            styles.announcementCard,
+            {
+              backgroundColor: isDark ? '#1A233A' : '#EFF6FF',
+              borderColor: isDark ? '#2563EB' : '#93C5FD',
+            },
+          ]}
         >
-          <View style={[styles.announcementIconWrap, { backgroundColor: isDark ? '#1E3A5F' : '#BFDBFE' }]}>
-            <MaterialCommunityIcons name="bullhorn-outline" size={18} color="#2563EB" />
-          </View>
+          <LinearGradient
+            colors={['#3B82F6', '#2563EB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.announcementIconWrap}
+          >
+            <MaterialCommunityIcons name="bullhorn-outline" size={17} color="#FFFFFF" />
+          </LinearGradient>
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={[styles.announcementTitle, { color: isDark ? '#93C5FD' : '#1D4ED8', fontSize: 13.5 * scale }]}>
               {t.announcement_title}
@@ -325,21 +302,19 @@ export function SettingsScreen() {
               {remoteSettings.announcement_message}
             </Text>
           </View>
-        </LinearGradient>
+        </View>
       )}
 
       {/* ================= GROUP 1: DISPLAY & LANGUAGE ================= */}
       <CategoryGroupHeader
         title={t.group_display_lang}
-        icon="palette-swatch-outline"
         color="#3B82F6"
       />
 
       {/* Section 1: ภาษาของแอป (Language Selector) */}
       <Section
         icon="translate"
-        iconColor="#06B6D4"
-        iconBg={isDark ? '#083344' : '#CFFAFE'}
+        gradientColors={['#06B6D4', '#0284C7']}
         title={t.section_language}
         subtitle={t.section_language_sub}
       >
@@ -361,9 +336,9 @@ export function SettingsScreen() {
                   isSelected && [
                     styles.segmentedTabActive,
                     {
-                      backgroundColor: isDark ? '#2E3444' : '#FFFFFF',
+                      backgroundColor: isDark ? '#22283A' : '#FFFFFF',
                       shadowColor: '#000000',
-                      borderColor: isDark ? '#4B5563' : '#E2E8F0',
+                      borderColor: isDark ? '#374151' : '#E2E8F0',
                     },
                   ],
                 ]}
@@ -390,7 +365,7 @@ export function SettingsScreen() {
             style={[
               styles.languageIndicatorRow,
               {
-                backgroundColor: isDark ? '#0F2338' : '#F0F7FF',
+                backgroundColor: isDark ? '#101E30' : '#F0F7FF',
                 borderColor: isDark ? '#1E3D60' : '#BAE0FD',
               },
             ]}
@@ -406,8 +381,7 @@ export function SettingsScreen() {
       {/* Section 2: รูปแบบการแสดงผลข่าว (Visual Card Layout Selectors) */}
       <Section
         icon="view-dashboard-outline"
-        iconColor="#3B82F6"
-        iconBg={isDark ? '#1E293B' : '#DBEAFE'}
+        gradientColors={['#3B82F6', '#1D4ED8']}
         title={t.section_card_layout}
         subtitle={t.section_card_layout_sub}
       >
@@ -429,12 +403,12 @@ export function SettingsScreen() {
                   {
                     backgroundColor: isSelected
                       ? isDark
-                        ? '#1E2B40'
+                        ? '#172238'
                         : '#EFF6FF'
                       : isDark
-                      ? '#14161E'
+                      ? '#181C28'
                       : '#F8FAFC',
-                    borderColor: isSelected ? colors.primary : colors.border,
+                    borderColor: isSelected ? colors.primary : isDark ? 'rgba(255,255,255,0.06)' : colors.border,
                     borderWidth: isSelected ? 2 : 1,
                   },
                 ]}
@@ -443,7 +417,7 @@ export function SettingsScreen() {
                 <View
                   style={[
                     styles.schematicBox,
-                    { backgroundColor: isDark ? '#10121A' : '#E2E8F0' },
+                    { backgroundColor: isDark ? '#11141E' : '#EDF2F7' },
                   ]}
                 >
                   {layoutKey === 'compact' && (
@@ -561,19 +535,18 @@ export function SettingsScreen() {
       {/* Section 3: ธีม (Segmented Pill Selector) */}
       <Section
         icon="palette-outline"
-        iconColor="#8B5CF6"
-        iconBg={isDark ? '#2E1065' : '#EDE9FE'}
+        gradientColors={['#8B5CF6', '#7C3AED']}
         title={t.section_theme}
         subtitle={t.section_theme_sub}
       >
         <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant }]}>
           {(
             [
-              ['system', t.theme_system, 'cellphone'],
-              ['light', t.theme_light, 'white-balance-sunny'],
-              ['dark', t.theme_dark, 'weather-night'],
+              ['system', t.theme_system, 'cellphone', '#3B82F6'],
+              ['light', t.theme_light, 'white-balance-sunny', '#F59E0B'],
+              ['dark', t.theme_dark, 'weather-night', '#8B5CF6'],
             ] as const
-          ).map(([themeKey, themeLabel, themeIcon]) => {
+          ).map(([themeKey, themeLabel, themeIcon, themeColor]) => {
             const isSelected = settings.themeMode === themeKey;
             return (
               <Pressable
@@ -584,9 +557,9 @@ export function SettingsScreen() {
                   isSelected && [
                     styles.segmentedTabActive,
                     {
-                      backgroundColor: isDark ? '#2E3444' : '#FFFFFF',
+                      backgroundColor: isDark ? '#22283A' : '#FFFFFF',
                       shadowColor: '#000000',
-                      borderColor: isDark ? '#4B5563' : '#E2E8F0',
+                      borderColor: isDark ? '#374151' : '#E2E8F0',
                     },
                   ],
                 ]}
@@ -594,7 +567,7 @@ export function SettingsScreen() {
                 <MaterialCommunityIcons
                   name={themeIcon}
                   size={17}
-                  color={isSelected ? colors.primary : colors.muted}
+                  color={isSelected ? themeColor : colors.muted}
                 />
                 <Text
                   style={[
@@ -617,8 +590,7 @@ export function SettingsScreen() {
       {/* Section 4: ขนาดตัวอักษร + Live Preview Card */}
       <Section
         icon="format-size"
-        iconColor="#F59E0B"
-        iconBg={isDark ? '#451A03' : '#FEF3C7'}
+        gradientColors={['#F59E0B', '#D97706']}
         title={t.section_font_size}
         subtitle={t.section_font_size_sub}
       >
@@ -641,8 +613,8 @@ export function SettingsScreen() {
                   isSelected && [
                     styles.segmentedTabActive,
                     {
-                      backgroundColor: isDark ? '#2E3444' : '#FFFFFF',
-                      borderColor: isDark ? '#4B5563' : '#E2E8F0',
+                      backgroundColor: isDark ? '#22283A' : '#FFFFFF',
+                      borderColor: isDark ? '#374151' : '#E2E8F0',
                     },
                   ],
                 ]}
@@ -651,7 +623,7 @@ export function SettingsScreen() {
                   style={{
                     fontSize: item.sampleSize,
                     fontWeight: isSelected ? '800' : '600',
-                    color: isSelected ? colors.primary : colors.muted,
+                    color: isSelected ? '#F59E0B' : colors.muted,
                   }}
                 >
                   A
@@ -678,15 +650,17 @@ export function SettingsScreen() {
           style={[
             styles.livePreviewCard,
             {
-              backgroundColor: isDark ? '#14161F' : '#F8FAFC',
-              borderColor: colors.border,
+              backgroundColor: isDark ? '#181C28' : '#F8FAFC',
+              borderColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border,
+              borderLeftColor: '#F59E0B',
+              borderLeftWidth: 3.5,
             },
           ]}
         >
           <View style={styles.livePreviewTopRow}>
-            <View style={[styles.livePreviewTag, { backgroundColor: isDark ? '#1E293B' : '#E0E7FF' }]}>
-              <MaterialCommunityIcons name="eye-outline" size={12} color="#6366F1" />
-              <Text style={[styles.livePreviewTagText, { color: '#6366F1', fontSize: 11 * scale }]}>
+            <View style={[styles.livePreviewTag, { backgroundColor: isDark ? '#2C2216' : '#FEF3C7' }]}>
+              <MaterialCommunityIcons name="eye-outline" size={12} color="#D97706" />
+              <Text style={[styles.livePreviewTagText, { color: '#D97706', fontSize: 11 * scale }]}>
                 {t.preview_tag}
               </Text>
             </View>
@@ -708,7 +682,7 @@ export function SettingsScreen() {
             {t.preview_desc}
           </Text>
           <View style={styles.liveMetaRow}>
-            <View style={[styles.liveDot, { backgroundColor: colors.primary }]} />
+            <View style={[styles.liveDot, { backgroundColor: '#F59E0B' }]} />
             <Text style={[styles.liveMetaText, { color: colors.muted, fontSize: 11 * scale }]}>
               {t.preview_meta}
             </Text>
@@ -719,15 +693,13 @@ export function SettingsScreen() {
       {/* ================= GROUP 2: READING & PERFORMANCE ================= */}
       <CategoryGroupHeader
         title={t.group_reading}
-        icon="book-open-page-variant-outline"
         color="#10B981"
       />
 
       {/* Section 5: การอ่านและการเปิดลิงก์ (Reading & Links) */}
       <Section
         icon="book-open-outline"
-        iconColor="#10B981"
-        iconBg={isDark ? '#064E3B' : '#D1FAE5'}
+        gradientColors={['#10B981', '#059669']}
         title={t.section_reading}
         subtitle={t.section_reading_sub}
       >
@@ -737,10 +709,10 @@ export function SettingsScreen() {
         <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant, marginBottom: 12 }]}>
           {(
             [
-              ['in_app', t.link_in_app, 'dock-window'],
-              ['external', t.link_external, 'open-in-new'],
+              ['in_app', t.link_in_app, 'dock-window', '#10B981'],
+              ['external', t.link_external, 'open-in-new', '#0284C7'],
             ] as const
-          ).map(([linkKey, linkLabel, linkIcon]) => {
+          ).map(([linkKey, linkLabel, linkIcon, linkColor]) => {
             const isSelected = (settings.linkOpenMode ?? 'in_app') === linkKey;
             return (
               <Pressable
@@ -751,8 +723,8 @@ export function SettingsScreen() {
                   isSelected && [
                     styles.segmentedTabActive,
                     {
-                      backgroundColor: isDark ? '#2E3444' : '#FFFFFF',
-                      borderColor: isDark ? '#4B5563' : '#E2E8F0',
+                      backgroundColor: isDark ? '#22283A' : '#FFFFFF',
+                      borderColor: isDark ? '#374151' : '#E2E8F0',
                     },
                   ],
                 ]}
@@ -760,7 +732,7 @@ export function SettingsScreen() {
                 <MaterialCommunityIcons
                   name={linkIcon}
                   size={16}
-                  color={isSelected ? colors.primary : colors.muted}
+                  color={isSelected ? linkColor : colors.muted}
                 />
                 <Text
                   numberOfLines={1}
@@ -781,21 +753,24 @@ export function SettingsScreen() {
         </View>
 
         {/* Data Saver Mode Toggle Row */}
-        <View style={[styles.settingRowItem, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-          <View style={{ flex: 1, marginRight: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <MaterialCommunityIcons
-                name={settings.dataSaverEnabled ? 'signal-cellular-1' : 'signal-cellular-outline'}
-                size={19}
-                color={settings.dataSaverEnabled ? '#10B981' : colors.muted}
-              />
+        <View style={[styles.settingRowItem, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}>
+          <View style={{ flex: 1, marginRight: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <LinearGradient
+              colors={['#10B981', '#059669']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.rowItemIconBadge}
+            >
+              <MaterialCommunityIcons name="signal" size={15} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={{ flex: 1 }}>
               <Text style={[styles.rowItemTitle, { color: colors.text, fontSize: 14 * scale }]}>
                 {t.data_saver_title}
               </Text>
+              <Text style={[styles.rowItemDesc, { color: colors.muted, fontSize: 11.5 * scale }]}>
+                {t.data_saver_desc}
+              </Text>
             </View>
-            <Text style={[styles.rowItemDesc, { color: colors.muted, fontSize: 11.5 * scale }]}>
-              {t.data_saver_desc}
-            </Text>
           </View>
           <Switch
             value={Boolean(settings.dataSaverEnabled)}
@@ -807,22 +782,29 @@ export function SettingsScreen() {
 
         {/* AI Reader Feature Toggle (Controlled remotely from Supabase) */}
         {remoteSettings.is_ai_enabled && (
-          <View style={[styles.settingRowItem, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <MaterialCommunityIcons name="creation" size={19} color="#6366F1" />
+          <View style={[styles.settingRowItem, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}>
+            <View style={{ flex: 1, marginRight: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <LinearGradient
+                colors={['#8B5CF6', '#6366F1']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.rowItemIconBadge}
+              >
+                <MaterialCommunityIcons name="creation" size={15} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
                 <Text style={[styles.rowItemTitle, { color: colors.text, fontSize: 14 * scale }]}>
                   {t.ai_reader_title}
                 </Text>
+                <Text style={[styles.rowItemDesc, { color: colors.muted, fontSize: 11.5 * scale }]}>
+                  {t.ai_reader_desc}
+                </Text>
               </View>
-              <Text style={[styles.rowItemDesc, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                {t.ai_reader_desc}
-              </Text>
             </View>
             <Switch
               value={settings.aiReaderEnabled}
               onValueChange={setAiReaderEnabled}
-              trackColor={{ false: colors.border, true: '#6366F1' }}
+              trackColor={{ false: colors.border, true: '#8B5CF6' }}
               thumbColor={settings.aiReaderEnabled ? '#FFFFFF' : '#94A3B8'}
             />
           </View>
@@ -832,7 +814,6 @@ export function SettingsScreen() {
       {/* ================= GROUP 3: CLOUD & STORAGE ================= */}
       <CategoryGroupHeader
         title={t.group_sync_storage}
-        icon="cloud-sync-outline"
         color="#0284C7"
       />
 
@@ -840,33 +821,29 @@ export function SettingsScreen() {
       {remoteSettings.cloud_sync_enabled !== false && (
         <Section
           icon="cloud-sync-outline"
-          iconColor="#0284C7"
-          iconBg={isDark ? '#082F49' : '#E0F2FE'}
+          gradientColors={['#0284C7', '#1D4ED8']}
           title={t.section_cloud}
           subtitle={t.section_cloud_sub}
         >
+          {/* Cloud Sync Toggle Row */}
           <View
-            style={[
-              styles.cloudCardBox,
-              {
-                backgroundColor: isDark ? '#141620' : '#F8FAFC',
-                borderColor: colors.border,
-              },
-            ]}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingBottom: 10,
+            }}
           >
-            {/* Cloud Sync Toggle Row */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingBottom: 12,
-                marginBottom: 12,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: colors.border,
-              }}
-            >
-              <View style={{ flex: 1, marginRight: 12 }}>
+            <View style={{ flex: 1, marginRight: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <LinearGradient
+                colors={['#0284C7', '#2563EB']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.rowItemIconBadge}
+              >
+                <MaterialCommunityIcons name="cloud-sync-outline" size={16} color="#FFFFFF" />
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '700', color: colors.text, fontSize: 13.5 * scale }}>
                   {t.cloud_enable_title}
                 </Text>
@@ -874,103 +851,109 @@ export function SettingsScreen() {
                   {isCloudSyncActive ? t.cloud_active_desc : t.cloud_disabled_desc}
                 </Text>
               </View>
-              <Switch
-                value={isCloudSyncActive}
-                onValueChange={setCloudSyncEnabled}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={isCloudSyncActive ? '#FFFFFF' : '#94A3B8'}
-              />
             </View>
+            <Switch
+              value={isCloudSyncActive}
+              onValueChange={setCloudSyncEnabled}
+              trackColor={{ false: colors.border, true: '#0284C7' }}
+              thumbColor={isCloudSyncActive ? '#FFFFFF' : '#94A3B8'}
+            />
+          </View>
 
-            {/* Cloud Status Row */}
-            <View style={styles.cloudStatusRow}>
-              <View style={styles.cloudPulseWrap}>
-                <View style={styles.cloudDot} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.cloudStatusTitle, { color: colors.text, fontSize: 13 * scale }]}>
-                  {t.cloud_connected}
-                </Text>
-                <Text style={[styles.cloudStatusSub, { color: colors.muted, fontSize: 11 * scale }]}>
-                  {t.cloud_secure_sub}
-                </Text>
-              </View>
+          {/* Cloud Status Row */}
+          <View style={styles.cloudStatusRow}>
+            <View style={styles.cloudPulseWrap}>
+              <View style={styles.cloudDot} />
             </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cloudStatusTitle, { color: colors.text, fontSize: 13 * scale }]}>
+                {t.cloud_connected}
+              </Text>
+              <Text style={[styles.cloudStatusSub, { color: colors.muted, fontSize: 11 * scale }]}>
+                {t.cloud_secure_sub}
+              </Text>
+            </View>
+          </View>
 
-            {/* Device ID Chip & Share Action */}
-            <View
-              style={[
-                styles.deviceIdBar,
-                { backgroundColor: isDark ? '#1C1F2B' : '#EEF2F6', borderColor: colors.border },
-              ]}
-            >
-              <MaterialCommunityIcons name="identifier" size={17} color={colors.primary} />
-              <View style={{ flex: 1, marginHorizontal: 8 }}>
-                <Text style={[styles.deviceIdLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>
-                  {t.device_id_label}
-                </Text>
-                <Text
-                  selectable
-                  numberOfLines={1}
-                  ellipsizeMode="middle"
-                  style={[styles.deviceIdValue, { color: colors.text, fontSize: 12 * scale }]}
-                >
-                  {deviceId || t.checking}
-                </Text>
-              </View>
-              <Pressable
-                hitSlop={8}
-                onPress={() => void handleShareDeviceId()}
-                style={[styles.sharePillBtn, { backgroundColor: colors.surface }]}
-                accessibilityLabel="Share Device ID"
+          {/* Device ID Chip & Share Action */}
+          <View
+            style={[
+              styles.deviceIdBar,
+              { backgroundColor: isDark ? '#181C28' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border },
+            ]}
+          >
+            <MaterialCommunityIcons name="identifier" size={17} color="#0284C7" />
+            <View style={{ flex: 1, marginHorizontal: 8 }}>
+              <Text style={[styles.deviceIdLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>
+                {t.device_id_label}
+              </Text>
+              <Text
+                selectable
+                numberOfLines={1}
+                ellipsizeMode="middle"
+                style={[styles.deviceIdValue, { color: colors.text, fontSize: 12 * scale }]}
               >
-                <MaterialCommunityIcons name="share-variant-outline" size={15} color={colors.primary} />
-                <Text style={[styles.sharePillText, { color: colors.primary, fontSize: 11 * scale }]}>{t.share}</Text>
-              </Pressable>
+                {deviceId || t.checking}
+              </Text>
             </View>
+            <Pressable
+              hitSlop={8}
+              onPress={() => void handleShareDeviceId()}
+              style={[styles.sharePillBtn, { backgroundColor: isDark ? '#22283A' : '#FFFFFF' }]}
+              accessibilityLabel="Share Device ID"
+            >
+              <MaterialCommunityIcons name="share-variant-outline" size={14} color="#0284C7" />
+              <Text style={[styles.sharePillText, { color: '#0284C7', fontSize: 11 * scale }]}>{t.share}</Text>
+            </Pressable>
+          </View>
 
-            {/* Action Buttons Row: Sync & Connect Another Device */}
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Pressable
-                disabled={isManualSyncing || isSyncingBookmarks}
-                onPress={() => void handleManualSync()}
+          {/* Action Buttons Row: Sync & Connect Another Device */}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+            <Pressable
+              disabled={isManualSyncing || isSyncingBookmarks}
+              onPress={() => void handleManualSync()}
+              style={{ flex: 1 }}
+            >
+              <LinearGradient
+                colors={['#0284C7', '#1D4ED8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={[
                   styles.cloudSyncActionBtn,
-                  { backgroundColor: colors.primary, flex: 1 },
                   (isManualSyncing || isSyncingBookmarks) && { opacity: 0.7 },
                 ]}
               >
                 {isManualSyncing || isSyncingBookmarks ? (
-                  <ActivityIndicator color={colors.onPrimary} size="small" />
+                  <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <>
-                    <MaterialCommunityIcons name="cloud-sync-outline" size={17} color={colors.onPrimary} />
-                    <Text style={[styles.cloudSyncActionBtnText, { color: colors.onPrimary, fontSize: 13 * scale }]}>
+                    <MaterialCommunityIcons name="cloud-sync-outline" size={17} color="#FFFFFF" />
+                    <Text style={[styles.cloudSyncActionBtnText, { color: '#FFFFFF', fontSize: 13 * scale }]}>
                       {`${t.sync_cloud} (${bookmarkCount})`}
                     </Text>
                   </>
                 )}
-              </Pressable>
+              </LinearGradient>
+            </Pressable>
 
-              <Pressable
-                onPress={() => setIsImportModalVisible(true)}
-                style={[
-                  styles.cloudSyncActionBtn,
-                  {
-                    backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    paddingHorizontal: 12,
-                  },
-                ]}
-                accessibilityLabel="Connect other device"
-              >
-                <MaterialCommunityIcons name="plus-circle-outline" size={17} color={colors.primary} />
-                <Text style={[styles.cloudSyncActionBtnText, { color: colors.text, fontSize: 13 * scale }]}>
-                  {t.connect_other_device}
-                </Text>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() => setIsImportModalVisible(true)}
+              style={[
+                styles.cloudSyncActionBtn,
+                {
+                  backgroundColor: isDark ? '#181C28' : '#F1F5F9',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : colors.border,
+                  paddingHorizontal: 12,
+                },
+              ]}
+              accessibilityLabel="Connect other device"
+            >
+              <MaterialCommunityIcons name="plus-circle-outline" size={17} color="#0284C7" />
+              <Text style={[styles.cloudSyncActionBtnText, { color: colors.text, fontSize: 13 * scale }]}>
+                {t.connect_other_device}
+              </Text>
+            </Pressable>
           </View>
         </Section>
       )}
@@ -978,50 +961,69 @@ export function SettingsScreen() {
       {/* Section 7: พื้นที่จัดเก็บและประวัติ (Storage & Data Management) */}
       <Section
         icon="database-outline"
-        iconColor="#EC4899"
-        iconBg={isDark ? '#500724' : '#FCE7F3'}
+        gradientColors={['#EC4899', '#BE185D']}
         title={t.section_storage}
         subtitle={t.section_storage_sub}
       >
-        {/* Metric Overview Badges */}
+        {/* Metric Overview Badges with Vibrant Circular Icons */}
         <View style={styles.metricsGrid}>
-          <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
-            <MaterialCommunityIcons name="eye-check-outline" size={14} color="#3B82F6" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_read}</Text>
-            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
+          <View style={[styles.metricChip, { backgroundColor: isDark ? '#181C28' : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }]}>
+            <LinearGradient
+              colors={['#3B82F6', '#1D4ED8']}
+              style={styles.metricIconCircle}
+            >
+              <MaterialCommunityIcons name="eye-check-outline" size={14} color="#FFFFFF" />
+            </LinearGradient>
+            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 14 * scale }]}>
               {readCount}
             </Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>{t.metric_read}</Text>
           </View>
 
-          <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
-            <MaterialCommunityIcons name="history" size={14} color="#6366F1" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_search}</Text>
-            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
+          <View style={[styles.metricChip, { backgroundColor: isDark ? '#181C28' : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }]}>
+            <LinearGradient
+              colors={['#8B5CF6', '#6D28D9']}
+              style={styles.metricIconCircle}
+            >
+              <MaterialCommunityIcons name="history" size={14} color="#FFFFFF" />
+            </LinearGradient>
+            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 14 * scale }]}>
               {historyCount}
             </Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>{t.metric_search}</Text>
           </View>
 
-          <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
-            <MaterialCommunityIcons name="folder-text-outline" size={14} color="#F59E0B" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_cache}</Text>
-            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
+          <View style={[styles.metricChip, { backgroundColor: isDark ? '#181C28' : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }]}>
+            <LinearGradient
+              colors={['#F59E0B', '#D97706']}
+              style={styles.metricIconCircle}
+            >
+              <MaterialCommunityIcons name="folder-text-outline" size={14} color="#FFFFFF" />
+            </LinearGradient>
+            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 14 * scale }]}>
               {cacheCount}
             </Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>{t.metric_cache}</Text>
           </View>
 
-          <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
-            <MaterialCommunityIcons name="bookmark-outline" size={14} color="#EC4899" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_bookmarks}</Text>
-            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
+          <View style={[styles.metricChip, { backgroundColor: isDark ? '#181C28' : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }]}>
+            <LinearGradient
+              colors={['#EC4899', '#BE185D']}
+              style={styles.metricIconCircle}
+            >
+              <MaterialCommunityIcons name="bookmark-outline" size={14} color="#FFFFFF" />
+            </LinearGradient>
+            <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 14 * scale }]}>
               {bookmarkCount}
             </Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>{t.metric_bookmarks}</Text>
           </View>
         </View>
 
         {/* Clean Storage Action Rows */}
         <View style={styles.storageActionsList}>
           {/* Row 1: Clear Read History */}
-          <View style={[styles.storageRowItem, { borderBottomColor: colors.border }]}>
+          <View style={[styles.storageRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.storage_read_title}
@@ -1051,18 +1053,18 @@ export function SettingsScreen() {
               }}
               style={[
                 styles.tablePillBtn,
-                { backgroundColor: colors.surfaceVariant },
+                { backgroundColor: isDark ? '#1E2B40' : '#EFF6FF' },
                 readCount === 0 && { opacity: 0.4 },
               ]}
             >
-              <Text style={[styles.tablePillBtnText, { color: colors.text, fontSize: 12 * scale }]}>
+              <Text style={[styles.tablePillBtnText, { color: '#3B82F6', fontSize: 12 * scale }]}>
                 {t.btn_reset}
               </Text>
             </Pressable>
           </View>
 
           {/* Row 2: Clear Search History */}
-          <View style={[styles.storageRowItem, { borderBottomColor: colors.border }]}>
+          <View style={[styles.storageRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.storage_search_title}
@@ -1092,18 +1094,18 @@ export function SettingsScreen() {
               }}
               style={[
                 styles.tablePillBtn,
-                { backgroundColor: colors.surfaceVariant },
+                { backgroundColor: isDark ? '#281E3B' : '#F5F3FF' },
                 historyCount === 0 && { opacity: 0.4 },
               ]}
             >
-              <Text style={[styles.tablePillBtnText, { color: colors.text, fontSize: 12 * scale }]}>
+              <Text style={[styles.tablePillBtnText, { color: '#8B5CF6', fontSize: 12 * scale }]}>
                 {t.btn_clear}
               </Text>
             </Pressable>
           </View>
 
           {/* Row 3: Clear Cached Articles */}
-          <View style={[styles.storageRowItem, { borderBottomColor: colors.border }]}>
+          <View style={[styles.storageRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.storage_cache_title}
@@ -1117,9 +1119,9 @@ export function SettingsScreen() {
                 void clearNewsCache();
                 Alert.alert(t.alert_success, t.alert_clear_cache_success);
               }}
-              style={[styles.tablePillBtn, { backgroundColor: colors.surfaceVariant }]}
+              style={[styles.tablePillBtn, { backgroundColor: isDark ? '#2E2214' : '#FFFBEB' }]}
             >
-              <Text style={[styles.tablePillBtnText, { color: colors.text, fontSize: 12 * scale }]}>
+              <Text style={[styles.tablePillBtnText, { color: '#F59E0B', fontSize: 12 * scale }]}>
                 {t.btn_clear_cache}
               </Text>
             </Pressable>
@@ -1172,15 +1174,13 @@ export function SettingsScreen() {
       {/* ================= GROUP 4: SUPPORT & ABOUT ================= */}
       <CategoryGroupHeader
         title={t.group_support_about}
-        icon="shield-star-outline"
-        color="#8B5CF6"
+        color="#6366F1"
       />
 
       {/* Section 8: ช่วยเหลือและข้อกำหนด (Support & Legal) */}
       <Section
         icon="shield-check-outline"
-        iconColor="#6366F1"
-        iconBg={isDark ? '#1E1B4B' : '#EEF2FF'}
+        gradientColors={['#6366F1', '#4F46E5']}
         title={t.section_support}
         subtitle={t.section_support_sub}
       >
@@ -1188,11 +1188,16 @@ export function SettingsScreen() {
           {/* Feedback Modal trigger */}
           <Pressable
             onPress={() => setIsFeedbackModalVisible(true)}
-            style={[styles.linkRowItem, { borderBottomColor: colors.border }]}
+            style={[styles.linkRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}
           >
-            <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#2E1065' : '#EDE9FE' }]}>
-              <MaterialCommunityIcons name="message-draw" size={17} color="#8B5CF6" />
-            </View>
+            <LinearGradient
+              colors={['#8B5CF6', '#7C3AED']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.linkItemIcon}
+            >
+              <MaterialCommunityIcons name="message-draw" size={17} color="#FFFFFF" />
+            </LinearGradient>
             <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
               {t.feedback_menu}
             </Text>
@@ -1203,11 +1208,16 @@ export function SettingsScreen() {
           {remoteSettings.play_store_url && (
             <Pressable
               onPress={() => void Linking.openURL(remoteSettings.play_store_url!)}
-              style={[styles.linkRowItem, { borderBottomColor: colors.border }]}
+              style={[styles.linkRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}
             >
-              <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#451A03' : '#FEF3C7' }]}>
-                <MaterialCommunityIcons name="star-outline" size={17} color="#F59E0B" />
-              </View>
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.linkItemIcon}
+              >
+                <MaterialCommunityIcons name="star" size={17} color="#FFFFFF" />
+              </LinearGradient>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.rate_app_menu}
               </Text>
@@ -1219,11 +1229,16 @@ export function SettingsScreen() {
           {remoteSettings.support_email && (
             <Pressable
               onPress={() => void Linking.openURL(`mailto:${remoteSettings.support_email}`)}
-              style={[styles.linkRowItem, { borderBottomColor: colors.border }]}
+              style={[styles.linkRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}
             >
-              <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#082F49' : '#E0F2FE' }]}>
-                <MaterialCommunityIcons name="email-outline" size={17} color="#0284C7" />
-              </View>
+              <LinearGradient
+                colors={['#0284C7', '#0369A1']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.linkItemIcon}
+              >
+                <MaterialCommunityIcons name="email-outline" size={17} color="#FFFFFF" />
+              </LinearGradient>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
                   {t.contact_dev_menu}
@@ -1240,11 +1255,16 @@ export function SettingsScreen() {
           {remoteSettings.privacy_policy_url && (
             <Pressable
               onPress={() => void Linking.openURL(remoteSettings.privacy_policy_url!)}
-              style={[styles.linkRowItem, { borderBottomColor: colors.border }]}
+              style={[styles.linkRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}
             >
-              <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#064E3B' : '#D1FAE5' }]}>
-                <MaterialCommunityIcons name="shield-check-outline" size={17} color="#10B981" />
-              </View>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.linkItemIcon}
+              >
+                <MaterialCommunityIcons name="shield-check-outline" size={17} color="#FFFFFF" />
+              </LinearGradient>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.privacy_menu}
               </Text>
@@ -1256,11 +1276,16 @@ export function SettingsScreen() {
           {remoteSettings.terms_url && (
             <Pressable
               onPress={() => void Linking.openURL(remoteSettings.terms_url!)}
-              style={[styles.linkRowItem, { borderBottomColor: colors.border }]}
+              style={[styles.linkRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}
             >
-              <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' }]}>
-                <MaterialCommunityIcons name="file-document-outline" size={17} color="#64748B" />
-              </View>
+              <LinearGradient
+                colors={['#6366F1', '#4F46E5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.linkItemIcon}
+              >
+                <MaterialCommunityIcons name="file-document-outline" size={17} color="#FFFFFF" />
+              </LinearGradient>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.terms_menu}
               </Text>
@@ -1271,11 +1296,16 @@ export function SettingsScreen() {
           {/* Main RSS Source Info (Dynamically configured) */}
           <Pressable
             onPress={() => void Linking.openURL(remoteSettings.rss_source_url || BLOGNONE_HOME)}
-            style={[styles.linkRowItem, { borderBottomColor: colors.border, borderBottomWidth: remoteSettings.contact_custom_url ? StyleSheet.hairlineWidth : 0 }]}
+            style={[styles.linkRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border, borderBottomWidth: remoteSettings.contact_custom_url ? StyleSheet.hairlineWidth : 0 }]}
           >
-            <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#431407' : '#FFEDD5' }]}>
-              <MaterialCommunityIcons name="rss" size={17} color="#EA580C" />
-            </View>
+            <LinearGradient
+              colors={['#F97316', '#EA580C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.linkItemIcon}
+            >
+              <MaterialCommunityIcons name="rss" size={17} color="#FFFFFF" />
+            </LinearGradient>
             <View style={{ flex: 1 }}>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.source_rss_menu}
@@ -1293,9 +1323,14 @@ export function SettingsScreen() {
               onPress={() => void Linking.openURL(remoteSettings.contact_custom_url!)}
               style={[styles.linkRowItem, { borderBottomWidth: 0 }]}
             >
-              <View style={[styles.linkItemIcon, { backgroundColor: isDark ? '#1E1B4B' : '#EEF2FF' }]}>
-                <MaterialCommunityIcons name="earth" size={17} color="#6366F1" />
-              </View>
+              <LinearGradient
+                colors={['#06B6D4', '#0891B2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.linkItemIcon}
+              >
+                <MaterialCommunityIcons name="earth" size={17} color="#FFFFFF" />
+              </LinearGradient>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
                   {t.contact_dev_menu}
@@ -1316,6 +1351,7 @@ export function SettingsScreen() {
           {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.1')}
         </Text>
       </View>
+
 
       {/* Feedback Modal */}
       <Modal
@@ -1507,12 +1543,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 4,
   },
-  groupHeaderIconWrap: {
-    alignItems: 'center',
-    borderRadius: 7,
-    height: 24,
-    justifyContent: 'center',
-    width: 24,
+  groupHeaderDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6,
   },
   groupHeaderText: {
     fontWeight: '800',
@@ -1838,6 +1872,13 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 2,
   },
+  rowItemIconBadge: {
+    alignItems: 'center',
+    borderRadius: 8,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
+  },
 
   /* Cloud Card Box */
   cloudCardBox: {
@@ -1921,6 +1962,14 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
     paddingVertical: 8,
+  },
+  metricIconCircle: {
+    alignItems: 'center',
+    borderRadius: 14,
+    height: 28,
+    justifyContent: 'center',
+    marginBottom: 4,
+    width: 28,
   },
   metricChipLabel: {
     fontWeight: '600',
