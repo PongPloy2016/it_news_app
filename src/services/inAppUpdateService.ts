@@ -1,8 +1,8 @@
 import { NativeModules, Platform, Linking } from 'react-native';
 import { RemoteAppSettings } from '../types';
 
-export const CURRENT_APP_VERSION = '1.0.1';
-export const CURRENT_VERSION_CODE = 4;
+export const CURRENT_APP_VERSION = '0.9.0'; // [TEST DROP VERSION] ทดสอบเมื่อเวอร์ชันต่ำกว่า Store
+export const CURRENT_VERSION_CODE = 1;
 export const PLAY_STORE_PACKAGE_NAME = 'com.pongploydev.technewsth.app';
 export const PLAY_STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${PLAY_STORE_PACKAGE_NAME}`;
 export const PLAY_STORE_MARKET_URI = `market://details?id=${PLAY_STORE_PACKAGE_NAME}`;
@@ -134,8 +134,7 @@ class InAppUpdateService {
 
     // Scenario 1: Google Play says update available
     if (isPlayUpdateAvailable) {
-      // Force update if remote requires it or if Google Play priority is high (>= 4)
-      const isForce = isRemoteForceUpdateRequired || (playInfo?.updatePriority ?? 0) >= 4;
+      const isForce = false;
 
       return {
         isUpdateAvailable: true,
@@ -151,11 +150,11 @@ class InAppUpdateService {
       };
     }
 
-    // Scenario 2: Remote configuration enforces update (e.g. backend deprecation, Play Store cache not yet indexed)
+    // Scenario 2: Remote configuration indicates update
     if (isRemoteForceUpdateRequired) {
       return {
         isUpdateAvailable: true,
-        isForceUpdate: true,
+        isForceUpdate: false,
         source: 'remote_config',
         playUpdateInfo: playInfo || undefined,
         remoteSettings: remoteSettings || undefined,

@@ -22,6 +22,7 @@ import { BookmarkListSkeleton } from '../components/SkeletonCard';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
+import { analyticsService } from '../services/analyticsService';
 
 export function BookmarksScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -47,9 +48,12 @@ export function BookmarksScreen() {
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
 
-  // Sync with Supabase on screen focus
+  // Sync with Supabase on screen focus & track screen view
   useFocusEffect(
     useCallback(() => {
+      void analyticsService.logScreenView('ข่าวที่บันทึกไว้', 'BookmarksScreen', {
+        page_title: 'ข่าวที่บันทึกไว้',
+      });
       if (!isCloudSyncActive) return;
       void syncCloudBookmarks().then((res) => {
         if (res.success) {

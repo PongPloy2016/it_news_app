@@ -1,11 +1,21 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { RootStackParamList } from '../types';
+import { analyticsService } from '../services/analyticsService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WebView'>;
 
 export function WebViewScreen({ route }: Props) {
+  useEffect(() => {
+    const pageTitle = route.params.title ? `เว็บต้นฉบับ: ${route.params.title.slice(0, 50)}` : 'เว็บต้นฉบับข่าว';
+    void analyticsService.logScreenView('เว็บต้นฉบับข่าว', 'WebViewScreen', {
+      page_title: pageTitle,
+      url: route.params.url,
+    });
+  }, [route.params.title, route.params.url]);
+
   return (
     <View style={styles.container}>
       <WebView

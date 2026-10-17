@@ -18,6 +18,7 @@ import { WebViewScreen } from '../screens/WebViewScreen';
 import { useNews } from '../store/NewsContext';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
+import { analyticsService } from '../services/analyticsService';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -178,6 +179,10 @@ function DrawerContent(props: DrawerContentComponentProps) {
         key={`${channel.groupKey}-${channel.key}`}
         onPress={() => {
           setSelectedFeedKey(channel.key);
+          const grp = feedGroups.find((g) => g.key === channel.groupKey);
+          if (grp) {
+            void analyticsService.logCategoryView(grp.key, grp.label, 'drawer');
+          }
           closeDrawer();
         }}
         style={({ pressed }) => [
@@ -363,6 +368,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   setFilterGroupKey(group.key);
                   setCollapsedGroups((prev) => ({ ...prev, [group.key]: false }));
                   setIsCategoryPickerOpen(false);
+                  void analyticsService.logCategoryView(group.key, group.label, 'drawer_filter');
                 }}
                 style={[
                   styles.filterPill,
@@ -477,6 +483,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   setFilterGroupKey(group.key);
                   setCollapsedGroups((prev) => ({ ...prev, [group.key]: false }));
                   setIsCategoryPickerOpen(false);
+                  void analyticsService.logCategoryView(group.key, group.label, 'drawer_filter');
                 }}
                 style={[
                   styles.pickerMenuItem,

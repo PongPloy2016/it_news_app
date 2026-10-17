@@ -21,6 +21,7 @@ import { submitAppFeedback } from '../services/appSettingsService';
 import { getDeviceId } from '../services/deviceIdService';
 import { useNews } from '../store/NewsContext';
 import { CardLayoutOption, FontSizeOption, LinkOpenMode, ThemeMode } from '../types';
+import { analyticsService } from '../services/analyticsService';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -53,6 +54,12 @@ export function SettingsScreen() {
 
   const [deviceId, setDeviceId] = useState<string>('');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
+
+  useEffect(() => {
+    void analyticsService.logScreenView('ตั้งค่าระบบ', 'SettingsScreen', {
+      page_title: 'ตั้งค่าระบบ',
+    });
+  }, []);
 
   // Import Device Modal State
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);

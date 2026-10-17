@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NewsCard } from '../components/NewsCard';
@@ -9,12 +9,19 @@ import { ScreenState } from '../components/ScreenState';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
+import { analyticsService } from '../services/analyticsService';
 
 export function SearchScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { articles, bookmarks, searchHistory, colors, scale, settings, toggleBookmark, addSearchHistory, clearSearchHistory } = useNews();
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    void analyticsService.logScreenView('ค้นหาข่าวสาร', 'SearchScreen', {
+      page_title: 'ค้นหาข่าวสาร',
+    });
+  }, []);
   const results = useMemo(() => {
     const term = query.trim().toLocaleLowerCase('th');
     if (!term) return [];
@@ -28,7 +35,10 @@ export function SearchScreen() {
         <MaterialCommunityIcons name="magnify" size={23} color={colors.muted} />
         <TextInput value={query} onChangeText={setQuery} placeholder="ค้นหาหัวข้อหรือผู้เขียน"
           placeholderTextColor={colors.muted} returnKeyType="search"
-          onSubmitEditing={() => addSearchHistory(query)}
+          onSubmitEditing={() => {
+            addSearchHistory(query);
+            void analyticsService.logSearch(query);
+          }}
           style={[styles.input, { color: colors.text, fontSize: 16 * scale }]} />
         {query ? <Pressable onPress={() => setQuery('')} hitSlop={10}>
           <MaterialCommunityIcons name="close-circle" size={21} color={colors.muted} />

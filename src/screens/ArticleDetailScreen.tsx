@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Image,
   Linking,
@@ -29,11 +30,12 @@ import { feedService } from '../services/feedService';
 import { imageService } from '../services/imageService';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
 import { analyticsService } from '../services/analyticsService';
+import { articleContentService, FullArticleResult } from '../services/articleContentService';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { NewsArticle, RootStackParamList } from '../types';
 import { cleanNewsContent, generateAiSummary } from '../utils/aiSummary';
-import { formatRelative, sanitizeImageUrl, stripHtml } from '../utils/content';
+import { estimateReadingTime, formatRelative, sanitizeImageUrl, stripHtml } from '../utils/content';
 import { shareArticle } from '../utils/share';
 import { SpeechRate, speakArticleText, stopSpeaking } from '../utils/speech';
 
@@ -81,6 +83,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
     settings,
     remoteSettings,
     selectedFeed,
+    feedGroups,
     markAsRead,
   } = useNews();
 
@@ -98,6 +101,22 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
     bookmarks[route.params.articleId] ??
     feedService.getArticleById(route.params.articleId);
 
+  // Resolve which category/group this article belongs to
+  const articleCategory = useMemo(() => {
+    if (selectedFeed?.key) {
+      const match = feedGroups.find((g) => g.sources.some((s) => s.key === selectedFeed.key));
+      if (match) return { key: match.key, label: match.label };
+    }
+    if (article?.author) {
+      const author = article.author.toLowerCase();
+      const match = feedGroups.find((g) =>
+        g.sources.some((s) => author.includes(s.label.toLowerCase()) || s.label.toLowerCase().includes(author)),
+      );
+      if (match) return { key: match.key, label: match.label };
+    }
+    return { key: 'general', label: selectedFeed?.label || 'ข่าวไอที' };
+  }, [selectedFeed?.key, article?.author, feedGroups]);
+
   useEffect(() => {
     if (!article) {
       void articleRepository.getCachedArticles().then((list) => {
@@ -114,12 +133,25 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
       void analyticsService.logArticleView({
         articleId: article.id,
         title: article.title,
-        category: selectedFeed?.label,
+        category: articleCategory.label,
+        categoryId: articleCategory.key,
         source: article.author || selectedFeed?.label,
         url: article.link,
       });
+
+      // Log Thai screen view with category for GA4 / Realtime Views by Page title and screen name
+      void analyticsService.logScreenView(
+        `อ่านข่าว: ${articleCategory.label}`,
+        'ArticleDetailScreen',
+        {
+          category: articleCategory.label,
+          category_id: articleCategory.key,
+          page_title: `${article.title ? article.title.slice(0, 60) + ' | ' : ''}${articleCategory.label}`,
+          article_id: article.id,
+        },
+      );
     }
-  }, [article?.id, selectedFeed?.label]);
+  }, [article?.id, articleCategory.key, selectedFeed?.label]);
 
   // Stop speaking when leaving the screen
   useEffect(() => {
@@ -128,10 +160,61 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
     };
   }, []);
 
+  const [fullArticleData, setFullArticleData] = useState<FullArticleResult | null>(null);
+  const [isLoadingFullContent, setIsLoadingFullContent] = useState(false);
+
+  const handleFetchFullContent = useCallback(
+    async (force = false) => {
+      if (!article?.link) return;
+      setIsLoadingFullContent(true);
+      try {
+        const result = await articleContentService.getFullArticle(article.link, article.id, force);
+        if (result && result.paragraphs.length > 0) {
+          setFullArticleData(result);
+        }
+      } finally {
+        setIsLoadingFullContent(false);
+      }
+    },
+    [article?.link, article?.id],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!article?.link) return;
+
+    setFullArticleData(null);
+
+    // If article already has rich content (> 500 chars with linebreaks), skip fetch
+    const existingContent = article.content || article.description || '';
+    if (existingContent.length > 500 && existingContent.includes('\n')) {
+      return;
+    }
+
+    setIsLoadingFullContent(true);
+    void articleContentService.getFullArticle(article.link, article.id).then((result) => {
+      if (!isMounted) return;
+      setIsLoadingFullContent(false);
+      if (result && result.paragraphs.length > 0) {
+        setFullArticleData(result);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [article?.link, article?.id]);
+
+  const activeContent = fullArticleData?.fullText || article?.content || article?.description || '';
+
+  const calculatedReadingTime = useMemo(() => {
+    return estimateReadingTime(activeContent);
+  }, [activeContent]);
+
   const aiSummary = useMemo(() => {
     if (!article) return null;
-    return generateAiSummary(article.title, article.content || article.description);
-  }, [article]);
+    return generateAiSummary(article.title, activeContent);
+  }, [article, activeContent]);
 
   const isDescDuplicate = useMemo(() => {
     if (!article?.description || !article?.title) return true;
@@ -377,7 +460,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
       setIsVoicePlaying(true);
       const textToRead =
         readerMode === 'full'
-          ? `${article.title}. ${cleanNewsContent(article.content || article.description || '')}`
+          ? `${article.title}. ${cleanNewsContent(activeContent)}`
           : aiSummary.speechScript;
 
       speakArticleText(textToRead, {
@@ -401,8 +484,9 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
       [
         ...(displayImageUrl ? [displayImageUrl] : []),
         ...(detailImages || []),
+        ...(fullArticleData?.images || []),
       ].filter((url, idx, self) => url && typeof url === 'string' && self.indexOf(url) === idx),
-    [displayImageUrl, detailImages],
+    [displayImageUrl, detailImages, fullArticleData?.images],
   );
 
   const [heroActiveIndex, setHeroActiveIndex] = useState(0);
@@ -855,7 +939,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
             <View style={[styles.infoChip, { backgroundColor: colors.surfaceVariant }]}>
               <MaterialCommunityIcons name="eye-outline" size={15} color={colors.muted} />
               <Text style={[styles.infoChipText, { color: colors.text, fontSize: 12 * scale }]}>
-                {article.readingTime ? `${article.readingTime} นาที` : '2 นาที'}
+                {calculatedReadingTime ? `${calculatedReadingTime} นาที` : (article.readingTime ? `${article.readingTime} นาที` : '2 นาที')}
               </Text>
             </View>
           </View>
@@ -1056,19 +1140,163 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
             />
           ) : (
             <View style={styles.contentWrap}>
-              <Text
-                style={[
-                  styles.bodyText,
-                  {
-                    color: colors.text,
-                    fontSize: 16 * scale * fontScaleMultiplier,
-                    lineHeight: Math.round(16 * scale * fontScaleMultiplier * typography.body.lineHeightMultiplier),
-                    fontFamily: typography.fontFamily,
-                  },
-                ]}
-              >
-                {article.description || stripHtml(article.content || '')}
-              </Text>
+              {fullArticleData?.paragraphs && fullArticleData.paragraphs.length > 0 ? (
+                <>
+                  <View style={styles.fullArticleBadgeRow}>
+                    <View
+                      style={[
+                        styles.fullArticleBadge,
+                        {
+                          backgroundColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF',
+                          borderColor: isDark ? 'rgba(59, 130, 246, 0.25)' : '#DBEAFE',
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons name="newspaper-variant-outline" size={14} color={colors.primary} />
+                      <Text style={[styles.fullArticleBadgeText, { color: colors.primary }]}>
+                        เนื้อหาข่าวฉบับเต็ม ({fullArticleData.paragraphs.length} ย่อหน้า)
+                      </Text>
+                    </View>
+                    <Pressable
+                      hitSlop={8}
+                      onPress={() => void handleFetchFullContent(true)}
+                      style={[
+                        styles.refetchBtn,
+                        {
+                          backgroundColor: colors.surfaceVariant,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons name="refresh" size={13} color={colors.muted} />
+                      <Text style={[styles.refetchBtnText, { color: colors.muted }]}>ดึงใหม่</Text>
+                    </Pressable>
+                  </View>
+
+                  {fullArticleData.paragraphs.map((paragraph, index) => {
+                    const isHeading = paragraph.startsWith('📌 ');
+                    const isQuote = paragraph.startsWith('“') && paragraph.endsWith('”');
+                    const isList = paragraph.startsWith('• ');
+
+                    if (isHeading) {
+                      return (
+                        <Text
+                          key={`para-${index}`}
+                          style={[
+                            styles.headingText,
+                            {
+                              color: colors.primary,
+                              fontSize: 17 * scale * fontScaleMultiplier,
+                              fontFamily: typography.fontFamily,
+                            },
+                          ]}
+                        >
+                          {paragraph.replace(/^📌\s*/, '')}
+                        </Text>
+                      );
+                    }
+
+                    if (isQuote) {
+                      return (
+                        <View
+                          key={`para-${index}`}
+                          style={[
+                            styles.quoteBox,
+                            {
+                              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F1F5F9',
+                              borderLeftColor: colors.primary,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.quoteText,
+                              {
+                                color: colors.text,
+                                fontSize: 15.5 * scale * fontScaleMultiplier,
+                                lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * typography.body.lineHeightMultiplier),
+                                fontFamily: typography.fontFamily,
+                              },
+                            ]}
+                          >
+                            {paragraph}
+                          </Text>
+                        </View>
+                      );
+                    }
+
+                    return (
+                      <Text
+                        key={`para-${index}`}
+                        style={[
+                          styles.bodyText,
+                          styles.paragraphSpacing,
+                          isList && styles.listParagraph,
+                          {
+                            color: colors.text,
+                            fontSize: 16 * scale * fontScaleMultiplier,
+                            lineHeight: Math.round(16 * scale * fontScaleMultiplier * typography.body.lineHeightMultiplier),
+                            fontFamily: typography.fontFamily,
+                          },
+                        ]}
+                      >
+                        {paragraph}
+                      </Text>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  <Text
+                    style={[
+                      styles.bodyText,
+                      {
+                        color: colors.text,
+                        fontSize: 16 * scale * fontScaleMultiplier,
+                        lineHeight: Math.round(16 * scale * fontScaleMultiplier * typography.body.lineHeightMultiplier),
+                        fontFamily: typography.fontFamily,
+                      },
+                    ]}
+                  >
+                    {article.description || stripHtml(article.content || '')}
+                  </Text>
+
+                  {!isLoadingFullContent && (
+                    <Pressable
+                      onPress={() => void handleFetchFullContent(true)}
+                      style={[
+                        styles.fetchFullBtn,
+                        {
+                          backgroundColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF',
+                          borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE',
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons name="cloud-download-outline" size={16} color={colors.primary} />
+                      <Text style={[styles.fetchFullBtnText, { color: colors.primary }]}>
+                        ดึงเนื้อหาข่าวฉบับเต็มจากเว็บไซต์
+                      </Text>
+                    </Pressable>
+                  )}
+                </>
+              )}
+
+              {isLoadingFullContent && (
+                <View
+                  style={[
+                    styles.loadingContentRow,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : colors.surfaceVariant,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
+                  <Text style={[styles.loadingContentText, { color: colors.muted, fontSize: 13 * scale }]}>
+                    กำลังดึงเนื้อหาข่าวฉบับเต็ม...
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -1679,6 +1907,89 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     letterSpacing: 0.1,
+  },
+  paragraphSpacing: {
+    marginBottom: 16,
+  },
+  listParagraph: {
+    paddingLeft: 8,
+  },
+  headingText: {
+    fontWeight: '800',
+    marginTop: 20,
+    marginBottom: 10,
+    letterSpacing: -0.2,
+  },
+  quoteBox: {
+    borderLeftWidth: 3.5,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginVertical: 12,
+  },
+  quoteText: {
+    fontStyle: 'italic',
+  },
+  fullArticleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  fullArticleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  fullArticleBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  refetchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  refetchBtnText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  fetchFullBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 16,
+  },
+  fetchFullBtnText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  loadingContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  loadingContentText: {
+    fontWeight: '500',
   },
 
   /* 3. Photo Gallery Mini Thumbnails */

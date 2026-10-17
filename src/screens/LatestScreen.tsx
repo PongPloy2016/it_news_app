@@ -32,6 +32,7 @@ import { useNews } from '../store/NewsContext';
 import { CardLayoutOption, NewsArticle, RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
+import { analyticsService } from '../services/analyticsService';
 
 const withAlpha = (hex: string, alpha: number) => {
   const clean = hex.replace('#', '');
@@ -97,6 +98,26 @@ export function LatestScreen() {
 
   // Active category tab key: 'all' (Home / รวมทุกหมวด) or group.key
   const [activeGroupKey, setActiveGroupKey] = useState<string>('all');
+
+  // Track screen view with Thai category name whenever tab switches
+  useEffect(() => {
+    if (activeGroupKey === 'all') {
+      void analyticsService.logScreenView(
+        'หน้าแรก - รวมทุกหมวด',
+        'LatestScreen',
+        { page_title: 'หน้าแรก - รวมทุกหมวด', category: 'รวมทุกหมวด', category_id: 'all' },
+      );
+    } else {
+      const group = feedGroups.find((g) => g.key === activeGroupKey);
+      if (group) {
+        void analyticsService.logScreenView(
+          `หมวดหมู่ - ${group.label}`,
+          'LatestScreen',
+          { page_title: `หมวดหมู่ - ${group.label}`, category: group.label, category_id: group.key },
+        );
+      }
+    }
+  }, [activeGroupKey, feedGroups]);
 
   // Category sections data for "รวมทุกหมวด"
   const [categorySections, setCategorySections] = useState<Record<string, NewsArticle[]>>({});
@@ -284,6 +305,9 @@ export function LatestScreen() {
     if (grp?.sources[0]) {
       setSelectedFeedKey(grp.sources[0].key);
     }
+    if (grp) {
+      void analyticsService.logCategoryView(grp.key, grp.label, 'section_view_all');
+    }
   };
 
   // Hero, highlights, and ticker derived data
@@ -341,6 +365,11 @@ export function LatestScreen() {
           const group = feedGroups.find((g) => g.key === key);
           const firstFeed = group?.sources[0];
           if (firstFeed) setSelectedFeedKey(firstFeed.key);
+          if (group) {
+            void analyticsService.logCategoryView(group.key, group.label, 'home_tab');
+          }
+        } else {
+          void analyticsService.logCategoryView('all', 'รวมทุกหมวด', 'home_tab');
         }
       }}
       indicatorColor={
@@ -579,6 +608,10 @@ export function LatestScreen() {
             groups={feedGroups}
             totalArticlesCount={totalAllArticlesCount}
             onSelectCategory={(groupKey) => {
+              const grp = feedGroups.find((g) => g.key === groupKey);
+              if (grp) {
+                void analyticsService.logCategoryView(grp.key, grp.label, 'quick_nav');
+              }
               const y = categoryLayouts[groupKey];
               if (y !== undefined) {
                 homeScrollRef.current?.scrollTo({ y, animated: true });

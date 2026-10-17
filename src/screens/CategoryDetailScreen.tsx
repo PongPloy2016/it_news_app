@@ -62,7 +62,16 @@ export function CategoryDetailScreen() {
 
   useEffect(() => {
     if (currentGroup) {
-      void analyticsService.logCategoryView(currentGroup.key, currentGroup.label);
+      void analyticsService.logCategoryView(currentGroup.key, currentGroup.label, 'category_detail');
+      void analyticsService.logScreenView(
+        `หมวดหมู่ - ${currentGroup.label}`,
+        'CategoryDetailScreen',
+        {
+          category: currentGroup.label,
+          category_id: currentGroup.key,
+          page_title: `หมวดหมู่ - ${currentGroup.label}`,
+        },
+      );
     }
   }, [currentGroup?.key]);
 

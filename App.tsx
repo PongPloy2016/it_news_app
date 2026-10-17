@@ -13,11 +13,92 @@ import { notificationService } from './src/services/notificationService';
 import { analyticsService } from './src/services/analyticsService';
 import { inAppUpdateService, CheckUpdateStatus } from './src/services/inAppUpdateService';
 import { ForceUpdateModal } from './src/components/ForceUpdateModal';
+import { FEED_GROUPS } from './src/config/categories';
+
+function resolveThaiScreenInfo(route?: { name: string; params?: any }): {
+  screenName: string;
+  screenClass: string;
+  pageTitle: string;
+  extraParams?: Record<string, any>;
+} {
+  if (!route) {
+    return {
+      screenName: 'หน้าแรก - รวมทุกหมวด',
+      screenClass: 'LatestScreen',
+      pageTitle: 'หน้าแรก - รวมทุกหมวด',
+    };
+  }
+
+  switch (route.name) {
+    case 'Latest':
+    case 'DrawerHome':
+      return {
+        screenName: 'หน้าแรก - รวมทุกหมวด',
+        screenClass: 'LatestScreen',
+        pageTitle: 'หน้าแรก - รวมทุกหมวด',
+      };
+    case 'CategoryDetail': {
+      const groupKey = route.params?.groupKey;
+      const group = FEED_GROUPS.find((g) => g.key === groupKey);
+      const label = group?.label || 'หมวดหมู่ข่าว';
+      return {
+        screenName: `หมวดหมู่ - ${label}`,
+        screenClass: 'CategoryDetailScreen',
+        pageTitle: `หมวดหมู่ - ${label}`,
+        extraParams: { category: label, category_id: groupKey },
+      };
+    }
+    case 'Article': {
+      const art = route.params?.article;
+      return {
+        screenName: 'อ่านข่าว',
+        screenClass: 'ArticleDetailScreen',
+        pageTitle: art?.title ? `อ่านข่าว: ${art.title.slice(0, 60)}` : 'อ่านข่าว',
+      };
+    }
+    case 'Categories':
+      return {
+        screenName: 'หมวดหมู่ข่าวสารทั้งหมด',
+        screenClass: 'CategoriesScreen',
+        pageTitle: 'หมวดหมู่ข่าวสารทั้งหมด',
+      };
+    case 'Bookmarks':
+      return {
+        screenName: 'ข่าวที่บันทึกไว้',
+        screenClass: 'BookmarksScreen',
+        pageTitle: 'ข่าวที่บันทึกไว้',
+      };
+    case 'Search':
+      return {
+        screenName: 'ค้นหาข่าวสาร',
+        screenClass: 'SearchScreen',
+        pageTitle: 'ค้นหาข่าวสาร',
+      };
+    case 'Settings':
+      return {
+        screenName: 'ตั้งค่าระบบ',
+        screenClass: 'SettingsScreen',
+        pageTitle: 'ตั้งค่าระบบ',
+      };
+    case 'WebView':
+      return {
+        screenName: 'เว็บต้นฉบับข่าว',
+        screenClass: 'WebViewScreen',
+        pageTitle: route.params?.title ? `เว็บต้นฉบับ: ${route.params.title.slice(0, 50)}` : 'เว็บต้นฉบับข่าว',
+      };
+    default:
+      return {
+        screenName: route.name,
+        screenClass: route.name,
+        pageTitle: route.name,
+      };
+  }
+}
 
 function AppShell() {
   const { colors, isDark, remoteSettings } = useNews();
   const navigationRef = useNavigationContainerRef<any>();
-  const routeNameRef = useRef<string | undefined>(undefined);
+  const routeKeyRef = useRef<string | undefined>(undefined);
   const [updateStatus, setUpdateStatus] = useState<CheckUpdateStatus | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
@@ -113,19 +194,27 @@ function AppShell() {
         theme={navigationTheme}
         onReady={() => {
           const currentRoute = navigationRef.getCurrentRoute();
-          routeNameRef.current = currentRoute?.name;
-          if (currentRoute?.name) {
-            void analyticsService.logScreenView(currentRoute.name);
+          routeKeyRef.current = currentRoute?.key;
+          if (currentRoute) {
+            const info = resolveThaiScreenInfo(currentRoute);
+            void analyticsService.logScreenView(info.screenName, info.screenClass, {
+              page_title: info.pageTitle,
+              ...info.extraParams,
+            });
           }
         }}
         onStateChange={() => {
-          const previousRouteName = routeNameRef.current;
+          const previousRouteKey = routeKeyRef.current;
           const currentRoute = navigationRef.getCurrentRoute();
-          const currentRouteName = currentRoute?.name;
+          const currentRouteKey = currentRoute?.key;
 
-          if (currentRouteName && previousRouteName !== currentRouteName) {
-            routeNameRef.current = currentRouteName;
-            void analyticsService.logScreenView(currentRouteName);
+          if (currentRoute && previousRouteKey !== currentRouteKey) {
+            routeKeyRef.current = currentRouteKey;
+            const info = resolveThaiScreenInfo(currentRoute);
+            void analyticsService.logScreenView(info.screenName, info.screenClass, {
+              page_title: info.pageTitle,
+              ...info.extraParams,
+            });
           }
         }}
       >

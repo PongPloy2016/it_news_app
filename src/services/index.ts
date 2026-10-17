@@ -11,3 +11,4 @@ export * from './deviceIdService';
 export * from './supabaseBookmarkService';
 export * from './homeSectionsService';
 export * from './analyticsService';
+export * from './articleContentService';

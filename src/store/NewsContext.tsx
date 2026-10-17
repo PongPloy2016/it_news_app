@@ -17,7 +17,7 @@ import {
   historyRepository,
   storage,
 } from '../data/database';
-import { feedService, imageService, loadFeedConfiguration, supabaseBookmarkService, analyticsService } from '../services';
+import { feedService, imageService, loadFeedConfiguration, supabaseBookmarkService, analyticsService, articleContentService } from '../services';
 import {
   DEFAULT_REMOTE_SETTINGS,
   fetchRemoteAppSettings,
@@ -299,6 +299,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
           void articleRepository.saveCachedArticles(nextArticles);
           void articleRepository.saveCachedFeedArticles(currentFeed.key, nextArticles);
         });
+
+        // Pre-fetch top articles full text in background for instant reading
+        void articleContentService.prefetchArticles(merged, 8);
       } catch {
         if (articles.length) setIsShowingCachedFeed(true);
         else setHasFetchError(true);

@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getCategoryVisual } from '../config/categoryVisuals';
 import { useNews } from '../store/NewsContext';
 import { RootStackParamList } from '../types';
+import { analyticsService } from '../services/analyticsService';
 
 const withAlpha = (hex: string, alpha: number) => {
   const clean = hex.replace('#', '');
@@ -39,6 +40,12 @@ export function CategoriesScreen() {
   const insets = useSafeAreaInsets();
   const { feedGroups, colors, scale, isDark, refresh, isRefreshing, channelStats, articles, isArticleNew } = useNews();
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    void analyticsService.logScreenView('หมวดหมู่ข่าวสารทั้งหมด', 'CategoriesScreen', {
+      page_title: 'หมวดหมู่ข่าวสารทั้งหมด',
+    });
+  }, []);
 
   // Calculate stats for each group
   const groupsWithStats = useMemo(() => {
@@ -89,6 +96,7 @@ export function CategoriesScreen() {
     return (
       <Pressable
         onPress={() => {
+          void analyticsService.logCategoryView(item.key, item.label, 'categories_grid');
           navigation.navigate('CategoryDetail', { groupKey: item.key });
         }}
         style={({ pressed }) => [
