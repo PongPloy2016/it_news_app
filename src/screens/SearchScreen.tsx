@@ -77,7 +77,7 @@ export function SearchScreen() {
                 onPress={() => {
                   addSearchHistory(query);
                   void showInterstitialAndNavigate(() => {
-                    navigation.navigate('Article', { articleId: item.id, article: item });
+                    navigation.navigate('Article', { articleId: item.id, article: item, articles: results });
                   });
                 }}
               />

@@ -292,10 +292,71 @@ export function LatestScreen() {
     ]);
   };
 
-  const handlePressArticle = (item: NewsArticle) => {
+  const handlePressArticle = (
+    item: NewsArticle,
+    customArticles?: NewsArticle[],
+    categoryKey?: string,
+    categoryLabel?: string,
+  ) => {
     markAsRead(item.id);
     void showInterstitialAndNavigate(() => {
-      navigation.navigate('Article', { articleId: item.id, article: item });
+      let targetArticles = customArticles;
+      let resolvedCatKey = categoryKey;
+      let resolvedCatLabel = categoryLabel;
+
+      // 1. If not provided, find which group in categorySections contains this article
+      if (!targetArticles || targetArticles.length === 0) {
+        for (const [gKey, gList] of Object.entries(categorySections)) {
+          if (gList.some((a) => a.id === item.id)) {
+            targetArticles = gList;
+            resolvedCatKey = gKey;
+            const grp = feedGroups.find((g) => g.key === gKey);
+            if (grp) resolvedCatLabel = grp.label;
+            break;
+          }
+        }
+      }
+
+      // 2. If still not found, check if currently on a specific category tab
+      if (!targetArticles || targetArticles.length === 0) {
+        if (activeGroupKey !== 'all' && activeGroup) {
+          targetArticles = filteredArticles;
+          resolvedCatKey = activeGroup.key;
+          resolvedCatLabel = activeGroup.label;
+        } else {
+          // If on 'all' view, match article's author with feedGroups
+          if (item.author) {
+            const authorLower = item.author.toLowerCase();
+            const matched = feedGroups.find((g) =>
+              g.sources.some(
+                (s) =>
+                  authorLower.includes(s.label.toLowerCase()) ||
+                  s.label.toLowerCase().includes(authorLower),
+              ),
+            );
+            if (matched) {
+              resolvedCatKey = matched.key;
+              resolvedCatLabel = matched.label;
+              if (categorySections[matched.key]?.length > 0) {
+                targetArticles = categorySections[matched.key];
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Fallback to current filtered articles if no category-specific list found
+      if (!targetArticles || targetArticles.length === 0) {
+        targetArticles = filteredArticles;
+      }
+
+      navigation.navigate('Article', {
+        articleId: item.id,
+        article: item,
+        articles: targetArticles,
+        categoryKey: resolvedCatKey,
+        categoryLabel: resolvedCatLabel,
+      });
     });
   };
 
@@ -895,12 +956,14 @@ export function LatestScreen() {
               article={item}
               isBookmarked={Boolean(bookmarks[item.id])}
               onToggleBookmark={() => toggleBookmark(item)}
-              onPress={() => {
-                markAsRead(item.id);
-                void showInterstitialAndNavigate(() => {
-                  navigation.navigate('Article', { articleId: item.id, article: item });
-                });
-              }}
+              onPress={() =>
+                handlePressArticle(
+                  item,
+                  filteredArticles,
+                  activeGroup?.key,
+                  activeGroup?.label,
+                )
+              }
             />
             {settings.cardLayout !== 'grid' && (index + 1) % 5 === 0 && (
               <AdCard style={styles.inFeedAdCard} />

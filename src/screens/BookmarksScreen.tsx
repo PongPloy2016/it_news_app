@@ -485,7 +485,7 @@ export function BookmarksScreen() {
             onToggleBookmark={() => toggleBookmark(item)}
             onPress={() => {
               void showInterstitialAndNavigate(() => {
-                navigation.navigate('Article', { articleId: item.id, article: item });
+                navigation.navigate('Article', { articleId: item.id, article: item, articles: filteredArticles });
               });
             }}
           />

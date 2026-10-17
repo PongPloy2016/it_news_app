@@ -131,7 +131,13 @@ export function CategoryDetailScreen() {
   const handleOpenArticle = (article: NewsArticle) => {
     feedService.registerArticles([article]);
     showInterstitialAndNavigate(() => {
-      navigation.navigate('Article', { articleId: article.id, article });
+      navigation.navigate('Article', {
+        articleId: article.id,
+        article,
+        articles: categoryArticles,
+        categoryKey: currentGroup?.key,
+        categoryLabel: currentGroup?.label,
+      });
     });
   };
 

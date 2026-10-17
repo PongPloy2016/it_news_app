@@ -22,7 +22,12 @@ const CARD_WIDTH = (SCREEN_WIDTH - 32 - GRID_GAP) / 2;
 interface Props {
   group: FeedGroup;
   articles: NewsArticle[];
-  onPressArticle: (article: NewsArticle) => void;
+  onPressArticle: (
+    article: NewsArticle,
+    categoryArticles?: NewsArticle[],
+    groupKey?: string,
+    groupLabel?: string,
+  ) => void;
   onViewAll: (groupKey: string) => void;
 }
 
@@ -131,7 +136,7 @@ export function CategorySectionBlock({
           return (
             <Pressable
               key={`cat-card-${group.key}-${article.id}-${idx}`}
-              onPress={() => onPressArticle(article)}
+              onPress={() => onPressArticle(article, articles, group.key, group.label)}
               style={({ pressed }) => [
                 styles.card,
                 {

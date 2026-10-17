@@ -83,7 +83,13 @@ export interface NewsArticle {
 
 export type RootStackParamList = {
   MainTabs: { screen?: keyof MainTabParamList } | undefined;
-  Article: { articleId: string; article?: NewsArticle };
+  Article: {
+    articleId: string;
+    article?: NewsArticle;
+    articles?: NewsArticle[];
+    categoryKey?: string;
+    categoryLabel?: string;
+  };
   WebView: { url: string; title?: string };
   CategoryDetail: { groupKey: string };
 };
