@@ -150,7 +150,7 @@ export function SettingsScreen() {
       category: feedbackCategory,
       message: feedbackMessage.trim(),
       contact: feedbackContact.trim() || undefined,
-      app_version: remoteSettings.latest_version || '1.0.0',
+      app_version: remoteSettings.latest_version || '1.0.1',
       device_platform: Platform.OS,
     });
     setIsSubmitting(false);

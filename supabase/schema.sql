@@ -217,8 +217,8 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
     admob_interstitial_id_android TEXT,
 
     -- Versions & Maintenance
-    min_supported_version TEXT NOT NULL DEFAULT '1.0.0',
-    latest_version TEXT NOT NULL DEFAULT '1.0.0',
+    min_supported_version TEXT NOT NULL DEFAULT '1.0.1',
+    latest_version TEXT NOT NULL DEFAULT '1.0.1',
     force_update_title TEXT DEFAULT 'มีเวอร์ชันใหม่พร้อมใช้งาน',
     force_update_message TEXT DEFAULT 'กรุณาอัปเดตเป็นเวอร์ชันล่าสุดเพื่อการใช้งานที่ราบรื่นและปลอดภัย',
     is_maintenance BOOLEAN NOT NULL DEFAULT false,
@@ -299,8 +299,8 @@ VALUES (
     false,
     4,
     60,
-    '1.0.0',
-    '1.0.0',
+    '1.0.1',
+    '1.0.1',
     'tech-business',
     'magazine',
     'system',

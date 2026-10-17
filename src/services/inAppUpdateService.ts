@@ -108,8 +108,8 @@ class InAppUpdateService {
   public async evaluateUpdateStatus(remoteSettings?: RemoteAppSettings | null): Promise<CheckUpdateStatus> {
     const playInfo = await this.getPlayUpdateInfo();
 
-    const minVersion = remoteSettings?.min_supported_version || '1.0.0';
-    const latestVersion = remoteSettings?.latest_version || '1.0.0';
+    const minVersion = remoteSettings?.min_supported_version || '1.0.1';
+    const latestVersion = remoteSettings?.latest_version || '1.0.1';
     const remoteMinVersionCode = (remoteSettings as any)?.min_version_code as number | undefined;
 
     // Check if remote configuration enforces a mandatory update
