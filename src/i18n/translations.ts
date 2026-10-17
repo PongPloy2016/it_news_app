@@ -46,6 +46,16 @@ export const translations = {
     brand_tagline: 'ติดตามข่าวสารวงการไอทีและเทคโนโลยีทันโลก',
     brand_footer: 'TechThaiNews v{version} • ออกแบบเพื่อคนรักไอที',
     announcement_title: 'ประกาศจากระบบ',
+    badge_status_ready: 'พร้อมใช้งาน',
+    badge_quick_ai: 'AI Reader',
+    badge_quick_cloud: 'Cloud Sync',
+    badge_quick_lang: '2 ภาษา (TH/EN)',
+
+    // Group Categories
+    group_display_lang: 'การแสดงผลและภาษา',
+    group_reading: 'การอ่านและประสิทธิภาพ',
+    group_sync_storage: 'คลาวด์และพื้นที่จัดเก็บ',
+    group_support_about: 'ช่วยเหลือและเกี่ยวกับแอป',
 
     // Section 1: Language
     section_language: 'ภาษาของแอป (Language)',
@@ -201,6 +211,16 @@ export const translations = {
     brand_tagline: 'Stay updated with global tech and IT news',
     brand_footer: 'TechThaiNews v{version} • Designed for tech lovers',
     announcement_title: 'System Announcement',
+    badge_status_ready: 'Ready',
+    badge_quick_ai: 'AI Reader',
+    badge_quick_cloud: 'Cloud Sync',
+    badge_quick_lang: '2 Languages',
+
+    // Group Categories
+    group_display_lang: 'Display & Language',
+    group_reading: 'Reading & Performance',
+    group_sync_storage: 'Cloud & Storage',
+    group_support_about: 'Support & About',
 
     // Section 1: Language
     section_language: 'App Language',

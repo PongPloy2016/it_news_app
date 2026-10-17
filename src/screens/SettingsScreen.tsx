@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -163,6 +164,27 @@ export function SettingsScreen() {
     }
   };
 
+  /* Category Group Divider Header */
+  const CategoryGroupHeader = ({
+    title,
+    icon,
+    color,
+  }: {
+    title: string;
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    color: string;
+  }) => (
+    <View style={styles.groupHeaderWrap}>
+      <View style={[styles.groupHeaderIconWrap, { backgroundColor: color + '18' }]}>
+        <MaterialCommunityIcons name={icon} size={14} color={color} />
+      </View>
+      <Text style={[styles.groupHeaderText, { color: colors.muted, fontSize: 11.5 * scale }]}>
+        {title.toUpperCase()}
+      </Text>
+      <View style={[styles.groupHeaderLine, { backgroundColor: colors.border }]} />
+    </View>
+  );
+
   /* Grouped iOS/Material style Section container */
   const Section = ({
     icon,
@@ -179,7 +201,15 @@ export function SettingsScreen() {
     subtitle?: string;
     children: React.ReactNode;
   }) => (
-    <View style={[styles.sectionContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.sectionContainer,
+        {
+          backgroundColor: colors.surface,
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+        },
+      ]}
+    >
       <View style={styles.sectionHeaderRow}>
         <View style={[styles.sectionIconBadge, { backgroundColor: iconBg }]}>
           <MaterialCommunityIcons name={icon} size={18} color={iconColor} />
@@ -202,55 +232,110 @@ export function SettingsScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: 150 + insets.bottom }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. App Identity Header Banner */}
-      <View
+      {/* 1. App Identity Header Banner (Modern LinearGradient Hero) */}
+      <LinearGradient
+        colors={
+          isDark
+            ? ['#131D31', '#0E1524', '#090D17']
+            : ['#EEF5FF', '#E1EDFF', '#D8E8FE']
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={[
           styles.brandBanner,
           {
-            backgroundColor: isDark ? '#161922' : '#F0F4FA',
-            borderColor: colors.border,
+            borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.22)',
           },
         ]}
       >
-        <View style={[styles.brandLogoWrap, { backgroundColor: colors.primary }]}>
-          <MaterialCommunityIcons name="newspaper-variant" size={26} color={colors.onPrimary} />
-        </View>
-        <View style={{ flex: 1, marginLeft: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[styles.brandTitle, { color: colors.text, fontSize: 17 * scale }]}>TechThaiNews</Text>
-            <View style={[styles.brandVersionPill, { backgroundColor: isDark ? '#262B37' : '#E2E8F0' }]}>
-              <Text style={[styles.brandVersionText, { color: colors.muted, fontSize: 11 * scale }]}>
-                v{remoteSettings.latest_version || '1.0.0'}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <LinearGradient
+            colors={['#3B82F6', '#1D4ED8']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.brandLogoWrap}
+          >
+            <MaterialCommunityIcons name="newspaper-variant" size={26} color="#FFFFFF" />
+          </LinearGradient>
+          <View style={{ flex: 1, marginLeft: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={[styles.brandTitle, { color: colors.text, fontSize: 18 * scale }]}>
+                TechThaiNews
               </Text>
+              <View
+                style={[
+                  styles.brandVersionPill,
+                  {
+                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : '#FFFFFF',
+                    borderColor: isDark ? '#334155' : '#E2E8F0',
+                  },
+                ]}
+              >
+                <View style={styles.brandLiveDot} />
+                <Text style={[styles.brandVersionText, { color: colors.text, fontSize: 10.5 * scale }]}>
+                  v{remoteSettings.latest_version || '1.0.1'}
+                </Text>
+              </View>
             </View>
+            <Text style={[styles.brandTagline, { color: colors.muted, fontSize: 12 * scale }]}>
+              {t.brand_tagline}
+            </Text>
           </View>
-          <Text style={[styles.brandTagline, { color: colors.muted, fontSize: 12 * scale }]}>
-            {t.brand_tagline}
-          </Text>
         </View>
-      </View>
+
+        {/* Feature Highlights Pills */}
+        <View style={styles.brandChipsRow}>
+          <View style={[styles.brandChipItem, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.18)' : 'rgba(99, 102, 241, 0.12)' }]}>
+            <MaterialCommunityIcons name="lightning-bolt" size={11} color="#6366F1" />
+            <Text style={[styles.brandChipText, { color: isDark ? '#A5B4FC' : '#4F46E5', fontSize: 10 * scale }]}>
+              {t.badge_quick_ai}
+            </Text>
+          </View>
+          <View style={[styles.brandChipItem, { backgroundColor: isDark ? 'rgba(2, 132, 199, 0.18)' : 'rgba(2, 132, 199, 0.12)' }]}>
+            <MaterialCommunityIcons name="cloud-sync" size={11} color="#0284C7" />
+            <Text style={[styles.brandChipText, { color: isDark ? '#7DD3FC' : '#0369A1', fontSize: 10 * scale }]}>
+              {t.badge_quick_cloud}
+            </Text>
+          </View>
+          <View style={[styles.brandChipItem, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.12)' }]}>
+            <MaterialCommunityIcons name="translate" size={11} color="#10B981" />
+            <Text style={[styles.brandChipText, { color: isDark ? '#6EE7B7' : '#047857', fontSize: 10 * scale }]}>
+              {t.badge_quick_lang}
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       {/* 2. Global Announcement Banner (if active from Supabase) */}
       {remoteSettings.announcement_active && remoteSettings.announcement_message && (
-        <View
-          style={[
-            styles.announcementCard,
-            { backgroundColor: isDark ? '#1E293B' : '#EFF6FF', borderColor: '#3B82F6' },
-          ]}
+        <LinearGradient
+          colors={isDark ? ['#1E293B', '#151D2A'] : ['#EFF6FF', '#DBEAFE']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.announcementCard, { borderColor: '#3B82F6' }]}
         >
-          <MaterialCommunityIcons name="bullhorn-outline" size={22} color="#3B82F6" />
+          <View style={[styles.announcementIconWrap, { backgroundColor: isDark ? '#1E3A5F' : '#BFDBFE' }]}>
+            <MaterialCommunityIcons name="bullhorn-outline" size={18} color="#2563EB" />
+          </View>
           <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={[styles.announcementTitle, { color: isDark ? '#93C5FD' : '#1D4ED8', fontSize: 14 * scale }]}>
+            <Text style={[styles.announcementTitle, { color: isDark ? '#93C5FD' : '#1D4ED8', fontSize: 13.5 * scale }]}>
               {t.announcement_title}
             </Text>
-            <Text style={[styles.announcementDesc, { color: isDark ? '#E2E8F0' : '#1E3A8A', fontSize: 13 * scale }]}>
+            <Text style={[styles.announcementDesc, { color: isDark ? '#E2E8F0' : '#1E3A8A', fontSize: 12.5 * scale }]}>
               {remoteSettings.announcement_message}
             </Text>
           </View>
-        </View>
+        </LinearGradient>
       )}
 
-      {/* 3. Section: ภาษาของแอป (Language Selector) */}
+      {/* ================= GROUP 1: DISPLAY & LANGUAGE ================= */}
+      <CategoryGroupHeader
+        title={t.group_display_lang}
+        icon="palette-swatch-outline"
+        color="#3B82F6"
+      />
+
+      {/* Section 1: ภาษาของแอป (Language Selector) */}
       <Section
         icon="translate"
         iconColor="#06B6D4"
@@ -261,11 +346,11 @@ export function SettingsScreen() {
         <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant }]}>
           {(
             [
-              ['system', t.lang_system, 'cellphone-cog'],
-              ['th', t.lang_th, 'translate'],
-              ['en', t.lang_en, 'web'],
+              ['th', '🇹🇭 ' + t.lang_th],
+              ['en', '🇺🇸 ' + t.lang_en],
+              ['system', '📱 ' + t.lang_system],
             ] as const
-          ).map(([langKey, langLabel, langIcon]) => {
+          ).map(([langKey, langLabel]) => {
             const isSelected = language === langKey;
             return (
               <Pressable
@@ -283,17 +368,12 @@ export function SettingsScreen() {
                   ],
                 ]}
               >
-                <MaterialCommunityIcons
-                  name={langIcon}
-                  size={17}
-                  color={isSelected ? colors.primary : colors.muted}
-                />
                 <Text
                   style={[
                     styles.segmentedText,
                     {
-                      color: isSelected ? colors.text : colors.muted,
-                      fontWeight: isSelected ? '700' : '500',
+                      color: isSelected ? colors.primary : colors.muted,
+                      fontWeight: isSelected ? '800' : '500',
                       fontSize: 13 * scale,
                     },
                   ]}
@@ -306,16 +386,24 @@ export function SettingsScreen() {
         </View>
 
         {language === 'system' && (
-          <View style={styles.languageIndicatorRow}>
-            <MaterialCommunityIcons name="information-outline" size={14} color={colors.muted} />
-            <Text style={[styles.languageIndicatorText, { color: colors.muted, fontSize: 11.5 * scale }]}>
-              {resolvedLanguage === 'th' ? t.lang_system_hint_th : t.lang_system_hint_en}
+          <View
+            style={[
+              styles.languageIndicatorRow,
+              {
+                backgroundColor: isDark ? '#0F2338' : '#F0F7FF',
+                borderColor: isDark ? '#1E3D60' : '#BAE0FD',
+              },
+            ]}
+          >
+            <MaterialCommunityIcons name="cellphone-check" size={15} color="#0284C7" />
+            <Text style={[styles.languageIndicatorText, { color: isDark ? '#93C5FD' : '#0369A1', fontSize: 11.5 * scale }]}>
+              {resolvedLanguage === 'th' ? `🇹🇭 ${t.lang_system_hint_th}` : `🇺🇸 ${t.lang_system_hint_en}`}
             </Text>
           </View>
         )}
       </Section>
 
-      {/* 4. Section: รูปแบบการแสดงผลข่าว (Visual Card Layout Selectors) */}
+      {/* Section 2: รูปแบบการแสดงผลข่าว (Visual Card Layout Selectors) */}
       <Section
         icon="view-dashboard-outline"
         iconColor="#3B82F6"
@@ -470,7 +558,7 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 5. Section: ธีม (Segmented Pill Selector) */}
+      {/* Section 3: ธีม (Segmented Pill Selector) */}
       <Section
         icon="palette-outline"
         iconColor="#8B5CF6"
@@ -526,7 +614,7 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 6. Section: ขนาดตัวอักษร + Live Preview Card */}
+      {/* Section 4: ขนาดตัวอักษร + Live Preview Card */}
       <Section
         icon="format-size"
         iconColor="#F59E0B"
@@ -628,7 +716,14 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 7. Section: การอ่านและการเปิดลิงก์ (Reading & Links) */}
+      {/* ================= GROUP 2: READING & PERFORMANCE ================= */}
+      <CategoryGroupHeader
+        title={t.group_reading}
+        icon="book-open-page-variant-outline"
+        color="#10B981"
+      />
+
+      {/* Section 5: การอ่านและการเปิดลิงก์ (Reading & Links) */}
       <Section
         icon="book-open-outline"
         iconColor="#10B981"
@@ -734,7 +829,14 @@ export function SettingsScreen() {
         )}
       </Section>
 
-      {/* 8. Section: Supabase Cloud Sync (Controlled by remoteSettings.cloud_sync_enabled) */}
+      {/* ================= GROUP 3: CLOUD & STORAGE ================= */}
+      <CategoryGroupHeader
+        title={t.group_sync_storage}
+        icon="cloud-sync-outline"
+        color="#0284C7"
+      />
+
+      {/* Section 6: Supabase Cloud Sync (Controlled by remoteSettings.cloud_sync_enabled) */}
       {remoteSettings.cloud_sync_enabled !== false && (
         <Section
           icon="cloud-sync-outline"
@@ -873,7 +975,7 @@ export function SettingsScreen() {
         </Section>
       )}
 
-      {/* 9. Section: พื้นที่จัดเก็บและประวัติ (Storage & Data Management) */}
+      {/* Section 7: พื้นที่จัดเก็บและประวัติ (Storage & Data Management) */}
       <Section
         icon="database-outline"
         iconColor="#EC4899"
@@ -1067,7 +1169,14 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 10. Section: ช่วยเหลือและข้อกำหนด (Support & Legal) */}
+      {/* ================= GROUP 4: SUPPORT & ABOUT ================= */}
+      <CategoryGroupHeader
+        title={t.group_support_about}
+        icon="shield-star-outline"
+        color="#8B5CF6"
+      />
+
+      {/* Section 8: ช่วยเหลือและข้อกำหนด (Support & Legal) */}
       <Section
         icon="shield-check-outline"
         iconColor="#6366F1"
@@ -1201,10 +1310,10 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 11. Footer Credit */}
+      {/* 9. Footer Credit */}
       <View style={styles.footerWrap}>
         <Text style={[styles.footerText, { color: colors.muted, fontSize: 12 * scale }]}>
-          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.0')}
+          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.1')}
         </Text>
       </View>
 
@@ -1217,6 +1326,7 @@ export function SettingsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.modalDragHandle} />
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>{t.feedback_modal_title}</Text>
               <Pressable hitSlop={8} onPress={() => setIsFeedbackModalVisible(false)}>
@@ -1327,6 +1437,7 @@ export function SettingsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.modalDragHandle} />
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <MaterialCommunityIcons name="cloud-download-outline" size={22} color={colors.primary} />
@@ -1387,58 +1498,132 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   content: { gap: 14, padding: 16 },
 
+  /* Category Group Headers */
+  groupHeaderWrap: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: -2,
+    marginTop: 10,
+    paddingHorizontal: 4,
+  },
+  groupHeaderIconWrap: {
+    alignItems: 'center',
+    borderRadius: 7,
+    height: 24,
+    justifyContent: 'center',
+    width: 24,
+  },
+  groupHeaderText: {
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  groupHeaderLine: {
+    flex: 1,
+    height: 1,
+    marginLeft: 6,
+    opacity: 0.5,
+  },
+
   /* 1. App Brand Banner */
   brandBanner: {
-    alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
-    flexDirection: 'row',
+    elevation: 3,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
   brandLogoWrap: {
     alignItems: 'center',
     borderRadius: 16,
-    height: 48,
+    elevation: 4,
+    height: 52,
     justifyContent: 'center',
-    width: 48,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    width: 52,
   },
   brandTitle: {
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   brandVersionPill: {
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  brandLiveDot: {
+    backgroundColor: '#10B981',
+    borderRadius: 3,
+    height: 6,
+    width: 6,
   },
   brandVersionText: {
-    fontWeight: '600',
+    fontWeight: '700',
   },
   brandTagline: {
-    marginTop: 2,
+    marginTop: 3,
+  },
+  brandChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 12,
+  },
+  brandChipItem: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+  },
+  brandChipText: {
+    fontWeight: '700',
   },
 
   /* Announcement */
   announcementCard: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
-    padding: 14,
+    padding: 12,
+  },
+  announcementIconWrap: {
+    alignItems: 'center',
+    borderRadius: 10,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
   },
   announcementTitle: {
     fontWeight: '700',
     marginBottom: 2,
   },
   announcementDesc: {
-    lineHeight: 19,
+    lineHeight: 18,
   },
 
   /* Grouped Section Styles */
   sectionContainer: {
     borderRadius: 20,
     borderWidth: 1,
+    elevation: 1,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
   },
   sectionHeaderRow: {
     alignItems: 'center',
@@ -1573,13 +1758,16 @@ const styles = StyleSheet.create({
   },
   languageIndicatorRow: {
     alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
     flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 4,
-    paddingTop: 4,
+    gap: 8,
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   languageIndicatorText: {
-    fontWeight: '500',
+    fontWeight: '600',
   },
 
   /* Live Preview Card */
@@ -1821,6 +2009,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20,
     paddingBottom: 36,
+  },
+  modalDragHandle: {
+    alignSelf: 'center',
+    backgroundColor: '#94A3B8',
+    borderRadius: 3,
+    height: 4,
+    marginBottom: 14,
+    opacity: 0.5,
+    width: 40,
   },
   modalHeader: {
     alignItems: 'center',
