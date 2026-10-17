@@ -78,6 +78,45 @@ export const techColors: AppColors = {
   onPrimary: '#001E2B',
 };
 
+export const forestColors: AppColors = {
+  primary: '#10B981',
+  accent: '#34D399',
+  background: '#061712',
+  surface: '#0B231B',
+  surfaceVariant: '#14352B',
+  text: '#ECFDF5',
+  muted: '#6EE7B7',
+  border: '#1A4337',
+  error: '#FB7185',
+  onPrimary: '#022C22',
+};
+
+export const purpleColors: AppColors = {
+  primary: '#A855F7',
+  accent: '#C084FC',
+  background: '#0D081E',
+  surface: '#160E30',
+  surfaceVariant: '#231749',
+  text: '#FAF5FF',
+  muted: '#D8B4FE',
+  border: '#332363',
+  error: '#FB7185',
+  onPrimary: '#2E0854',
+};
+
+export const sunsetColors: AppColors = {
+  primary: '#F43F5E',
+  accent: '#FB7185',
+  background: '#160910',
+  surface: '#240F1B',
+  surfaceVariant: '#351829',
+  text: '#FFF1F2',
+  muted: '#FDA4AF',
+  border: '#4D223B',
+  error: '#EF4444',
+  onPrimary: '#FFFFFF',
+};
+
 export const fontScale = { small: 0.88, medium: 1, large: 1.16 } as const;
 
 /**

@@ -27,9 +27,12 @@ import {
   AppColors,
   darkColors,
   fontScale,
+  forestColors,
   lightColors,
   midnightColors,
+  purpleColors,
   sepiaColors,
+  sunsetColors,
   techColors,
 } from '../theme';
 import {
@@ -135,6 +138,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
     settings.themeMode === 'dark' ||
     settings.themeMode === 'midnight' ||
     settings.themeMode === 'tech' ||
+    settings.themeMode === 'forest' ||
+    settings.themeMode === 'purple' ||
+    settings.themeMode === 'sunset' ||
     (settings.themeMode === 'system' && systemScheme === 'dark');
 
   const colors: AppColors = useMemo(() => {
@@ -149,6 +155,12 @@ export function NewsProvider({ children }: PropsWithChildren) {
         return sepiaColors;
       case 'tech':
         return techColors;
+      case 'forest':
+        return forestColors;
+      case 'purple':
+        return purpleColors;
+      case 'sunset':
+        return sunsetColors;
       case 'system':
       default:
         return systemScheme === 'dark' ? darkColors : lightColors;

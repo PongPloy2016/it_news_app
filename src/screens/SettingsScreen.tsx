@@ -556,7 +556,7 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* Section 3: ธีม (Modern Dropdown Picker) */}
+      {/* Section 3: ธีม (Modern Dropdown Picker with Distinct Themes & Live Preview) */}
       <Section
         icon="palette-outline"
         gradientColors={['#8B5CF6', '#7C3AED']}
@@ -572,6 +572,8 @@ export function SettingsScreen() {
               icon: 'theme-light-dark' as const,
               accent: '#3B82F6',
               bgPreview: isDark ? '#11141E' : '#EDF2F7',
+              cardPreview: isDark ? '#1A1C22' : '#FFFFFF',
+              tag: 'AUTO',
             },
             {
               key: 'light' as const,
@@ -579,7 +581,9 @@ export function SettingsScreen() {
               desc: t.theme_light_desc,
               icon: 'white-balance-sunny' as const,
               accent: '#1565C0',
-              bgPreview: '#FFFFFF',
+              bgPreview: '#F7F8FC',
+              cardPreview: '#FFFFFF',
+              tag: 'LIGHT',
             },
             {
               key: 'dark' as const,
@@ -588,6 +592,8 @@ export function SettingsScreen() {
               icon: 'weather-night' as const,
               accent: '#8DB9FF',
               bgPreview: '#111318',
+              cardPreview: '#1A1C22',
+              tag: 'DARK',
             },
             {
               key: 'midnight' as const,
@@ -596,6 +602,8 @@ export function SettingsScreen() {
               icon: 'moon-waning-crescent' as const,
               accent: '#38BDF8',
               bgPreview: '#000000',
+              cardPreview: '#0B0D13',
+              tag: 'AMOLED',
             },
             {
               key: 'sepia' as const,
@@ -604,6 +612,8 @@ export function SettingsScreen() {
               icon: 'book-open-page-variant-outline' as const,
               accent: '#B45309',
               bgPreview: '#FAF4E8',
+              cardPreview: '#FFFDF9',
+              tag: 'PAPER',
             },
             {
               key: 'tech' as const,
@@ -612,6 +622,38 @@ export function SettingsScreen() {
               icon: 'laptop' as const,
               accent: '#06B6D4',
               bgPreview: '#070D19',
+              cardPreview: '#0F172A',
+              tag: 'CYBER',
+            },
+            {
+              key: 'forest' as const,
+              title: t.theme_forest,
+              desc: t.theme_forest_desc,
+              icon: 'pine-tree' as const,
+              accent: '#10B981',
+              bgPreview: '#061712',
+              cardPreview: '#0B231B',
+              tag: 'NATURE',
+            },
+            {
+              key: 'purple' as const,
+              title: t.theme_purple,
+              desc: t.theme_purple_desc,
+              icon: 'star-shooting-outline' as const,
+              accent: '#A855F7',
+              bgPreview: '#0D081E',
+              cardPreview: '#160E30',
+              tag: 'GALAXY',
+            },
+            {
+              key: 'sunset' as const,
+              title: t.theme_sunset,
+              desc: t.theme_sunset_desc,
+              icon: 'weather-sunset' as const,
+              accent: '#F43F5E',
+              bgPreview: '#160910',
+              cardPreview: '#240F1B',
+              tag: 'CORAL',
             },
           ];
 
@@ -653,14 +695,31 @@ export function SettingsScreen() {
                     />
                   </View>
                   <View style={styles.themeDropdownTextWrap}>
-                    <Text
-                      style={[
-                        styles.themeDropdownTitle,
-                        { color: colors.text, fontSize: 14 * scale },
-                      ]}
-                    >
-                      {activeThemeOption.title}
-                    </Text>
+                    <View style={styles.themeOptionTitleRow}>
+                      <Text
+                        style={[
+                          styles.themeDropdownTitle,
+                          { color: colors.text, fontSize: 14 * scale },
+                        ]}
+                      >
+                        {activeThemeOption.title}
+                      </Text>
+                      <View
+                        style={[
+                          styles.themeOptionTagBadge,
+                          { backgroundColor: `${activeThemeOption.accent}20` },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.themeOptionTagText,
+                            { color: activeThemeOption.accent },
+                          ]}
+                        >
+                          {activeThemeOption.tag}
+                        </Text>
+                      </View>
+                    </View>
                     <Text
                       numberOfLines={1}
                       style={[
@@ -673,11 +732,11 @@ export function SettingsScreen() {
                   </View>
                 </View>
 
-                {/* Right: Color swatch & Chevron */}
+                {/* Right: Trio Swatch & Chevron */}
                 <View style={styles.themeDropdownRight}>
                   <View
                     style={[
-                      styles.themeSwatchPreview,
+                      styles.themeTrioSwatch,
                       {
                         backgroundColor: activeThemeOption.bgPreview,
                         borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
@@ -686,7 +745,19 @@ export function SettingsScreen() {
                   >
                     <View
                       style={[
-                        styles.themeSwatchDot,
+                        styles.themeTrioDot,
+                        { backgroundColor: activeThemeOption.bgPreview, borderWidth: 0.8, borderColor: 'rgba(255,255,255,0.2)' },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeTrioDot,
+                        { backgroundColor: activeThemeOption.cardPreview, borderWidth: 0.8, borderColor: 'rgba(255,255,255,0.2)' },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.themeTrioDot,
                         { backgroundColor: activeThemeOption.accent },
                       ]}
                     />
@@ -768,18 +839,35 @@ export function SettingsScreen() {
 
                         {/* Option Text */}
                         <View style={styles.themeOptionTextWrap}>
-                          <Text
-                            style={[
-                              styles.themeOptionTitle,
-                              {
-                                color: isSelected ? colors.primary : colors.text,
-                                fontWeight: isSelected ? '700' : '500',
-                                fontSize: 13.5 * scale,
-                              },
-                            ]}
-                          >
-                            {themeItem.title}
-                          </Text>
+                          <View style={styles.themeOptionTitleRow}>
+                            <Text
+                              style={[
+                                styles.themeOptionTitle,
+                                {
+                                  color: isSelected ? colors.primary : colors.text,
+                                  fontWeight: isSelected ? '700' : '600',
+                                  fontSize: 13.5 * scale,
+                                },
+                              ]}
+                            >
+                              {themeItem.title}
+                            </Text>
+                            <View
+                              style={[
+                                styles.themeOptionTagBadge,
+                                { backgroundColor: `${themeItem.accent}1F` },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.themeOptionTagText,
+                                  { color: themeItem.accent },
+                                ]}
+                              >
+                                {themeItem.tag}
+                              </Text>
+                            </View>
+                          </View>
                           <Text
                             numberOfLines={1}
                             style={[
@@ -791,11 +879,11 @@ export function SettingsScreen() {
                           </Text>
                         </View>
 
-                        {/* Right side: Palette swatch + Checkmark */}
+                        {/* Right side: Trio Palette swatch + Checkmark */}
                         <View style={styles.themeOptionRight}>
                           <View
                             style={[
-                              styles.themeOptionSwatch,
+                              styles.themeTrioSwatch,
                               {
                                 backgroundColor: themeItem.bgPreview,
                                 borderColor: isDark
@@ -806,7 +894,19 @@ export function SettingsScreen() {
                           >
                             <View
                               style={[
-                                styles.themeOptionSwatchDot,
+                                styles.themeTrioDot,
+                                { backgroundColor: themeItem.bgPreview, borderWidth: 0.8, borderColor: 'rgba(255,255,255,0.2)' },
+                              ]}
+                            />
+                            <View
+                              style={[
+                                styles.themeTrioDot,
+                                { backgroundColor: themeItem.cardPreview, borderWidth: 0.8, borderColor: 'rgba(255,255,255,0.2)' },
+                              ]}
+                            />
+                            <View
+                              style={[
+                                styles.themeTrioDot,
                                 { backgroundColor: themeItem.accent },
                               ]}
                             />
@@ -834,6 +934,72 @@ export function SettingsScreen() {
                   })}
                 </View>
               )}
+
+              {/* Live Theme Preview Card */}
+              <View
+                style={[
+                  styles.themeLivePreviewCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : colors.border,
+                  },
+                ]}
+              >
+                <View style={styles.themeLiveHeaderRow}>
+                  <View style={[styles.themeLiveTag, { backgroundColor: colors.primary }]}>
+                    <Text style={[styles.themeLiveTagText, { color: colors.onPrimary }]}>
+                      {activeThemeOption.tag}
+                    </Text>
+                  </View>
+                  <View style={styles.themeLiveDotsRow}>
+                    <View style={[styles.themeLiveDot, { backgroundColor: colors.primary }]} />
+                    <View style={[styles.themeLiveDot, { backgroundColor: colors.accent }]} />
+                    <Text style={[styles.themeLiveTimeText, { color: colors.muted, fontSize: 11 * scale }]}>
+                      {resolvedLanguage === 'th' ? '5 นาทีที่แล้ว • TechThai' : '5m ago • TechThai'}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text
+                  numberOfLines={2}
+                  style={[
+                    styles.themeLiveTitle,
+                    { color: colors.text, fontSize: 13.5 * scale },
+                  ]}
+                >
+                  {resolvedLanguage === 'th'
+                    ? 'สถาปัตยกรรมชิป AI รุ่นใหม่ ประมวลผลเร็วขึ้นและประหยัดแบตเตอรี่'
+                    : 'Next-Gen On-Device AI Architecture Boosts Speed and Battery Life'}
+                </Text>
+
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.themeLiveDesc,
+                    { color: colors.muted, fontSize: 11 * scale },
+                  ]}
+                >
+                  {resolvedLanguage === 'th'
+                    ? 'สัมผัสประสบการณ์การอ่านข่าวไอทีด้วยชุดสีที่ออกแบบเฉพาะ...'
+                    : 'Experience tech news reading with specially tailored palettes...'}
+                </Text>
+
+                <View style={styles.themeLiveFooterRow}>
+                  <View style={styles.themeLivePaletteRow}>
+                    <View style={[styles.themeLivePaletteChip, { backgroundColor: colors.background, borderColor: colors.border }]} />
+                    <View style={[styles.themeLivePaletteChip, { backgroundColor: colors.surface, borderColor: colors.border }]} />
+                    <View style={[styles.themeLivePaletteChip, { backgroundColor: colors.primary, borderColor: 'transparent' }]} />
+                    <View style={[styles.themeLivePaletteChip, { backgroundColor: colors.accent, borderColor: 'transparent' }]} />
+                  </View>
+
+                  <View style={[styles.themeLiveBtn, { backgroundColor: colors.primary }]}>
+                    <MaterialCommunityIcons name="check-circle" size={13} color={colors.onPrimary} />
+                    <Text style={[styles.themeLiveBtnText, { color: colors.onPrimary, fontSize: 11 * scale }]}>
+                      {activeThemeOption.title}
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </View>
           );
         })()}
@@ -2057,18 +2223,29 @@ const styles = StyleSheet.create({
     gap: 10,
     marginLeft: 8,
   },
-  themeSwatchPreview: {
+  themeTrioSwatch: {
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    height: 24,
-    justifyContent: 'center',
-    width: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 3,
+    padding: 3,
   },
-  themeSwatchDot: {
+  themeTrioDot: {
+    borderRadius: 4,
+    height: 8,
+    width: 8,
+  },
+  themeOptionTagBadge: {
     borderRadius: 5,
-    height: 10,
-    width: 10,
+    marginLeft: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  themeOptionTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   themeDropdownChevronWrap: {
     alignItems: 'center',
@@ -2109,25 +2286,16 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  themeOptionTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
   themeOptionTitle: {},
   themeOptionDesc: {},
   themeOptionRight: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-  },
-  themeOptionSwatch: {
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    height: 20,
-    justifyContent: 'center',
-    width: 20,
-  },
-  themeOptionSwatchDot: {
-    borderRadius: 4,
-    height: 8,
-    width: 8,
   },
   themeOptionCheckPlaceholder: {
     alignItems: 'center',
@@ -2141,6 +2309,77 @@ const styles = StyleSheet.create({
     height: 20,
     justifyContent: 'center',
     width: 20,
+  },
+
+  /* Live Theme Preview Card */
+  themeLivePreviewCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 10,
+    padding: 12,
+  },
+  themeLiveHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  themeLiveTag: {
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  themeLiveTagText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  themeLiveDotsRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+  },
+  themeLiveDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6,
+  },
+  themeLiveTimeText: {},
+  themeLiveTitle: {
+    fontWeight: '700',
+    lineHeight: 19,
+  },
+  themeLiveDesc: {
+    lineHeight: 15,
+  },
+  themeLiveFooterRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 2,
+    paddingTop: 4,
+  },
+  themeLivePaletteRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+  },
+  themeLivePaletteChip: {
+    borderRadius: 7,
+    borderWidth: 1,
+    height: 14,
+    width: 14,
+  },
+  themeLiveBtn: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4.5,
+  },
+  themeLiveBtnText: {
+    fontWeight: '700',
   },
 
   /* Segmented Pill Track */
