@@ -1,8 +1,8 @@
 import { NativeModules, Platform, Linking } from 'react-native';
 import { RemoteAppSettings } from '../types';
 
-export const CURRENT_APP_VERSION = '0.9.0'; // [TEST DROP VERSION] ทดสอบเมื่อเวอร์ชันต่ำกว่า Store
-export const CURRENT_VERSION_CODE = 1;
+export const CURRENT_APP_VERSION = '1.0.1';
+export const CURRENT_VERSION_CODE = 5;
 export const PLAY_STORE_PACKAGE_NAME = 'com.pongploydev.technewsth.app';
 export const PLAY_STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${PLAY_STORE_PACKAGE_NAME}`;
 export const PLAY_STORE_MARKET_URI = `market://details?id=${PLAY_STORE_PACKAGE_NAME}`;
