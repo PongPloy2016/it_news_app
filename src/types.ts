@@ -2,6 +2,7 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type FontSizeOption = 'small' | 'medium' | 'large';
 export type CardLayoutOption = 'compact' | 'magazine' | 'grid';
 export type LinkOpenMode = 'in_app' | 'external';
+export type LanguageOption = 'system' | 'th' | 'en';
 
 export interface AppSettings {
   themeMode: ThemeMode;
@@ -11,6 +12,7 @@ export interface AppSettings {
   linkOpenMode?: LinkOpenMode;
   dataSaverEnabled?: boolean;
   cloudSyncEnabled?: boolean;
+  language?: LanguageOption;
 }
 
 export interface RemoteAppSettings {

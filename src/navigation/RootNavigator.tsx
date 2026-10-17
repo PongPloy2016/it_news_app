@@ -707,7 +707,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
 }
 
 function MainTabs() {
-  const { colors, scale } = useNews();
+  const { colors, scale, t } = useNews();
   const insets = useSafeAreaInsets();
 
   const bottomInset = insets.bottom;
@@ -737,8 +737,8 @@ function MainTabs() {
         name="Latest"
         component={LatestScreen}
         options={{
-          title: 'ข่าวล่าสุด',
-          tabBarLabel: 'ข่าวล่าสุด',
+          title: t.tab_latest,
+          tabBarLabel: t.tab_latest,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
           ),
@@ -748,8 +748,8 @@ function MainTabs() {
         name="Categories"
         component={CategoriesScreen}
         options={{
-          title: 'หมวดหมู่',
-          tabBarLabel: 'หมวดหมู่',
+          title: t.tab_categories,
+          tabBarLabel: t.tab_categories,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="view-grid-outline" size={size} color={color} />
           ),
@@ -759,8 +759,8 @@ function MainTabs() {
         name="Search"
         component={SearchScreen}
         options={{
-          title: 'ค้นหา',
-          tabBarLabel: 'ค้นหา',
+          title: t.tab_search,
+          tabBarLabel: t.tab_search,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="magnify" size={size} color={color} />
           ),
@@ -770,8 +770,8 @@ function MainTabs() {
         name="Bookmarks"
         component={BookmarksScreen}
         options={{
-          title: 'บันทึก',
-          tabBarLabel: 'บันทึก',
+          title: t.tab_bookmarks,
+          tabBarLabel: t.tab_bookmarks,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="bookmark-outline" size={size} color={color} />
           ),
@@ -781,8 +781,8 @@ function MainTabs() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          title: 'ตั้งค่า',
-          tabBarLabel: 'ตั้งค่า',
+          title: t.tab_settings,
+          tabBarLabel: t.tab_settings,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
           ),
@@ -792,19 +792,19 @@ function MainTabs() {
   );
 }
 
-function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined>, string>): string {
+function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined>, string>, t: any): string {
   const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
   switch (routeName) {
     case 'Latest':
       return 'IT News App';
     case 'Categories':
-      return 'หมวดหมู่ข่าวสาร';
+      return t.tab_categories;
     case 'Search':
-      return 'ค้นหา';
+      return t.tab_search;
     case 'Bookmarks':
-      return 'บันทึก';
+      return t.tab_bookmarks;
     case 'Settings':
-      return 'ตั้งค่า';
+      return t.tab_settings;
     default:
       return 'IT News App';
   }
@@ -841,7 +841,7 @@ function BookmarksHeaderRight() {
 }
 
 function MainDrawer() {
-  const { colors, scale } = useNews();
+  const { colors, scale, t } = useNews();
   const screenWidth = Dimensions.get('window').width;
   const drawerWidth = Math.min(320, Math.round(screenWidth * 0.80));
 
@@ -878,7 +878,7 @@ function MainDrawer() {
         options={({ route }) => {
           const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
           return {
-            headerTitle: getDrawerHeaderTitle(route),
+            headerTitle: getDrawerHeaderTitle(route, t),
             headerRight: routeName === 'Bookmarks' ? () => <BookmarksHeaderRight /> : undefined,
           };
         }}

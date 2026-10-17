@@ -50,16 +50,20 @@ export function SettingsScreen() {
     importBookmarksFromDevice,
     isCloudSyncActive,
     setCloudSyncEnabled,
+    language,
+    resolvedLanguage,
+    setLanguage,
+    t,
   } = useNews();
 
   const [deviceId, setDeviceId] = useState<string>('');
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
 
   useEffect(() => {
-    void analyticsService.logScreenView('ตั้งค่าระบบ', 'SettingsScreen', {
-      page_title: 'ตั้งค่าระบบ',
+    void analyticsService.logScreenView(t.settings_title, 'SettingsScreen', {
+      page_title: t.settings_title,
     });
-  }, []);
+  }, [t.settings_title]);
 
   // Import Device Modal State
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
@@ -88,17 +92,17 @@ export function SettingsScreen() {
       const result = await syncCloudBookmarks();
       if (result.success) {
         Alert.alert(
-          'ซิงค์ข้อมูลสำเร็จ',
-          `เชื่อมต่อกับ Supabase Cloud เรียบร้อย ซิงค์บุ๊กมาร์กแล้ว ${result.count} รายการ`,
+          t.alert_sync_success_title,
+          t.alert_sync_success_msg.replace('{count}', String(result.count)),
         );
       } else {
         Alert.alert(
-          'เชื่อมต่อขัดข้อง',
-          'ไม่สามารถเชื่อมต่อ Supabase ได้ในขณะนี้ กรุณาตรวจสอบอินเทอร์เน็ต',
+          t.alert_sync_fail_title,
+          t.alert_sync_fail_msg,
         );
       }
     } catch {
-      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง');
+      Alert.alert(t.alert_error, t.alert_sync_fail_msg);
     } finally {
       setIsManualSyncing(false);
     }
@@ -112,13 +116,13 @@ export function SettingsScreen() {
         message: `TechThaiNews Device ID: ${deviceId}`,
       });
     } catch {
-      Alert.alert('รหัสประจำเครื่อง (Device ID)', deviceId);
+      Alert.alert(t.device_id_label, deviceId);
     }
   };
 
   const handleImportBookmarks = async () => {
     if (!targetDeviceId.trim()) {
-      Alert.alert('แจ้งเตือน', 'กรุณาระบุรหัสประจำเครื่อง (Device ID)');
+      Alert.alert(t.alert_notice, t.alert_enter_device_id);
       return;
     }
     setIsImporting(true);
@@ -127,15 +131,15 @@ export function SettingsScreen() {
     if (result.success) {
       setIsImportModalVisible(false);
       setTargetDeviceId('');
-      Alert.alert('นำเข้าสำเร็จ', `ดึงข่าวที่บันทึกไว้เข้าเครื่องเรียบร้อยแล้ว ${result.count} รายการ`);
+      Alert.alert(t.import_success_title, t.import_success_msg.replace('{count}', String(result.count)));
     } else {
-      Alert.alert('เกิดข้อผิดพลาด', result.error || 'ไม่สามารถดึงข้อมูลได้');
+      Alert.alert(t.alert_error, result.error || t.alert_error);
     }
   };
 
   const handleSubmitFeedback = async () => {
     if (!feedbackMessage.trim()) {
-      Alert.alert('แจ้งเตือน', 'กรุณาระบุรายละเอียดข้อความก่อนส่งครับ');
+      Alert.alert(t.alert_notice, t.feedback_alert_empty);
       return;
     }
 
@@ -153,9 +157,9 @@ export function SettingsScreen() {
       setIsFeedbackModalVisible(false);
       setFeedbackMessage('');
       setFeedbackContact('');
-      Alert.alert('สำเร็จ', 'ขอบคุณสำหรับข้อเสนอแนะ ทีมงานได้รับข้อมูลเรียบร้อยแล้วครับ');
+      Alert.alert(t.feedback_success_title, t.feedback_success_msg);
     } else {
-      Alert.alert('เกิดข้อผิดพลาด', result.error || 'ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+      Alert.alert(t.alert_error, result.error || t.alert_error);
     }
   };
 
@@ -221,7 +225,7 @@ export function SettingsScreen() {
             </View>
           </View>
           <Text style={[styles.brandTagline, { color: colors.muted, fontSize: 12 * scale }]}>
-            ติดตามข่าวสารวงการไอทีและเทคโนโลยีทันโลก
+            {t.brand_tagline}
           </Text>
         </View>
       </View>
@@ -237,7 +241,7 @@ export function SettingsScreen() {
           <MaterialCommunityIcons name="bullhorn-outline" size={22} color="#3B82F6" />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={[styles.announcementTitle, { color: isDark ? '#93C5FD' : '#1D4ED8', fontSize: 14 * scale }]}>
-              ประกาศจากระบบ
+              {t.announcement_title}
             </Text>
             <Text style={[styles.announcementDesc, { color: isDark ? '#E2E8F0' : '#1E3A8A', fontSize: 13 * scale }]}>
               {remoteSettings.announcement_message}
@@ -246,20 +250,85 @@ export function SettingsScreen() {
         </View>
       )}
 
-      {/* 3. Section: รูปแบบการแสดงผลข่าว (Visual Card Layout Selectors) */}
+      {/* 3. Section: ภาษาของแอป (Language Selector) */}
+      <Section
+        icon="translate"
+        iconColor="#06B6D4"
+        iconBg={isDark ? '#083344' : '#CFFAFE'}
+        title={t.section_language}
+        subtitle={t.section_language_sub}
+      >
+        <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant }]}>
+          {(
+            [
+              ['system', t.lang_system, 'cellphone-cog'],
+              ['th', t.lang_th, 'translate'],
+              ['en', t.lang_en, 'web'],
+            ] as const
+          ).map(([langKey, langLabel, langIcon]) => {
+            const isSelected = language === langKey;
+            return (
+              <Pressable
+                key={langKey}
+                onPress={() => setLanguage(langKey)}
+                style={[
+                  styles.segmentedTab,
+                  isSelected && [
+                    styles.segmentedTabActive,
+                    {
+                      backgroundColor: isDark ? '#2E3444' : '#FFFFFF',
+                      shadowColor: '#000000',
+                      borderColor: isDark ? '#4B5563' : '#E2E8F0',
+                    },
+                  ],
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={langIcon}
+                  size={17}
+                  color={isSelected ? colors.primary : colors.muted}
+                />
+                <Text
+                  style={[
+                    styles.segmentedText,
+                    {
+                      color: isSelected ? colors.text : colors.muted,
+                      fontWeight: isSelected ? '700' : '500',
+                      fontSize: 13 * scale,
+                    },
+                  ]}
+                >
+                  {langLabel}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {language === 'system' && (
+          <View style={styles.languageIndicatorRow}>
+            <MaterialCommunityIcons name="information-outline" size={14} color={colors.muted} />
+            <Text style={[styles.languageIndicatorText, { color: colors.muted, fontSize: 11.5 * scale }]}>
+              {resolvedLanguage === 'th' ? t.lang_system_hint_th : t.lang_system_hint_en}
+            </Text>
+          </View>
+        )}
+      </Section>
+
+      {/* 4. Section: รูปแบบการแสดงผลข่าว (Visual Card Layout Selectors) */}
       <Section
         icon="view-dashboard-outline"
         iconColor="#3B82F6"
         iconBg={isDark ? '#1E293B' : '#DBEAFE'}
-        title="รูปแบบการแสดงผลข่าว"
-        subtitle="เลือกสไตล์การจัดวางการ์ดข่าวที่คุณถนัดที่สุด"
+        title={t.section_card_layout}
+        subtitle={t.section_card_layout_sub}
       >
         <View style={styles.layoutCardsRow}>
           {(
             [
-              ['compact', 'กะทัดรัด', 'อ่านข่าวได้เยอะ'],
-              ['magazine', 'การ์ดใหญ่', 'รูปเด่นคมชัด'],
-              ['grid', 'ตารางคู่', '2 คอลัมน์กระชับ'],
+              ['compact', t.layout_compact, t.layout_compact_desc],
+              ['magazine', t.layout_magazine, t.layout_magazine_desc],
+              ['grid', t.layout_grid, t.layout_grid_desc],
             ] as const
           ).map(([layoutKey, layoutTitle, layoutDesc]) => {
             const isSelected = settings.cardLayout === layoutKey;
@@ -401,20 +470,20 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 4. Section: ธีม (Segmented Pill Selector) */}
+      {/* 5. Section: ธีม (Segmented Pill Selector) */}
       <Section
         icon="palette-outline"
         iconColor="#8B5CF6"
         iconBg={isDark ? '#2E1065' : '#EDE9FE'}
-        title="ธีมสีของแอป"
-        subtitle="ปรับโทนสีหน้าจอตามความสะดวกสายตา"
+        title={t.section_theme}
+        subtitle={t.section_theme_sub}
       >
         <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant }]}>
           {(
             [
-              ['system', 'ตามระบบ', 'cellphone'],
-              ['light', 'สว่าง', 'white-balance-sunny'],
-              ['dark', 'มืด', 'weather-night'],
+              ['system', t.theme_system, 'cellphone'],
+              ['light', t.theme_light, 'white-balance-sunny'],
+              ['dark', t.theme_dark, 'weather-night'],
             ] as const
           ).map(([themeKey, themeLabel, themeIcon]) => {
             const isSelected = settings.themeMode === themeKey;
@@ -457,21 +526,21 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 5. Section: ขนาดตัวอักษร + Live Preview Card */}
+      {/* 6. Section: ขนาดตัวอักษร + Live Preview Card */}
       <Section
         icon="format-size"
         iconColor="#F59E0B"
         iconBg={isDark ? '#451A03' : '#FEF3C7'}
-        title="ขนาดตัวอักษร (Typography)"
-        subtitle="ปรับขนาดข้อความข่าวให้อ่านสบายตาที่สุด"
+        title={t.section_font_size}
+        subtitle={t.section_font_size_sub}
       >
         {/* Segmented Font Size Selector */}
         <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant }]}>
           {(
             [
-              { key: 'small' as const, label: 'เล็ก', sampleSize: 13 },
-              { key: 'medium' as const, label: 'ปกติ', sampleSize: 15 },
-              { key: 'large' as const, label: 'ใหญ่', sampleSize: 17 },
+              { key: 'small' as const, label: t.font_small, sampleSize: 13 },
+              { key: 'medium' as const, label: t.font_medium, sampleSize: 15 },
+              { key: 'large' as const, label: t.font_large, sampleSize: 17 },
             ] as const
           ).map((item) => {
             const isSelected = settings.fontSize === item.key;
@@ -530,11 +599,11 @@ export function SettingsScreen() {
             <View style={[styles.livePreviewTag, { backgroundColor: isDark ? '#1E293B' : '#E0E7FF' }]}>
               <MaterialCommunityIcons name="eye-outline" size={12} color="#6366F1" />
               <Text style={[styles.livePreviewTagText, { color: '#6366F1', fontSize: 11 * scale }]}>
-                ตัวอย่างการแสดงผลจริง
+                {t.preview_tag}
               </Text>
             </View>
             <Text style={[styles.liveScaleBadge, { color: colors.muted, fontSize: 11 * scale }]}>
-              {Math.round(scale * 100)}% ขนาดมาตรฐาน
+              {Math.round(scale * 100)}% {t.preview_standard}
             </Text>
           </View>
 
@@ -542,39 +611,39 @@ export function SettingsScreen() {
             numberOfLines={2}
             style={[styles.liveHeadline, { color: colors.text, fontSize: 15 * scale }]}
           >
-            Google และ Apple ประกาศมาตรฐานใหม่สำหรับ AI ในสมาร์ตโฟน
+            {t.preview_headline}
           </Text>
           <Text
             numberOfLines={2}
             style={[styles.liveDesc, { color: colors.muted, fontSize: 12.5 * scale }]}
           >
-            เทคโนโลยีประมวลผลบนเครื่อง (On-Device AI) ช่วยให้การทำงานรวดเร็วขึ้น 40% และรักษาความปลอดภัยข้อมูล...
+            {t.preview_desc}
           </Text>
           <View style={styles.liveMetaRow}>
             <View style={[styles.liveDot, { backgroundColor: colors.primary }]} />
             <Text style={[styles.liveMetaText, { color: colors.muted, fontSize: 11 * scale }]}>
-              Blognone • 5 นาทีที่แล้ว • อ่าน 2 นาที
+              {t.preview_meta}
             </Text>
           </View>
         </View>
       </Section>
 
-      {/* 6. Section: การอ่านและการเปิดลิงก์ (Reading & Links) */}
+      {/* 7. Section: การอ่านและการเปิดลิงก์ (Reading & Links) */}
       <Section
         icon="book-open-outline"
         iconColor="#10B981"
         iconBg={isDark ? '#064E3B' : '#D1FAE5'}
-        title="การอ่านและการเปิดลิงก์"
-        subtitle="ตั้งค่าช่องทางการเปิดเนื้อหาข่าวฉบับเต็ม"
+        title={t.section_reading}
+        subtitle={t.section_reading_sub}
       >
         <Text style={[styles.fieldSubLabel, { color: colors.muted, fontSize: 12 * scale }]}>
-          ช่องทางการเปิดลิงก์ข่าวต้นฉบับ:
+          {t.link_channel_label}
         </Text>
         <View style={[styles.segmentedTrack, { backgroundColor: colors.surfaceVariant, marginBottom: 12 }]}>
           {(
             [
-              ['in_app', 'ในแอป (In-App WebView)', 'dock-window'],
-              ['external', 'เบราว์เซอร์ของเครื่อง', 'open-in-new'],
+              ['in_app', t.link_in_app, 'dock-window'],
+              ['external', t.link_external, 'open-in-new'],
             ] as const
           ).map(([linkKey, linkLabel, linkIcon]) => {
             const isSelected = (settings.linkOpenMode ?? 'in_app') === linkKey;
@@ -626,11 +695,11 @@ export function SettingsScreen() {
                 color={settings.dataSaverEnabled ? '#10B981' : colors.muted}
               />
               <Text style={[styles.rowItemTitle, { color: colors.text, fontSize: 14 * scale }]}>
-                โหมดประหยัดอินเทอร์เน็ต (Data Saver)
+                {t.data_saver_title}
               </Text>
             </View>
             <Text style={[styles.rowItemDesc, { color: colors.muted, fontSize: 11.5 * scale }]}>
-              ปิดการโหลดรูปภาพในหน้ารายการข่าวเพื่อประหยัด 3G/4G/5G และโหลดข่าวรวดเร็วขึ้น
+              {t.data_saver_desc}
             </Text>
           </View>
           <Switch
@@ -648,11 +717,11 @@ export function SettingsScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <MaterialCommunityIcons name="creation" size={19} color="#6366F1" />
                 <Text style={[styles.rowItemTitle, { color: colors.text, fontSize: 14 * scale }]}>
-                  โหมดอ่านแบบ AI (AI Smart Reader)
+                  {t.ai_reader_title}
                 </Text>
               </View>
               <Text style={[styles.rowItemDesc, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                แสดงสรุปประเด็นสำคัญและปุ่มอ่านออกเสียง AI ในหน้ารายละเอียดข่าว
+                {t.ai_reader_desc}
               </Text>
             </View>
             <Switch
@@ -665,14 +734,14 @@ export function SettingsScreen() {
         )}
       </Section>
 
-      {/* 7. Section: Supabase Cloud Sync (Controlled by remoteSettings.cloud_sync_enabled) */}
+      {/* 8. Section: Supabase Cloud Sync (Controlled by remoteSettings.cloud_sync_enabled) */}
       {remoteSettings.cloud_sync_enabled !== false && (
         <Section
           icon="cloud-sync-outline"
           iconColor="#0284C7"
           iconBg={isDark ? '#082F49' : '#E0F2FE'}
-          title="ระบบคลาวด์ (Supabase Cloud Sync)"
-          subtitle="ซิงค์และสำรองข้อมูลบุ๊กมาร์กข้ามเครื่องอัตโนมัติ"
+          title={t.section_cloud}
+          subtitle={t.section_cloud_sub}
         >
           <View
             style={[
@@ -697,12 +766,10 @@ export function SettingsScreen() {
             >
               <View style={{ flex: 1, marginRight: 12 }}>
                 <Text style={{ fontWeight: '700', color: colors.text, fontSize: 13.5 * scale }}>
-                  เปิดใช้งาน Supabase Cloud Sync
+                  {t.cloud_enable_title}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 11.5 * scale, marginTop: 2 }}>
-                  {isCloudSyncActive
-                    ? 'กำลังซิงค์และสำรองข้อมูลบุ๊กมาร์กข้ามเครื่องอัตโนมัติ'
-                    : 'ปิดอยู่ (บันทึกบุ๊กมาร์กเฉพาะในเครื่องนี้)'}
+                  {isCloudSyncActive ? t.cloud_active_desc : t.cloud_disabled_desc}
                 </Text>
               </View>
               <Switch
@@ -720,10 +787,10 @@ export function SettingsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.cloudStatusTitle, { color: colors.text, fontSize: 13 * scale }]}>
-                  เชื่อมต่อกับ Supabase Cloud เรียบร้อย
+                  {t.cloud_connected}
                 </Text>
                 <Text style={[styles.cloudStatusSub, { color: colors.muted, fontSize: 11 * scale }]}>
-                  ข้อมูลบุ๊กมาร์กจะถูกสำรองอย่างปลอดภัยโดยไม่ต้องล็อกอิน
+                  {t.cloud_secure_sub}
                 </Text>
               </View>
             </View>
@@ -738,7 +805,7 @@ export function SettingsScreen() {
               <MaterialCommunityIcons name="identifier" size={17} color={colors.primary} />
               <View style={{ flex: 1, marginHorizontal: 8 }}>
                 <Text style={[styles.deviceIdLabel, { color: colors.muted, fontSize: 10.5 * scale }]}>
-                  รหัสประจำเครื่อง (Device ID):
+                  {t.device_id_label}
                 </Text>
                 <Text
                   selectable
@@ -746,17 +813,17 @@ export function SettingsScreen() {
                   ellipsizeMode="middle"
                   style={[styles.deviceIdValue, { color: colors.text, fontSize: 12 * scale }]}
                 >
-                  {deviceId || 'กำลังตรวจสอบ...'}
+                  {deviceId || t.checking}
                 </Text>
               </View>
               <Pressable
                 hitSlop={8}
                 onPress={() => void handleShareDeviceId()}
                 style={[styles.sharePillBtn, { backgroundColor: colors.surface }]}
-                accessibilityLabel="แชร์หรือคัดลอก Device ID"
+                accessibilityLabel="Share Device ID"
               >
                 <MaterialCommunityIcons name="share-variant-outline" size={15} color={colors.primary} />
-                <Text style={[styles.sharePillText, { color: colors.primary, fontSize: 11 * scale }]}>แชร์</Text>
+                <Text style={[styles.sharePillText, { color: colors.primary, fontSize: 11 * scale }]}>{t.share}</Text>
               </Pressable>
             </View>
 
@@ -777,7 +844,7 @@ export function SettingsScreen() {
                   <>
                     <MaterialCommunityIcons name="cloud-sync-outline" size={17} color={colors.onPrimary} />
                     <Text style={[styles.cloudSyncActionBtnText, { color: colors.onPrimary, fontSize: 13 * scale }]}>
-                      ซิงค์ Cloud ({bookmarkCount})
+                      {`${t.sync_cloud} (${bookmarkCount})`}
                     </Text>
                   </>
                 )}
@@ -794,11 +861,11 @@ export function SettingsScreen() {
                     paddingHorizontal: 12,
                   },
                 ]}
-                accessibilityLabel="เพิ่มหรือเชื่อมต่อ Device ID อื่น"
+                accessibilityLabel="Connect other device"
               >
                 <MaterialCommunityIcons name="plus-circle-outline" size={17} color={colors.primary} />
                 <Text style={[styles.cloudSyncActionBtnText, { color: colors.text, fontSize: 13 * scale }]}>
-                  เชื่อมต่อเครื่องอื่น
+                  {t.connect_other_device}
                 </Text>
               </Pressable>
             </View>
@@ -806,19 +873,19 @@ export function SettingsScreen() {
         </Section>
       )}
 
-      {/* 8. Section: พื้นที่จัดเก็บและประวัติ (Storage & Data Management) */}
+      {/* 9. Section: พื้นที่จัดเก็บและประวัติ (Storage & Data Management) */}
       <Section
         icon="database-outline"
         iconColor="#EC4899"
         iconBg={isDark ? '#500724' : '#FCE7F3'}
-        title="พื้นที่จัดเก็บและประวัติการใช้งาน"
-        subtitle="จัดการข้อมูลแคช ประวัติการอ่าน และคำค้นหา"
+        title={t.section_storage}
+        subtitle={t.section_storage_sub}
       >
         {/* Metric Overview Badges */}
         <View style={styles.metricsGrid}>
           <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
             <MaterialCommunityIcons name="eye-check-outline" size={14} color="#3B82F6" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>อ่านแล้ว</Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_read}</Text>
             <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
               {readCount}
             </Text>
@@ -826,7 +893,7 @@ export function SettingsScreen() {
 
           <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
             <MaterialCommunityIcons name="history" size={14} color="#6366F1" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>คำค้นหา</Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_search}</Text>
             <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
               {historyCount}
             </Text>
@@ -834,7 +901,7 @@ export function SettingsScreen() {
 
           <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
             <MaterialCommunityIcons name="folder-text-outline" size={14} color="#F59E0B" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>แคชข่าว</Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_cache}</Text>
             <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
               {cacheCount}
             </Text>
@@ -842,7 +909,7 @@ export function SettingsScreen() {
 
           <View style={[styles.metricChip, { backgroundColor: isDark ? '#171B26' : '#F1F5F9' }]}>
             <MaterialCommunityIcons name="bookmark-outline" size={14} color="#EC4899" />
-            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>บันทึก</Text>
+            <Text style={[styles.metricChipLabel, { color: colors.muted, fontSize: 11 * scale }]}>{t.metric_bookmarks}</Text>
             <Text style={[styles.metricChipValue, { color: colors.text, fontSize: 13 * scale }]}>
               {bookmarkCount}
             </Text>
@@ -855,26 +922,26 @@ export function SettingsScreen() {
           <View style={[styles.storageRowItem, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
-                ประวัติการอ่านข่าว
+                {t.storage_read_title}
               </Text>
               <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                {readCount > 0 ? `${readCount} ข่าวที่ทำเครื่องหมายอ่านแล้ว` : 'ยังไม่มีประวัติการอ่าน'}
+                {readCount > 0 ? t.storage_read_has.replace('{count}', String(readCount)) : t.storage_read_empty}
               </Text>
             </View>
             <Pressable
               disabled={readCount === 0}
               onPress={() => {
                 Alert.alert(
-                  'ล้างประวัติการอ่านข่าว?',
-                  `คุณต้องการรีเซ็ตสถานะการอ่านข่าวทั้งหมด (${readCount} ข่าว) ใช่หรือไม่?`,
+                  t.storage_read_title,
+                  t.alert_confirm_reset_read.replace('{count}', String(readCount)),
                   [
-                    { text: 'ยกเลิก', style: 'cancel' },
+                    { text: t.btn_cancel, style: 'cancel' },
                     {
-                      text: 'รีเซ็ต',
+                      text: t.btn_reset,
                       style: 'destructive',
                       onPress: () => {
                         void clearReadArticles();
-                        Alert.alert('สำเร็จ', 'ล้างประวัติการอ่านข่าวเรียบร้อยแล้ว');
+                        Alert.alert(t.alert_success, t.alert_reset_read_success);
                       },
                     },
                   ],
@@ -887,7 +954,7 @@ export function SettingsScreen() {
               ]}
             >
               <Text style={[styles.tablePillBtnText, { color: colors.text, fontSize: 12 * scale }]}>
-                รีเซ็ต
+                {t.btn_reset}
               </Text>
             </Pressable>
           </View>
@@ -896,26 +963,26 @@ export function SettingsScreen() {
           <View style={[styles.storageRowItem, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
-                ประวัติการค้นหา
+                {t.storage_search_title}
               </Text>
               <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                {historyCount > 0 ? `${historyCount} คำค้นหาที่เคยพิมพ์ค้นไว้` : 'ไม่มีประวัติค้นหา'}
+                {historyCount > 0 ? t.storage_search_has.replace('{count}', String(historyCount)) : t.storage_search_empty}
               </Text>
             </View>
             <Pressable
               disabled={historyCount === 0}
               onPress={() => {
                 Alert.alert(
-                  'ล้างประวัติการค้นหา?',
-                  `คุณต้องการลบคำค้นหาทั้งหมด (${historyCount} คำ) ใช่หรือไม่?`,
+                  t.storage_search_title,
+                  t.alert_confirm_clear_search.replace('{count}', String(historyCount)),
                   [
-                    { text: 'ยกเลิก', style: 'cancel' },
+                    { text: t.btn_cancel, style: 'cancel' },
                     {
-                      text: 'ล้างคำค้นหา',
+                      text: t.btn_clear,
                       style: 'destructive',
                       onPress: () => {
                         clearSearchHistory();
-                        Alert.alert('สำเร็จ', 'ลบประวัติการค้นหาเรียบร้อยแล้ว');
+                        Alert.alert(t.alert_success, t.alert_clear_search_success);
                       },
                     },
                   ],
@@ -928,7 +995,7 @@ export function SettingsScreen() {
               ]}
             >
               <Text style={[styles.tablePillBtnText, { color: colors.text, fontSize: 12 * scale }]}>
-                ล้าง
+                {t.btn_clear}
               </Text>
             </Pressable>
           </View>
@@ -937,18 +1004,21 @@ export function SettingsScreen() {
           <View style={[styles.storageRowItem, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
-                แคชข่าวในเครื่อง
+                {t.storage_cache_title}
               </Text>
               <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                {cacheCount > 0 ? `${cacheCount} ข่าวที่โหลดเก็บไว้ในหน่วยความจำ` : 'ไม่มีแคช'}
+                {cacheCount > 0 ? t.storage_cache_has.replace('{count}', String(cacheCount)) : t.storage_cache_empty}
               </Text>
             </View>
             <Pressable
-              onPress={() => void clearNewsCache()}
+              onPress={() => {
+                void clearNewsCache();
+                Alert.alert(t.alert_success, t.alert_clear_cache_success);
+              }}
               style={[styles.tablePillBtn, { backgroundColor: colors.surfaceVariant }]}
             >
               <Text style={[styles.tablePillBtnText, { color: colors.text, fontSize: 12 * scale }]}>
-                ล้างแคช
+                {t.btn_clear_cache}
               </Text>
             </Pressable>
           </View>
@@ -957,14 +1027,14 @@ export function SettingsScreen() {
           <View style={[styles.storageRowItem, { borderBottomWidth: 0 }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.error, fontSize: 13.5 * scale }]}>
-                ล้างข่าวที่บันทึกไว้ทั้งหมด
+                {t.storage_bookmarks_title}
               </Text>
               <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
                 {bookmarkCount > 0
                   ? remoteSettings.cloud_sync_enabled !== false
-                    ? `ลบ ${bookmarkCount} ข่าวออกจากเครื่องและ Cloud`
-                    : `ลบ ${bookmarkCount} ข่าวออกจากเครื่อง`
-                  : 'ไม่มีบุ๊กมาร์ก'}
+                    ? t.storage_bookmarks_cloud_sub.replace('{count}', String(bookmarkCount))
+                    : t.storage_bookmarks_local_sub.replace('{count}', String(bookmarkCount))
+                  : t.storage_bookmarks_empty}
               </Text>
             </View>
             <Pressable
@@ -972,14 +1042,14 @@ export function SettingsScreen() {
               onPress={() => {
                 const message =
                   remoteSettings.cloud_sync_enabled !== false
-                    ? `ข่าวที่บันทึกไว้ทั้งหมด (${bookmarkCount} ข่าว) จะถูกลบออกจากเครื่องและ Supabase Cloud ถาวรและไม่สามารถย้อนกลับได้`
-                    : `ข่าวที่บันทึกไว้ทั้งหมด (${bookmarkCount} ข่าว) จะถูกลบออกจากเครื่องถาวรและไม่สามารถย้อนกลับได้`;
+                    ? t.alert_confirm_delete_bookmarks.replace('{count}', String(bookmarkCount))
+                    : t.alert_confirm_delete_bookmarks_local.replace('{count}', String(bookmarkCount));
                 Alert.alert(
-                  'ล้างข่าวที่บันทึกไว้?',
+                  t.storage_bookmarks_title,
                   message,
                   [
-                    { text: 'ยกเลิก', style: 'cancel' },
-                    { text: 'ลบทั้งหมด', style: 'destructive', onPress: clearBookmarks },
+                    { text: t.btn_cancel, style: 'cancel' },
+                    { text: t.btn_delete_all, style: 'destructive', onPress: clearBookmarks },
                   ],
                 );
               }}
@@ -990,20 +1060,20 @@ export function SettingsScreen() {
               ]}
             >
               <Text style={[styles.tablePillBtnDestructiveText, { color: colors.error, fontSize: 12 * scale }]}>
-                ลบทั้งหมด
+                {t.btn_delete_all}
               </Text>
             </Pressable>
           </View>
         </View>
       </Section>
 
-      {/* 9. Section: ช่วยเหลือและข้อกำหนด (Support & Legal) */}
+      {/* 10. Section: ช่วยเหลือและข้อกำหนด (Support & Legal) */}
       <Section
         icon="shield-check-outline"
         iconColor="#6366F1"
         iconBg={isDark ? '#1E1B4B' : '#EEF2FF'}
-        title="ช่วยเหลือและข้อกำหนด (Support & Legal)"
-        subtitle="ข้อเสนอแนะ นโยบายความเป็นส่วนตัว และช่องทางติดต่อ"
+        title={t.section_support}
+        subtitle={t.section_support_sub}
       >
         <View style={styles.linkListWrap}>
           {/* Feedback Modal trigger */}
@@ -1015,7 +1085,7 @@ export function SettingsScreen() {
               <MaterialCommunityIcons name="message-draw" size={17} color="#8B5CF6" />
             </View>
             <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-              ส่งข้อเสนอแนะ / แจ้งข่าวมีปัญหา
+              {t.feedback_menu}
             </Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
           </Pressable>
@@ -1030,7 +1100,7 @@ export function SettingsScreen() {
                 <MaterialCommunityIcons name="star-outline" size={17} color="#F59E0B" />
               </View>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-                ให้คะแนนแอปบน Google Play
+                {t.rate_app_menu}
               </Text>
               <MaterialCommunityIcons name="open-in-new" size={16} color={colors.muted} />
             </Pressable>
@@ -1047,7 +1117,7 @@ export function SettingsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-                  ติดต่อทีมงานผู้พัฒนา
+                  {t.contact_dev_menu}
                 </Text>
                 <Text style={[styles.linkItemSub, { color: colors.muted, fontSize: 11 * scale }]}>
                   {remoteSettings.support_email}
@@ -1067,7 +1137,7 @@ export function SettingsScreen() {
                 <MaterialCommunityIcons name="shield-check-outline" size={17} color="#10B981" />
               </View>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-                นโยบายความเป็นส่วนตัว (Privacy Policy)
+                {t.privacy_menu}
               </Text>
               <MaterialCommunityIcons name="open-in-new" size={16} color={colors.muted} />
             </Pressable>
@@ -1083,7 +1153,7 @@ export function SettingsScreen() {
                 <MaterialCommunityIcons name="file-document-outline" size={17} color="#64748B" />
               </View>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-                ข้อกำหนดการใช้งาน (Terms of Service)
+                {t.terms_menu}
               </Text>
               <MaterialCommunityIcons name="open-in-new" size={16} color={colors.muted} />
             </Pressable>
@@ -1099,7 +1169,7 @@ export function SettingsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-                {`แหล่งข่าวต้นฉบับ ${remoteSettings.rss_source_name || 'Blognone'} RSS`}
+                {t.source_rss_menu}
               </Text>
               <Text style={[styles.linkItemSub, { color: colors.muted, fontSize: 11 * scale }]}>
                 {remoteSettings.rss_source_url || FEED_URL}
@@ -1119,7 +1189,7 @@ export function SettingsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.linkItemLabel, { color: colors.text, fontSize: 13.5 * scale }]}>
-                  ชุมชนและเว็บไซต์ผู้พัฒนา
+                  {t.contact_dev_menu}
                 </Text>
                 <Text style={[styles.linkItemSub, { color: colors.muted, fontSize: 11 * scale }]}>
                   {remoteSettings.contact_custom_url}
@@ -1131,10 +1201,10 @@ export function SettingsScreen() {
         </View>
       </Section>
 
-      {/* 10. Footer Credit */}
+      {/* 11. Footer Credit */}
       <View style={styles.footerWrap}>
         <Text style={[styles.footerText, { color: colors.muted, fontSize: 12 * scale }]}>
-          TechThaiNews v{remoteSettings.latest_version || '1.0.0'} • ออกแบบเพื่อคนรักไอที
+          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.0')}
         </Text>
       </View>
 
@@ -1148,20 +1218,20 @@ export function SettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>ส่งข้อเสนอแนะ / แจ้งปัญหา</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t.feedback_modal_title}</Text>
               <Pressable hitSlop={8} onPress={() => setIsFeedbackModalVisible(false)}>
                 <MaterialCommunityIcons name="close" size={24} color={colors.muted} />
               </Pressable>
             </View>
 
             {/* Category selection chips */}
-            <Text style={[styles.inputLabel, { color: colors.muted }]}>หมวดหมู่ข้อเสนอแนะ</Text>
+            <Text style={[styles.inputLabel, { color: colors.muted }]}>{t.feedback_modal_sub}</Text>
             <View style={styles.categoryRow}>
               {(
                 [
-                  ['general', 'ข้อเสนอแนะ'],
-                  ['bug', 'แจ้งปัญหา/ข่าวเสีย'],
-                  ['suggest_feed', 'แนะนำฟีดข่าว'],
+                  ['general', t.feedback_cat_general],
+                  ['bug', t.feedback_cat_bug],
+                  ['suggest_feed', t.feedback_cat_suggest],
                 ] as const
               ).map(([catKey, catLabel]) => (
                 <Pressable
@@ -1189,7 +1259,7 @@ export function SettingsScreen() {
             </View>
 
             {/* Message input */}
-            <Text style={[styles.inputLabel, { color: colors.muted }]}>รายละเอียด *</Text>
+            <Text style={[styles.inputLabel, { color: colors.muted }]}>{t.feedback_placeholder}</Text>
             <TextInput
               style={[
                 styles.textArea,
@@ -1201,14 +1271,14 @@ export function SettingsScreen() {
               ]}
               multiline
               numberOfLines={4}
-              placeholder="ระบุข้อความหรือปัญหาที่พบ..."
+              placeholder={t.feedback_placeholder}
               placeholderTextColor={colors.muted}
               value={feedbackMessage}
               onChangeText={setFeedbackMessage}
             />
 
             {/* Contact input */}
-            <Text style={[styles.inputLabel, { color: colors.muted }]}>ข้อมูลติดต่อกลับ (อีเมล ไม่บังคับ)</Text>
+            <Text style={[styles.inputLabel, { color: colors.muted }]}>{t.feedback_contact_label}</Text>
             <TextInput
               style={[
                 styles.textInput,
@@ -1218,7 +1288,7 @@ export function SettingsScreen() {
                   borderColor: colors.border,
                 },
               ]}
-              placeholder="example@gmail.com"
+              placeholder={t.feedback_contact_placeholder}
               placeholderTextColor={colors.muted}
               value={feedbackContact}
               onChangeText={setFeedbackContact}
@@ -1240,7 +1310,7 @@ export function SettingsScreen() {
                 <ActivityIndicator color={colors.onPrimary} size="small" />
               ) : (
                 <Text style={[styles.submitModalBtnText, { color: colors.onPrimary }]}>
-                  ส่งข้อมูลไปยังทีมงาน
+                  {t.btn_submit}
                 </Text>
               )}
             </Pressable>
@@ -1260,7 +1330,7 @@ export function SettingsScreen() {
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <MaterialCommunityIcons name="cloud-download-outline" size={22} color={colors.primary} />
-                <Text style={[styles.modalTitle, { color: colors.text }]}>เชื่อมต่อ Device ID อื่น</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t.modal_link_title}</Text>
               </View>
               <Pressable hitSlop={8} onPress={() => setIsImportModalVisible(false)}>
                 <MaterialCommunityIcons name="close" size={24} color={colors.muted} />
@@ -1268,10 +1338,10 @@ export function SettingsScreen() {
             </View>
 
             <Text style={[styles.fieldSubLabel, { color: colors.muted, marginBottom: 12, lineHeight: 18 }]}>
-              นำเข้าข่าวที่บันทึกไว้จากเครื่องอื่น หรือกู้คืนบุ๊กมาร์กโดยกรอก Device ID ของเครื่องต้นทาง
+              {t.modal_link_sub}
             </Text>
 
-            <Text style={[styles.inputLabel, { color: colors.muted }]}>รหัสประจำเครื่องต้นทาง (Device ID) *</Text>
+            <Text style={[styles.inputLabel, { color: colors.muted }]}>{t.modal_link_label}</Text>
             <TextInput
               style={[
                 styles.textInput,
@@ -1282,7 +1352,7 @@ export function SettingsScreen() {
                   height: 48,
                 },
               ]}
-              placeholder="เช่น d1e2f3a4-..."
+              placeholder="e.g. d1e2f3a4-..."
               placeholderTextColor={colors.muted}
               value={targetDeviceId}
               onChangeText={setTargetDeviceId}
@@ -1303,7 +1373,7 @@ export function SettingsScreen() {
                 <ActivityIndicator color={colors.onPrimary} size="small" />
               ) : (
                 <Text style={[styles.submitModalBtnText, { color: colors.onPrimary }]}>
-                  ดึงและนำเข้าบุ๊กมาร์ก
+                  {t.btn_import}
                 </Text>
               )}
             </Pressable>
@@ -1500,6 +1570,16 @@ const styles = StyleSheet.create({
   },
   segmentedText: {
     textAlign: 'center',
+  },
+  languageIndicatorRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingTop: 4,
+  },
+  languageIndicatorText: {
+    fontWeight: '500',
   },
 
   /* Live Preview Card */

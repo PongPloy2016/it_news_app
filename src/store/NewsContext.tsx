@@ -28,11 +28,13 @@ import {
   AppSettings,
   CardLayoutOption,
   FontSizeOption,
+  LanguageOption,
   LinkOpenMode,
   NewsArticle,
   RemoteAppSettings,
   ThemeMode,
 } from '../types';
+import { resolveLanguage, translations } from '../i18n';
 
 const defaultSettings: AppSettings = {
   themeMode: 'system',
@@ -42,6 +44,7 @@ const defaultSettings: AppSettings = {
   linkOpenMode: 'in_app',
   dataSaverEnabled: false,
   cloudSyncEnabled: true,
+  language: 'system',
 };
 
 interface NewsContextValue {
@@ -82,6 +85,10 @@ interface NewsContextValue {
   setLinkOpenMode: (mode: LinkOpenMode) => void;
   setDataSaverEnabled: (enabled: boolean) => void;
   setCloudSyncEnabled: (enabled: boolean) => void;
+  language: LanguageOption;
+  resolvedLanguage: 'th' | 'en';
+  setLanguage: (lang: LanguageOption) => void;
+  t: typeof translations.th;
   readArticles: Record<string, number>;
   markAsRead: (articleId: string) => void;
   markAllAsRead: () => void;
@@ -200,6 +207,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
             aiReaderEnabled: cachedSettings.aiReaderEnabled ?? true,
             linkOpenMode: cachedSettings.linkOpenMode ?? 'in_app',
             dataSaverEnabled: cachedSettings.dataSaverEnabled ?? false,
+            language: cachedSettings.language ?? 'system',
           });
         }
         if (cachedUpdated) setLastUpdated(cachedUpdated);
@@ -614,6 +622,10 @@ export function NewsProvider({ children }: PropsWithChildren) {
       setLinkOpenMode: (linkOpenMode) => updateSettings({ ...settings, linkOpenMode }),
       setDataSaverEnabled: (dataSaverEnabled) => updateSettings({ ...settings, dataSaverEnabled }),
       setCloudSyncEnabled: (cloudSyncEnabled) => updateSettings({ ...settings, cloudSyncEnabled }),
+      language: settings.language ?? 'system',
+      resolvedLanguage: resolveLanguage(settings.language),
+      setLanguage: (language: LanguageOption) => updateSettings({ ...settings, language }),
+      t: translations[resolveLanguage(settings.language)],
       isCloudSyncActive,
       readArticles,
       markAsRead,
