@@ -15,4 +15,4 @@ export const PROXY_URL = process.env.EXPO_PUBLIC_RSS_PROXY_URL || '';
 export const FEED_URL_OVERRIDE = process.env.EXPO_PUBLIC_RSS_FEED_URL || '';
 export const BLOGNONE_HOME = 'https://www.blognone.com';
 export const DEFAULT_PAGE_SIZE = 10;
-export const MAX_CONCURRENT_FEEDS = 5;
+export const MAX_CONCURRENT_FEEDS = 8;
