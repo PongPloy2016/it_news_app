@@ -7,7 +7,7 @@ export function resolveFeedUrl(feedUrl: string): string {
   return `${PROXY_URL}${PROXY_URL.includes('?') ? '&' : '?'}url=${encoded}`;
 }
 
-export async function fetchFeedXml(feedUrl: string, timeoutMs: number = 10000): Promise<string> {
+export async function fetchFeedXml(feedUrl: string, timeoutMs: number = 6000): Promise<string> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 

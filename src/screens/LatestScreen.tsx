@@ -165,6 +165,12 @@ export function LatestScreen() {
           setIsSectionsLoading(false);
           setLoadProgress(0.85);
           setLoadingStageText('โหลดข้อมูลแคชเรียบร้อยแล้ว');
+        } else if (isMounted && articles.length > 0) {
+          // Instant warm start from preloaded articles if first launch
+          setCategorySections({ 'tech-business': articles });
+          setIsSectionsLoading(false);
+          setLoadProgress(0.4);
+          setLoadingStageText('แสดงข่าวล่าสุดเบื้องต้น...');
         }
 
         if (feedGroups.length > 0) {
@@ -176,6 +182,15 @@ export function LatestScreen() {
                 if (label) {
                   setLoadingStageText(`กำลังโหลด${label}...`);
                 }
+              }
+            },
+            (categoryKey, catArticles) => {
+              if (isMounted && catArticles.length > 0) {
+                setCategorySections((prev) => ({
+                  ...prev,
+                  [categoryKey]: catArticles,
+                }));
+                setIsSectionsLoading(false);
               }
             }
           );
@@ -195,6 +210,14 @@ export function LatestScreen() {
       isMounted = false;
     };
   }, [feedGroups]);
+
+  // Immediate warm start: if articles load into context while categorySections is empty, unblock immediately
+  useEffect(() => {
+    if (articles.length > 0 && Object.keys(categorySections).length === 0) {
+      setCategorySections({ 'tech-business': articles });
+      setIsSectionsLoading(false);
+    }
+  }, [articles, categorySections]);
 
   // Enrich home articles without images with real OpenGraph thumbnails from web
   const enrichedHomeIdsRef = useRef<Set<string>>(new Set());
@@ -282,6 +305,14 @@ export function LatestScreen() {
               setLoadProgress(0.15 + ratio * 0.85);
               if (label) {
                 setLoadingStageText(`กำลังอัปเดต${label}...`);
+              }
+            },
+            (categoryKey, catArticles) => {
+              if (catArticles.length > 0) {
+                setCategorySections((prev) => ({
+                  ...prev,
+                  [categoryKey]: catArticles,
+                }));
               }
             }
           );

@@ -1,114 +1,59 @@
-import he from 'he';
 import { FeedGroup } from '../config/categories';
 import { articleRepository } from '../data/database/articles';
+import { dedupeAndSortArticles } from '../data/rss/dedupe';
 import { feedService } from './feedService';
 import { NewsArticle } from '../types';
-import { extractImage, sanitizeImageUrl } from '../utils/content';
-import { getDiverseArticleImage } from '../utils/articleVisuals';
-
-const PHP_CACHE_BASE = 'https://pongploydev.infinityfree.me/PHP-source-nearby/home/cache';
-const TIMEOUT_MS = 6000;
-
-interface PhpJsonItem {
-  id?: string;
-  title?: string;
-  link?: string;
-  description?: string;
-  full_text?: string;
-  raw_content?: string;
-  image?: string;
-  author?: string;
-  source_key?: string;
-  source_label?: string;
-  group_key?: string;
-  pub_date?: number;
-  pub_datetime_thai?: string;
-  pub_date_thai?: string;
-  time_ago?: string;
-  reading_time?: string;
-  is_new?: boolean;
-}
 
 export class HomeSectionsService {
   /**
-   * Fetch articles for a single category group, preferring the pre-computed PHP JSON cache
-   * and falling back to feedService aggregate feed if unavailable.
+   * Fetch articles for a single category group, preferring high-speed primary feeds
+   * and falling back to cached articles if network is unavailable.
    */
-  async fetchCategoryArticles(group: FeedGroup): Promise<NewsArticle[]> {
-    // 1. Try fetching from user's PHP JSON cache
+  async fetchCategoryArticles(group: FeedGroup, fastMode: boolean = true): Promise<NewsArticle[]> {
+    // 1. Fetch from feedService using primary child sources
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const validSources = group.sources.filter(
+        (s) => s.type !== 'aggregate' && s.type !== 'html'
+      );
 
-      const response = await fetch(`${PHP_CACHE_BASE}/rss_${group.key}.json`, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (TechThaiApp)',
-        },
-      });
+      // In fastMode (e.g. Home Editorial Overview), fetch top 2 primary feeds instead of 5+ feeds
+      const sourcesToFetch = fastMode && validSources.length > 2
+        ? validSources.slice(0, 2)
+        : validSources;
 
-      clearTimeout(timeoutId);
+      if (sourcesToFetch.length > 0) {
+        const results = await Promise.allSettled(
+          sourcesToFetch.map((s) => feedService.fetchFeed(s, 1))
+        );
 
-      if (response.ok) {
-        const text = await response.text();
-        // InfinityFree or proxies sometimes return HTML splash if blocked
-        if (text && text.trim().startsWith('[')) {
-          const rawItems = JSON.parse(text) as PhpJsonItem[];
-          if (Array.isArray(rawItems) && rawItems.length > 0) {
-            const parsedArticles: NewsArticle[] = rawItems.map((item) => {
-              const rawTitle = item.title ? he.decode(item.title) : 'ไม่มีหัวข้อ';
-              const rawDesc = item.description ? he.decode(item.description) : '';
-              const rawContent = item.full_text || item.raw_content || rawDesc;
-
-              let author = item.source_label || item.author || group.label;
-              if (item.source_label && item.author && !item.author.includes(item.source_label)) {
-                author = `${item.source_label} · ${item.author}`;
-              }
-
-              const directOrExtracted = extractImage(
-                item.image,
-                item.raw_content,
-                item.description,
-                item.full_text
-              );
-
-              return {
-                id: item.id || `php-${group.key}-${Math.random().toString(36).substring(2, 9)}`,
-                title: rawTitle,
-                link: item.link || 'https://techthainews.app',
-                description: rawDesc,
-                content: rawContent,
-                imageUrl: sanitizeImageUrl(directOrExtracted),
-                author,
-                publishedAt: item.pub_datetime_thai || item.pub_date_thai,
-                publishedMillis: item.pub_date ? item.pub_date * 1000 : Date.now(),
-                readingTime: item.reading_time ? parseInt(item.reading_time, 10) || 3 : 3,
-              };
-            });
-
-            feedService.registerArticles(parsedArticles);
-            return parsedArticles;
+        const merged: NewsArticle[] = [];
+        for (const res of results) {
+          if (res.status === 'fulfilled' && Array.isArray(res.value) && res.value.length > 0) {
+            merged.push(...res.value);
           }
+        }
+
+        if (merged.length > 0) {
+          const sorted = dedupeAndSortArticles(merged);
+          void articleRepository.saveCachedFeedArticles(group.key, sorted);
+          return sorted;
         }
       }
     } catch {
-      // PHP cache unreachable or timed out, fallback to local feedService
+      // Feed fetch failed, fallback below
     }
 
-    // 2. Fallback to aggregate / child feeds via feedService
+    // 2. Fallback to aggregate feed if direct fetch didn't return articles
     try {
       const aggregateSource = group.sources.find((s) => s.type === 'aggregate') || group.sources[0];
       if (aggregateSource) {
         const fetched = await feedService.fetchFeed(aggregateSource, 2);
-        if (fetched.length > 0) {
+        if (fetched && fetched.length > 0) {
           void articleRepository.saveCachedFeedArticles(group.key, fetched);
           return fetched;
         }
       }
-    } catch {
-      // local feed fallback failed
-    }
+    } catch {}
 
     // 3. Fallback to persistent offline cache if network is unavailable
     try {
@@ -116,43 +61,61 @@ export class HomeSectionsService {
       if (offlineCached && offlineCached.length > 0) {
         return offlineCached;
       }
-    } catch {
-      // offline cache read failed
-    }
+    } catch {}
 
     return [];
   }
 
   /**
-   * Fetch all category sections concurrently with progress callback
+   * Fetch all category sections concurrently with real-time streaming callback
    */
   async fetchAllCategorySections(
     groups: FeedGroup[],
-    onProgress?: (progressRatio: number, lastGroupLabel?: string) => void
+    onProgress?: (progressRatio: number, lastGroupLabel?: string) => void,
+    onCategoryLoaded?: (categoryKey: string, articles: NewsArticle[]) => void
   ): Promise<Record<string, NewsArticle[]>> {
     let completedCount = 0;
     const totalCount = groups.length;
+    const map: Record<string, NewsArticle[]> = {};
+
+    // Sort: Fetch top 3 visible priority categories first, then rest in parallel
+    const priorityKeys = new Set(['tech-business', 'international', 'thai-news', 'mobile']);
+    const sortedGroups = [...groups].sort((a, b) => {
+      const aPri = priorityKeys.has(a.key) ? 1 : 0;
+      const bPri = priorityKeys.has(b.key) ? 1 : 0;
+      return bPri - aPri;
+    });
 
     const results = await Promise.allSettled(
-      groups.map(async (group) => {
-        const articles = await this.fetchCategoryArticles(group);
+      sortedGroups.map(async (group) => {
+        const articles = await this.fetchCategoryArticles(group, true);
         completedCount++;
+
+        if (articles && articles.length > 0) {
+          map[group.key] = articles;
+          if (onCategoryLoaded) {
+            onCategoryLoaded(group.key, articles);
+          }
+          // Save incrementally to storage so cache stays warm
+          void articleRepository.saveCachedFeedArticles(group.key, articles);
+        }
+
         if (onProgress) {
           const ratio = totalCount > 0 ? completedCount / totalCount : 1;
           onProgress(ratio, group.label);
         }
+
         return { key: group.key, articles };
       })
     );
 
-    const map: Record<string, NewsArticle[]> = {};
     for (const res of results) {
-      if (res.status === 'fulfilled' && res.value) {
+      if (res.status === 'fulfilled' && res.value && res.value.articles.length > 0) {
         map[res.value.key] = res.value.articles;
       }
     }
 
-    // Save to cache in background
+    // Save all loaded sections to cache in background
     if (Object.keys(map).length > 0) {
       void articleRepository.saveCachedCategoryArticles(map);
     }
