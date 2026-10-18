@@ -29,7 +29,7 @@
         "resizeMode": "contain",
         "backgroundColor": "#0B132B"
       },
-      "versionCode": 6,
+      "versionCode": 7,
       "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "usesCleartextTraffic": true
