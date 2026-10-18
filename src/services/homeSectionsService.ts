@@ -1,4 +1,5 @@
 import { FeedGroup } from '../config/categories';
+import { getCategoryVisual } from '../config/categoryVisuals';
 import { articleRepository } from '../data/database/articles';
 import { dedupeAndSortArticles } from '../data/rss/dedupe';
 import { feedService } from './feedService';
@@ -34,7 +35,14 @@ export class HomeSectionsService {
         }
 
         if (merged.length > 0) {
-          const sorted = dedupeAndSortArticles(merged);
+          const cachedBefore = await articleRepository.getCachedFeedArticles(group.key);
+          const knownImages = new Map(
+            (cachedBefore || []).filter((a) => a.imageUrl).map((a) => [a.id, a.imageUrl]),
+          );
+          const sorted = dedupeAndSortArticles(merged).map((a) => ({
+            ...a,
+            imageUrl: a.imageUrl ?? knownImages.get(a.id),
+          }));
           void articleRepository.saveCachedFeedArticles(group.key, sorted);
           return sorted;
         }
@@ -49,8 +57,16 @@ export class HomeSectionsService {
       if (aggregateSource) {
         const fetched = await feedService.fetchFeed(aggregateSource, 2);
         if (fetched && fetched.length > 0) {
-          void articleRepository.saveCachedFeedArticles(group.key, fetched);
-          return fetched;
+          const cachedBefore = await articleRepository.getCachedFeedArticles(group.key);
+          const knownImages = new Map(
+            (cachedBefore || []).filter((a) => a.imageUrl).map((a) => [a.id, a.imageUrl]),
+          );
+          const preserved = fetched.map((a) => ({
+            ...a,
+            imageUrl: a.imageUrl ?? knownImages.get(a.id),
+          }));
+          void articleRepository.saveCachedFeedArticles(group.key, preserved);
+          return preserved;
         }
       }
     } catch {}
@@ -171,17 +187,50 @@ export class HomeSectionsService {
 
   /**
    * Extract headlines for Flash Dispatch ticker
+   * Selects newest articles across all categories in a balanced round-robin
+   * to ensure diverse coverage of 20 fresh articles from every category.
    */
-  getFlashTickerArticles(categoryMap: Record<string, NewsArticle[]>): NewsArticle[] {
-    const allArticles = Object.values(categoryMap).flat();
+  getFlashTickerArticles(
+    categoryMap: Record<string, NewsArticle[]>,
+    limit: number = 20,
+  ): NewsArticle[] {
+    const categories = Object.keys(categoryMap);
+    if (categories.length === 0) return [];
+
+    // Sort each category by newest first
+    const categoryQueues = new Map<string, NewsArticle[]>();
+    for (const cat of categories) {
+      const articles = (categoryMap[cat] || []).filter((a) => a && a.id && a.title);
+      const sorted = [...articles].sort(
+        (a, b) => (b.publishedMillis ?? 0) - (a.publishedMillis ?? 0),
+      );
+      categoryQueues.set(cat, sorted);
+    }
+
     const seen = new Set<string>();
     const list: NewsArticle[] = [];
 
-    for (const article of allArticles) {
-      if (article && article.id && !seen.has(article.id)) {
-        seen.add(article.id);
-        list.push(article);
-        if (list.length >= 10) break;
+    // Round-robin: take the newest unused article from each category iteratively
+    let hasMore = true;
+    while (hasMore && list.length < limit) {
+      hasMore = false;
+      for (const cat of categories) {
+        if (list.length >= limit) break;
+        const queue = categoryQueues.get(cat);
+        if (queue && queue.length > 0) {
+          hasMore = true;
+          while (queue.length > 0) {
+            const candidate = queue.shift()!;
+            if (!seen.has(candidate.id)) {
+              seen.add(candidate.id);
+              // Ensure article has category label if author is missing
+              const visual = getCategoryVisual(cat);
+              const author = candidate.author?.trim() || visual.shortLabel;
+              list.push({ ...candidate, author });
+              break;
+            }
+          }
+        }
       }
     }
 

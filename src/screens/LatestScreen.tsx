@@ -26,6 +26,8 @@ import { FlashDispatchTicker } from '../components/home/FlashDispatchTicker';
 import { HeroShowcase } from '../components/home/HeroShowcase';
 import { CategoryQuickNav } from '../components/home/CategoryQuickNav';
 import { CategorySectionBlock } from '../components/home/CategorySectionBlock';
+import { articleRepository } from '../data/database/articles';
+import { feedService } from '../services/feedService';
 import { homeSectionsService } from '../services/homeSectionsService';
 import { imageService } from '../services/imageService';
 import { useNews } from '../store/NewsContext';
@@ -225,7 +227,7 @@ export function LatestScreen() {
     const allArticles = Object.values(categorySections).flat();
     const needImages = allArticles
       .filter((a) => !a.imageUrl && !enrichedHomeIdsRef.current.has(a.id))
-      .slice(0, 15);
+      .slice(0, 20);
 
     if (needImages.length === 0) return;
 
@@ -248,7 +250,12 @@ export function LatestScreen() {
             return item;
           });
         }
-        return hasChange ? next : prev;
+        if (hasChange) {
+          void articleRepository.saveCachedCategoryArticles(next);
+          feedService.registerArticles(Array.from(updatedMap.values()));
+          return next;
+        }
+        return prev;
       });
     });
   }, [categorySections]);
@@ -314,9 +321,26 @@ export function LatestScreen() {
                   [categoryKey]: catArticles,
                 }));
               }
-            }
+            },
           );
-          setCategorySections(fresh);
+          // Preserve previously known article images
+          setCategorySections((prev) => {
+            const prevKnown = new Map(
+              Object.values(prev)
+                .flat()
+                .filter((a) => a.imageUrl)
+                .map((a) => [a.id, a.imageUrl]),
+            );
+            const preserved: Record<string, NewsArticle[]> = {};
+            for (const [k, list] of Object.entries(fresh)) {
+              preserved[k] = list.map((a) => ({
+                ...a,
+                imageUrl: a.imageUrl ?? prevKnown.get(a.id),
+              }));
+            }
+            void articleRepository.saveCachedCategoryArticles(preserved);
+            return preserved;
+          });
           setLoadProgress(1);
         }
       })(),
@@ -414,7 +438,7 @@ export function LatestScreen() {
   }, [categorySections, heroIds]);
 
   const tickerArticles = useMemo(() => {
-    return homeSectionsService.getFlashTickerArticles(categorySections);
+    return homeSectionsService.getFlashTickerArticles(categorySections, 20);
   }, [categorySections]);
 
   const totalAllArticlesCount = useMemo(() => {

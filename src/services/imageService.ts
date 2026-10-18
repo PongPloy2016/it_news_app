@@ -46,9 +46,21 @@ export async function resolveGoogleNewsUrl(googleUrl: string): Promise<string | 
   }
 }
 
+const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36';
+
+const FETCH_HEADERS = {
+  'User-Agent': BROWSER_USER_AGENT,
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7',
+};
+
 export const imageService = {
   async fetchArticleImagesFromLink(link: string): Promise<string[]> {
     if (!link || !/^https?:\/\//i.test(link)) return [];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+
     try {
       let targetUrl = link;
       if (targetUrl.includes('news.google.com/rss/articles/')) {
@@ -59,15 +71,16 @@ export const imageService = {
       }
 
       const response = await fetch(targetUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ITNewsApp/1.0)',
-        },
+        signal: controller.signal,
+        headers: FETCH_HEADERS,
       });
       if (!response.ok) return [];
       const html = await response.text();
       return extractArticleImagesFromHtml(html, targetUrl);
     } catch {
       return [];
+    } finally {
+      clearTimeout(timeoutId);
     }
   },
 
@@ -81,8 +94,11 @@ export const imageService = {
 
     let current = [...articles];
 
-    await Promise.all(
+    await Promise.allSettled(
       pending.map(async (article) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7000);
+
         try {
           let targetUrl = article.link;
           if (targetUrl.includes('news.google.com/rss/articles/')) {
@@ -93,12 +109,13 @@ export const imageService = {
           }
 
           const response = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ITNewsApp/1.0)' },
+            signal: controller.signal,
+            headers: FETCH_HEADERS,
           });
           if (!response.ok) return;
 
           const html = await response.text();
-          const imageUrl = extractOgImage(html);
+          const imageUrl = extractOgImage(html, targetUrl);
           const videoUrl = !article.videoUrl ? extractVideoUrl(html) : undefined;
           if (!imageUrl && !videoUrl && targetUrl === article.link) return;
 
@@ -107,7 +124,7 @@ export const imageService = {
               ? {
                   ...item,
                   ...(targetUrl !== article.link ? { link: targetUrl } : {}),
-                  ...(imageUrl && !sanitizeImageUrl(item.imageUrl) ? { imageUrl } : {}),
+                  ...(imageUrl ? { imageUrl } : {}),
                   ...(videoUrl && !item.videoUrl ? { videoUrl } : {}),
                 }
               : item,
@@ -115,6 +132,8 @@ export const imageService = {
           onUpdate(current);
         } catch {
           // Best effort image enrichment
+        } finally {
+          clearTimeout(timeoutId);
         }
       }),
     );

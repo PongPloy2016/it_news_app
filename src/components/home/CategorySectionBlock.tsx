@@ -39,7 +39,7 @@ export function CategorySectionBlock({
 }: Props) {
   const { colors, scale, bookmarks, toggleBookmark, isDark } = useNews();
   const visual = getCategoryVisual(group.key, group.label, group.color);
-  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
   const [displayLimit, setDisplayLimit] = useState(4);
 
   const displayArticles = articles.slice(0, displayLimit);
@@ -49,10 +49,12 @@ export function CategorySectionBlock({
   if (displayArticles.length === 0) return null;
 
   const getImageUrl = (article: NewsArticle) => {
-    if (imageErrors[article.id]) {
-      return getDiverseArticleImage({ ...article, imageUrl: undefined }, group.key);
+    const errorCount = imageErrors[article.id] || 0;
+    if (errorCount === 0) {
+      const direct = sanitizeImageUrl(article.imageUrl);
+      if (direct) return direct;
     }
-    return getDiverseArticleImage(article, group.key);
+    return getDiverseArticleImage(article, group.key, errorCount);
   };
 
   const getEnglishBadgeText = (key: string): string => {
@@ -147,15 +149,24 @@ export function CategorySectionBlock({
               ]}
             >
               {/* Card Thumbnail Wrap with Badges */}
-              <View style={styles.mediaWrap}>
-                <Image
-                  source={{ uri: imgUri }}
-                  style={styles.cardImage}
-                  resizeMode="cover"
-                  onError={() =>
-                    setImageErrors((prev) => ({ ...prev, [article.id]: true }))
-                  }
-                />
+              <View style={[styles.mediaWrap, { backgroundColor: colors.surfaceVariant }]}>
+                {(imageErrors[article.id] || 0) >= 3 ? (
+                  <View style={[styles.cardImage, styles.cardFallbackWrap, { backgroundColor: colors.surfaceVariant }]}>
+                    <MaterialCommunityIcons name={visual.icon} size={28 * scale} color={group.color} />
+                  </View>
+                ) : (
+                  <Image
+                    source={{ uri: imgUri }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                    onError={() =>
+                      setImageErrors((prev) => ({
+                        ...prev,
+                        [article.id]: (prev[article.id] || 0) + 1,
+                      }))
+                    }
+                  />
+                )}
                 {/* Floating Category Pill */}
                 <View style={[styles.floatingPill, { backgroundColor: group.color }]}>
                   <Text numberOfLines={1} style={[styles.floatingPillText, { fontSize: 8.5 * scale }]}>
@@ -385,5 +396,9 @@ const styles = StyleSheet.create({
   },
   loadMoreText: {
     fontWeight: '700',
+  },
+  cardFallbackWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

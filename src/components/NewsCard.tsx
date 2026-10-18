@@ -11,6 +11,7 @@ import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { CardLayoutOption, NewsArticle } from '../types';
 import { formatRelative, sanitizeImageUrl } from '../utils/content';
+import { getDiverseArticleImage } from '../utils/articleVisuals';
 
 interface Props {
   article: NewsArticle;
@@ -31,7 +32,9 @@ export function NewsCard({
   const { colors, scale, settings, isArticleNew, isArticleFresh, isArticleRead } =
     useNews();
   const [imageError, setImageError] = useState(false);
-  const displayImageUrl = !settings.dataSaverEnabled && !imageError ? sanitizeImageUrl(article.imageUrl) : undefined;
+  const rawImageUrl = sanitizeImageUrl(article.imageUrl);
+  const fallbackImageUrl = !settings.dataSaverEnabled ? getDiverseArticleImage(article) : undefined;
+  const displayImageUrl = !settings.dataSaverEnabled && !imageError ? (rawImageUrl || fallbackImageUrl) : undefined;
   const activeLayout = layout ?? settings.cardLayout;
   const isCompact = activeLayout === 'compact';
   const isGrid = activeLayout === 'grid';

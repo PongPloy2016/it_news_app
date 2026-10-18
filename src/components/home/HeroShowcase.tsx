@@ -31,7 +31,7 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
   const { colors, scale, isDark } = useNews();
   const [activeSlide, setActiveSlide] = useState(0);
   const sliderRef = useRef<FlatList<NewsArticle>>(null);
-  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (heroArticles.length <= 1) return;
@@ -55,10 +55,12 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
   };
 
   const getImageUrl = (article: NewsArticle) => {
-    if (imageErrors[article.id]) {
-      return getDiverseArticleImage({ ...article, imageUrl: undefined });
+    const errorCount = imageErrors[article.id] || 0;
+    if (errorCount === 0) {
+      const direct = sanitizeImageUrl(article.imageUrl);
+      if (direct) return direct;
     }
-    return getDiverseArticleImage(article);
+    return getDiverseArticleImage(article, undefined, errorCount);
   };
 
   if (heroArticles.length === 0 && highlightArticles.length === 0) return null;
@@ -84,20 +86,33 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
             renderItem={({ item }) => {
               const kicker = item.author || 'ข่าวเด่นประจำวัน';
               const imgUri = getImageUrl(item);
+              const hasPermanentError = (imageErrors[item.id] || 0) >= 3;
 
               return (
                 <Pressable
                   onPress={() => onPressArticle(item)}
-                  style={[styles.slideCard, { width: SLIDER_WIDTH }]}
+                  style={[
+                    styles.slideCard,
+                    { width: SLIDER_WIDTH, backgroundColor: colors.surfaceVariant },
+                  ]}
                 >
-                  <Image
-                    source={{ uri: imgUri }}
-                    style={styles.slideImage}
-                    resizeMode="cover"
-                    onError={() =>
-                      setImageErrors((prev) => ({ ...prev, [item.id]: true }))
-                    }
-                  />
+                  {hasPermanentError ? (
+                    <View style={[styles.slideImage, styles.fallbackHeroWrap, { backgroundColor: colors.surfaceVariant }]}>
+                      <MaterialCommunityIcons name="newspaper-variant-outline" size={44 * scale} color={colors.muted} />
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: imgUri }}
+                      style={styles.slideImage}
+                      resizeMode="cover"
+                      onError={() =>
+                        setImageErrors((prev) => ({
+                          ...prev,
+                          [item.id]: (prev[item.id] || 0) + 1,
+                        }))
+                      }
+                    />
+                  )}
 
                   {/* Gradient Overlay */}
                   <LinearGradient
@@ -213,14 +228,25 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
                     },
                   ]}
                 >
-                  <Image
-                    source={{ uri: imgUri }}
-                    style={styles.highlightThumb}
-                    resizeMode="cover"
-                    onError={() =>
-                      setImageErrors((prev) => ({ ...prev, [article.id]: true }))
-                    }
-                  />
+                  {(imageErrors[article.id] || 0) >= 3 ? (
+                    <View style={[styles.highlightThumb, styles.highlightFallbackWrap, { backgroundColor: colors.surfaceVariant }]}>
+                      <MaterialCommunityIcons name="newspaper-variant-outline" size={24 * scale} color={colors.primary} />
+                    </View>
+                  ) : (
+                    <View style={[styles.highlightThumb, { backgroundColor: colors.surfaceVariant, overflow: 'hidden' }]}>
+                      <Image
+                        source={{ uri: imgUri }}
+                        style={styles.highlightThumb}
+                        resizeMode="cover"
+                        onError={() =>
+                          setImageErrors((prev) => ({
+                            ...prev,
+                            [article.id]: (prev[article.id] || 0) + 1,
+                          }))
+                        }
+                      />
+                    </View>
+                  )}
                   <View style={styles.highlightBody}>
                     {authorLabel ? (
                       <Text
@@ -413,5 +439,13 @@ const styles = StyleSheet.create({
   highlightsCountText: {
     color: '#0EA5E9',
     fontWeight: '800',
+  },
+  fallbackHeroWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  highlightFallbackWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

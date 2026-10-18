@@ -20,6 +20,7 @@ import { CustomRefreshHeader } from '../components/CustomRefreshIndicator';
 import { getCategoryVisual } from '../config/categoryVisuals';
 import { FeedSource } from '../config/feeds';
 import { feedService } from '../services/feedService';
+import { imageService } from '../services/imageService';
 import { showInterstitialAndNavigate } from '../services/interstitialService';
 import { analyticsService } from '../services/analyticsService';
 import { useNews } from '../store/NewsContext';
@@ -109,6 +110,10 @@ export function CategoryDetailScreen() {
       if (targetSource) {
         const fetched = await feedService.fetchFeed(targetSource, 1);
         setCategoryArticles(fetched);
+
+        void imageService.enrichArticlesWithOgImage(fetched, (updated) => {
+          setCategoryArticles(updated);
+        });
       }
     } catch (err) {
       console.warn('[CategoryDetailScreen] Failed to load articles:', err);

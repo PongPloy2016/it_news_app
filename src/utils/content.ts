@@ -24,6 +24,14 @@ export function sanitizeImageUrl(url?: string): string | undefined {
   if (cleaned.startsWith('//')) {
     cleaned = 'https:' + cleaned;
   }
+  // Upgrade insecure http to https for known domains that support SSL
+  if (
+    /^http:\/\/(?:www\.)?(?:blognone|brandinside|droidsans|beartai|techsauce|techtalkthai|it24hrs|techhub|sanook|mgronline|manager|thestandard|thaipbs|thairath|matichon|khaosod|dailynews|thaiware)/i.test(
+      cleaned,
+    )
+  ) {
+    cleaned = cleaned.replace(/^http:\/\//i, 'https://');
+  }
   return cleaned;
 }
 
@@ -38,11 +46,25 @@ export function extractImages(...sources: Array<string | undefined>): string[] {
 
   for (const source of sources) {
     if (!source) continue;
-    const matches = source.matchAll(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi);
-    for (const match of matches) {
-      if (match[1]) {
-        const raw = he.decode(match[1]).trim();
-        // Ignore relative paths (e.g. /sites/default/files/badge.png)
+    // Match <img> tags and extract src, data-src, data-lazy-src, data-original, srcset
+    const imgTagMatches = source.matchAll(/<img\b[^>]*>/gi);
+    for (const match of imgTagMatches) {
+      const tag = match[0];
+      const srcMatch =
+        tag.match(/\b(?:data-src|data-lazy-src|data-original|src)\s*=\s*["']([^"']+)["']/i);
+      let rawCandidate = srcMatch?.[1];
+
+      if (!rawCandidate) {
+        // Fallback to srcset: get first image URL from "https://example.com/img.jpg 600w, ..."
+        const srcsetMatch = tag.match(/\bsrcset\s*=\s*["']([^"',\s]+)/i);
+        if (srcsetMatch?.[1]) {
+          rawCandidate = srcsetMatch[1];
+        }
+      }
+
+      if (rawCandidate) {
+        const raw = he.decode(rawCandidate).trim();
+        // Ignore relative paths without protocol
         if (!/^https?:\/\//i.test(raw) && !raw.startsWith('//')) {
           continue;
         }
@@ -53,7 +75,7 @@ export function extractImages(...sources: Array<string | undefined>): string[] {
             !/feedsportal|feedburner|statcounter|doubleclick|googletagmanager|avatar|gravatar|badge|banner|\/jobs\//i.test(
               sanitized,
             ) &&
-            !/\.(?:ico)(?:\?.*)?$/i.test(sanitized)
+            !/\.(?:ico|svg)(?:\?.*)?$/i.test(sanitized)
           ) {
             seen.add(sanitized);
             images.push(sanitized);
@@ -66,28 +88,87 @@ export function extractImages(...sources: Array<string | undefined>): string[] {
   return images.slice(0, 6);
 }
 
-export function extractOgImage(html: string): string | undefined {
-  const images = extractOgImages(html);
+export function extractOgImage(html: string, pageUrl?: string): string | undefined {
+  const images = extractOgImages(html, pageUrl);
   return images[0] || undefined;
 }
 
-export function extractOgImages(html: string): string[] {
+export function extractOgImages(html: string, pageUrl?: string): string[] {
   const images: string[] = [];
   const seen = new Set<string>();
 
-  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
-    const tag = match[0];
-    const name = tag.match(/(?:property|name)\s*=\s*["']([^"']+)["']/i)?.[1]?.toLowerCase();
-    if (!['og:image', 'og:image:url', 'og:image:secure_url', 'twitter:image'].includes(name ?? '')) continue;
-    const url = tag.match(/content\s*=\s*["']([^"']+)["']/i)?.[1];
-    if (url && /^https?:\/\/\S+$/i.test(url)) {
-      const sanitized = sanitizeImageUrl(he.decode(url));
-      if (sanitized && !seen.has(sanitized)) {
+  const addUrl = (raw?: string) => {
+    if (!raw) return;
+    let url = he.decode(String(raw)).trim();
+    if (!url || url.startsWith('data:')) return;
+    if (url.startsWith('//')) url = 'https:' + url;
+    if (pageUrl && (url.startsWith('/') || !/^https?:\/\//i.test(url))) {
+      try {
+        url = new URL(url, pageUrl).href;
+      } catch {
+        return;
+      }
+    }
+    const sanitized = sanitizeImageUrl(url);
+    if (sanitized && !seen.has(sanitized)) {
+      if (
+        !/feedsportal|feedburner|statcounter|doubleclick|googletagmanager|avatar|gravatar|badge|banner|\/jobs\//i.test(
+          sanitized,
+        ) &&
+        !/\.(?:ico|svg)(?:\?.*)?$/i.test(sanitized)
+      ) {
         seen.add(sanitized);
         images.push(sanitized);
       }
     }
+  };
+
+  // 1. Meta tags (og:image, twitter:image, thumbnail)
+  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = match[0];
+    const name = tag.match(/(?:property|name)\s*=\s*["']([^"']+)["']/i)?.[1]?.toLowerCase();
+    if (
+      ![
+        'og:image',
+        'og:image:url',
+        'og:image:secure_url',
+        'twitter:image',
+        'twitter:image:src',
+        'thumbnail',
+      ].includes(name ?? '')
+    ) {
+      continue;
+    }
+    const content = tag.match(/content\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (content) addUrl(content);
   }
+
+  // 2. Link rel="image_src"
+  for (const match of html.matchAll(
+    /<link\b[^>]*rel\s*=\s*["']image_src["'][^>]*href\s*=\s*["']([^"']+)["']/gi,
+  )) {
+    if (match[1]) addUrl(match[1]);
+  }
+
+  // 3. Schema.org JSON-LD
+  for (const match of html.matchAll(
+    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  )) {
+    try {
+      const data = JSON.parse(match[1]);
+      const items = Array.isArray(data) ? data : data['@graph'] || [data];
+      for (const item of items) {
+        if (!item) continue;
+        const img = item.image || item.thumbnailUrl;
+        if (typeof img === 'string') addUrl(img);
+        else if (Array.isArray(img) && typeof img[0] === 'string') addUrl(img[0]);
+        else if (img && typeof img.url === 'string') addUrl(img.url);
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
+  }
+
   return images;
 }
 

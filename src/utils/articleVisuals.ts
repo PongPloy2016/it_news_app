@@ -12,72 +12,86 @@ function hashString(str: string): number {
 
 const THEME_POOLS = {
   gaming: [
-    'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80', // esports pc
-    'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&auto=format&fit=crop&q=80', // retro gaming
-    'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80', // console setup
-    'https://images.unsplash.com/photo-1612287232258-7521c7849ff0?w=800&auto=format&fit=crop&q=80', // switch / portable
-    'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=800&auto=format&fit=crop&q=80', // dualshock gamepad
+    'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=75', // esports pc
+    'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=75', // retro gaming
+    'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=75', // console setup
+    'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=75', // gamepad
+    'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=75', // dualshock gamepad
   ],
   mobile: [
-    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80', // sleek phone
-    'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&auto=format&fit=crop&q=80', // smartphone ui
-    'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=800&auto=format&fit=crop&q=80', // mobile device
-    'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800&auto=format&fit=crop&q=80', // app screen
-    'https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=800&auto=format&fit=crop&q=80', // phone tablet
+    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=75', // sleek phone
+    'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&auto=format&fit=crop&q=75', // smartphone ui
+    'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=600&auto=format&fit=crop&q=75', // mobile device
+    'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=600&auto=format&fit=crop&q=75', // app screen
+    'https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=600&auto=format&fit=crop&q=75', // phone tablet
   ],
   security: [
-    'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&auto=format&fit=crop&q=80', // cyber security
-    'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop&q=80', // lock network
-    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80', // matrix code
-    'https://images.unsplash.com/photo-1510511459019-5dda7724fd87?w=800&auto=format&fit=crop&q=80', // digital shield
-    'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&auto=format&fit=crop&q=80', // data security
+    'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&auto=format&fit=crop&q=75', // cyber security
+    'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&auto=format&fit=crop&q=75', // lock network
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=75', // matrix code
+    'https://images.unsplash.com/photo-1510511459019-5dda7724fd87?w=600&auto=format&fit=crop&q=75', // digital shield
+    'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=600&auto=format&fit=crop&q=75', // data security
   ],
   ai: [
-    'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&auto=format&fit=crop&q=80', // neural network
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80', // modern ai
-    'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800&auto=format&fit=crop&q=80', // ai brain
-    'https://images.unsplash.com/photo-1618172193763-c511deb635ca?w=800&auto=format&fit=crop&q=80', // deep learning
+    'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&auto=format&fit=crop&q=75', // neural network
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=75', // modern ai
+    'https://images.unsplash.com/photo-1618172193763-c511deb635ca?w=600&auto=format&fit=crop&q=75', // deep learning
+    'https://images.unsplash.com/photo-1655720828018-edd2daec9349?w=600&auto=format&fit=crop&q=75', // generative ai
+  ],
+  ev: [
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=600&auto=format&fit=crop&q=75', // electric car charging
+    'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=75', // modern vehicle dashboard
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=600&auto=format&fit=crop&q=75', // ev tech
   ],
   weather: [
-    'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&auto=format&fit=crop&q=80', // blue sky clouds
-    'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=800&auto=format&fit=crop&q=80', // rain droplets
-    'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=800&auto=format&fit=crop&q=80', // storm lightning
-    'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=800&auto=format&fit=crop&q=80', // flood relief rain
+    'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=600&auto=format&fit=crop&q=75', // blue sky clouds
+    'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=600&auto=format&fit=crop&q=75', // rain droplets
+    'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=600&auto=format&fit=crop&q=75', // storm lightning
+    'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=600&auto=format&fit=crop&q=75', // flood relief rain
   ],
   agriculture: [
-    'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800&auto=format&fit=crop&q=80', // green farm
-    'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&auto=format&fit=crop&q=80', // smart agriculture
-    'https://images.unsplash.com/photo-1523348837708-842521106757?w=800&auto=format&fit=crop&q=80', // crops plant
-    'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=800&auto=format&fit=crop&q=80', // rice field
+    'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&auto=format&fit=crop&q=75', // green farm
+    'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&auto=format&fit=crop&q=75', // smart agriculture
+    'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?w=600&auto=format&fit=crop&q=75', // greenhouse agriculture
+    'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=600&auto=format&fit=crop&q=75', // rice field
   ],
   crypto: [
-    'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=800&auto=format&fit=crop&q=80', // bitcoin crypto
-    'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&auto=format&fit=crop&q=80', // web3 fintech
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80', // chip hardware
+    'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=600&auto=format&fit=crop&q=75', // bitcoin crypto
+    'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&auto=format&fit=crop&q=75', // web3 fintech
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=75', // chip hardware
+  ],
+  developer: [
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&auto=format&fit=crop&q=75', // developer desk
+    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=75', // source code
+    'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=600&auto=format&fit=crop&q=75', // coding laptop
+  ],
+  science: [
+    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=75', // space earth
+    'https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=75', // science lab
+    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=75', // research flask
   ],
   generalTech: [
-    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&auto=format&fit=crop&q=80', // team work tech
-    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=80', // global earth tech
-    'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&auto=format&fit=crop&q=80', // coding laptop
-    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&auto=format&fit=crop&q=80', // source code
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80', // cpu board
-    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80', // developer desk
-    'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&auto=format&fit=crop&q=80', // futuristic laptop
-    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80', // data streams
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&auto=format&fit=crop&q=75', // team work tech
+    'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&auto=format&fit=crop&q=75', // futuristic laptop
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=75', // data streams
   ],
 };
 
 /**
  * Returns a high-quality, topic-relevant, deterministic and unique image for an article.
- * If the article has its own valid imageUrl, that is returned.
- * If not, selects a distinct thematic image so no two cards look identical.
+ * If the article has its own valid imageUrl and attemptIndex === 0, that is returned.
+ * If not, selects a distinct thematic image so cards look professional and varied.
+ * If an image fails to load, attemptIndex > 0 will rotate to another image in the pool.
  */
 export function getDiverseArticleImage(
   article: NewsArticle,
-  fallbackCategoryKey?: string
+  fallbackCategoryKey?: string,
+  attemptIndex: number = 0,
 ): string {
-  const sanitized = sanitizeImageUrl(article.imageUrl);
-  if (sanitized) return sanitized;
+  if (attemptIndex === 0) {
+    const sanitized = sanitizeImageUrl(article.imageUrl);
+    if (sanitized) return sanitized;
+  }
 
   const textToScan = `${article.title} ${article.description || ''} ${article.author || ''}`.toLowerCase();
   const hash = Math.abs(hashString(article.id || article.title));
@@ -105,6 +119,11 @@ export function getDiverseArticleImage(
   ) {
     pool = THEME_POOLS.ai;
   } else if (
+    /รถยนต์ไฟฟ้า|ev|tesla|byd|charger|แบตเตอรี่รถ/i.test(textToScan) ||
+    fallbackCategoryKey === 'ev-vehicles'
+  ) {
+    pool = THEME_POOLS.ev;
+  } else if (
     /ฝน|น้ำท่วม|พายุ|อากาศ|pm2\.5|tmd|อุตุนิยมวิทยา|ภัยพิบัติ|สภาพอากาศ/i.test(textToScan) ||
     fallbackCategoryKey === 'weather-forecast'
   ) {
@@ -119,6 +138,16 @@ export function getDiverseArticleImage(
     fallbackCategoryKey === 'fintech-crypto'
   ) {
     pool = THEME_POOLS.crypto;
+  } else if (
+    /โค้ด|เขียนโปรแกรม|developer|github|python|javascript|typescript|api|docker/i.test(textToScan) ||
+    fallbackCategoryKey === 'developer'
+  ) {
+    pool = THEME_POOLS.developer;
+  } else if (
+    /อวกาศ|ดาราศาสตร์|นาซา|nasa|ดาว|ฟิสิกส์|วิทยาศาสตร์|science/i.test(textToScan) ||
+    fallbackCategoryKey === 'science-space'
+  ) {
+    pool = THEME_POOLS.science;
   } else if (fallbackCategoryKey) {
     switch (fallbackCategoryKey) {
       case 'mobile':
@@ -130,17 +159,32 @@ export function getDiverseArticleImage(
       case 'cybersecurity':
         pool = THEME_POOLS.security;
         break;
+      case 'ai-innovation':
+        pool = THEME_POOLS.ai;
+        break;
+      case 'ev-vehicles':
+        pool = THEME_POOLS.ev;
+        break;
       case 'weather-forecast':
         pool = THEME_POOLS.weather;
         break;
       case 'agriculture':
         pool = THEME_POOLS.agriculture;
         break;
+      case 'fintech-crypto':
+        pool = THEME_POOLS.crypto;
+        break;
+      case 'developer':
+        pool = THEME_POOLS.developer;
+        break;
+      case 'science-space':
+        pool = THEME_POOLS.science;
+        break;
       default:
         pool = THEME_POOLS.generalTech;
     }
   }
 
-  const index = hash % pool.length;
+  const index = (hash + attemptIndex) % pool.length;
   return pool[index];
 }

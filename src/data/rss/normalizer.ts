@@ -35,18 +35,45 @@ export function normalizeRawEntry(
   const author = stripHtml(extractNodeText(authorNode?.name ?? entry['dc:creator'] ?? entry.author));
 
   // Multi-image extraction (Media RSS, enclosures, and content HTML)
+  const mediaGroup = entry['media:group'] as Record<string, unknown> | undefined;
+  const atomLinks = asArray<Record<string, unknown>>(entry.link as Record<string, unknown> | undefined);
+  const atomImageNodes: Record<string, unknown>[] = [];
+  for (const l of atomLinks) {
+    if (typeof l === 'object' && l !== null) {
+      const rel = String(l['@_rel'] ?? '');
+      const type = String(l['@_type'] ?? '');
+      const href = String(l['@_href'] ?? '');
+      if ((rel === 'enclosure' || type.startsWith('image/')) && href) {
+        atomImageNodes.push({ '@_url': href, '@_type': type });
+      }
+    }
+  }
+
   const mediaNodes = [
     ...asArray<Record<string, unknown>>(entry['media:content'] as Record<string, unknown> | undefined),
     ...asArray<Record<string, unknown>>(entry['media:thumbnail'] as Record<string, unknown> | undefined),
     ...asArray<Record<string, unknown>>(entry.enclosure as Record<string, unknown> | undefined),
+    ...(mediaGroup
+      ? [
+          ...asArray<Record<string, unknown>>(mediaGroup['media:content'] as Record<string, unknown> | undefined),
+          ...asArray<Record<string, unknown>>(mediaGroup['media:thumbnail'] as Record<string, unknown> | undefined),
+        ]
+      : []),
+    ...atomImageNodes,
   ];
 
   const mediaImages: string[] = [];
   for (const node of mediaNodes) {
     const type = String(node?.['@_type'] ?? '');
     const medium = String(node?.['@_medium'] ?? '');
-    const url = String(node?.['@_url'] ?? '');
-    if ((type.startsWith('image/') || medium === 'image' || (!type && !medium && /\.(jpg|jpeg|png|webp|avif)/i.test(url))) && url) {
+    const url = String(node?.['@_url'] ?? node?.url ?? '');
+    if (
+      (type.startsWith('image/') ||
+        medium === 'image' ||
+        (!type && !medium && /\.(jpg|jpeg|png|webp|avif)/i.test(url)) ||
+        (url && !type && !medium && /^https?:\/\//i.test(url) && !/\.(mp4|mp3|m4a|pdf|xml)/i.test(url))) &&
+      url
+    ) {
       const sanitized = sanitizeImageUrl(url);
       if (sanitized && !mediaImages.includes(sanitized)) {
         mediaImages.push(sanitized);
