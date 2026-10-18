@@ -163,7 +163,7 @@ export function SettingsScreen() {
       category: feedbackCategory,
       message: feedbackMessage.trim(),
       contact: feedbackContact.trim() || undefined,
-      app_version: remoteSettings.latest_version || '1.0.1',
+      app_version: remoteSettings.latest_version || '1.0.2',
       device_platform: Platform.OS,
     });
     setIsSubmitting(false);
@@ -286,7 +286,7 @@ export function SettingsScreen() {
             >
               <View style={styles.brandLiveDot} />
               <Text style={[styles.brandVersionText, { color: colors.primary, fontSize: 11 * scale }]}>
-                v{remoteSettings.latest_version || '1.0.1'}
+                v{remoteSettings.latest_version || '1.0.2'}
               </Text>
             </View>
           </View>
@@ -1522,7 +1522,7 @@ export function SettingsScreen() {
       {/* 9. Footer Credit */}
       <View style={styles.footerWrap}>
         <Text style={[styles.footerText, { color: colors.muted, fontSize: 12 * scale }]}>
-          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.1')}
+          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.2')}
         </Text>
       </View>
 
