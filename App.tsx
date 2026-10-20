@@ -10,6 +10,7 @@ import { initializeMobileAds } from './src/config/ads';
 import { initInterstitialAd } from './src/services/interstitialService';
 import { crashlyticsService } from './src/services/crashlyticsService';
 import { notificationService } from './src/services/notificationService';
+import { oneSignalService } from './src/services/oneSignalService';
 import { analyticsService } from './src/services/analyticsService';
 import { inAppUpdateService, CheckUpdateStatus } from './src/services/inAppUpdateService';
 import { ForceUpdateModal } from './src/components/ForceUpdateModal';
@@ -152,14 +153,10 @@ function AppShell() {
     crashlyticsService.log('App initialized');
     void analyticsService.logAppOpen();
 
-    // Request notification permission and retrieve FCM token
-    void notificationService.requestPermission().then((granted) => {
-      if (granted) {
-        void notificationService.getFCMToken();
-      }
-    });
+    // Initialize OneSignal SDK with Push Subscription Verification Dialog
+    oneSignalService.initialize();
 
-    // Set up foreground & background listeners
+    // Set up FCM foreground & background listeners
     const unsubscribeNotifications = notificationService.setupListeners();
 
     if (remoteSettings.ads_enabled) {

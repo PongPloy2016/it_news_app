@@ -12,3 +12,4 @@ export * from './supabaseBookmarkService';
 export * from './homeSectionsService';
 export * from './analyticsService';
 export * from './articleContentService';
+export * from './oneSignalService';
