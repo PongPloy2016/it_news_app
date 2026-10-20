@@ -115,7 +115,7 @@ export function ForceUpdateModal({
 
   const cleanTargetVersion = updateStatus.targetVersion
     ? updateStatus.targetVersion.replace(/^v/, '')
-    : '1.0.2';
+    : '1.0.3';
 
   const handleConfirmUpdate = async () => {
     // 1. Immediately switch to Google Play Downloading screen!
