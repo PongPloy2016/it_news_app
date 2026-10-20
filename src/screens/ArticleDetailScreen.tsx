@@ -26,7 +26,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Article'>;
 export function ArticleDetailScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const heroHeight = Math.max(400, Math.min(480, screenHeight * 0.48));
+  const heroHeight = Math.round(Math.max(380, Math.min(450, screenHeight * 0.44)));
 
   const {
     articles,

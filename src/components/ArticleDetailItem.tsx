@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  FlatList,
   Image,
   Linking,
   NativeScrollEvent,
@@ -19,16 +20,30 @@ import { EdgeInsets } from 'react-native-safe-area-context';
 import { AdBanner } from './AdBanner';
 import { AdCard } from './AdCard';
 import { AiReaderCard } from './AiReaderCard';
+import { ArticleInlineImage } from './ArticleInlineImage';
 import { ArticleVideoPlayer } from './ArticleVideoPlayer';
 import { NewsCard } from './NewsCard';
-import { articleContentService, FullArticleResult } from '../services/articleContentService';
+import {
+  articleContentService,
+  ArticleContentBlock,
+  extractArticleContentFromHtml,
+  FullArticleResult,
+} from '../services/articleContentService';
 import { imageService } from '../services/imageService';
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { NewsArticle } from '../types';
 import { cleanNewsContent, generateAiSummary } from '../utils/aiSummary';
 import { getDiverseArticleImage } from '../utils/articleVisuals';
-import { estimateReadingTime, formatDateWithRelative, formatRelative, formatThaiDate, sanitizeImageUrl, stripHtml } from '../utils/content';
+import {
+  cleanLeadText,
+  estimateReadingTime,
+  formatDateWithRelative,
+  formatRelative,
+  formatThaiDate,
+  sanitizeImageUrl,
+  stripHtml,
+} from '../utils/content';
 import { shareArticle } from '../utils/share';
 import { SpeechRate, speakArticleText, stopSpeaking } from '../utils/speech';
 
@@ -131,9 +146,21 @@ export function ArticleDetailItem({
     }
   }, [isActive, article?.id, markAsRead]);
 
-  // Content fetching
+  // Content fetching & instant rich parsing
   const [fullArticleData, setFullArticleData] = useState<FullArticleResult | null>(null);
   const [isLoadingFullContent, setIsLoadingFullContent] = useState(false);
+
+  // Immediate parsing of article content if available from RSS
+  const initialBlocksResult = useMemo(() => {
+    const raw = article?.content || article?.description;
+    if (raw && (raw.includes('<p') || raw.includes('<img') || raw.includes('<h') || raw.length > 200)) {
+      const parsed = extractArticleContentFromHtml(raw, article?.link);
+      if (parsed && parsed.blocks.length > 0) {
+        return parsed;
+      }
+    }
+    return null;
+  }, [article?.content, article?.description, article?.link]);
 
   const handleFetchFullContent = useCallback(
     async (force = false) => {
@@ -141,7 +168,7 @@ export function ArticleDetailItem({
       setIsLoadingFullContent(true);
       try {
         const result = await articleContentService.getFullArticle(article.link, article.id, force);
-        if (result && result.paragraphs.length > 0) {
+        if (result && result.blocks.length > 0) {
           setFullArticleData(result);
         }
       } finally {
@@ -157,8 +184,11 @@ export function ArticleDetailItem({
 
     setFullArticleData(null);
 
-    const existingContent = article.content || article.description || '';
-    if (existingContent.length > 500 && existingContent.includes('\n')) {
+    // If initial content already has multiple paragraphs AND at least one image, skip blocking network fetch
+    const hasInitialImages = (initialBlocksResult?.images?.length ?? 0) > 0;
+    const hasManyParagraphs = (initialBlocksResult?.paragraphs?.length ?? 0) >= 3;
+
+    if (hasInitialImages && hasManyParagraphs) {
       return;
     }
 
@@ -166,7 +196,7 @@ export function ArticleDetailItem({
     void articleContentService.getFullArticle(article.link, article.id).then((result) => {
       if (!isMounted) return;
       setIsLoadingFullContent(false);
-      if (result && result.paragraphs.length > 0) {
+      if (result && result.blocks.length > 0) {
         setFullArticleData(result);
       }
     });
@@ -174,9 +204,45 @@ export function ArticleDetailItem({
     return () => {
       isMounted = false;
     };
-  }, [article?.link, article?.id]);
+  }, [article?.link, article?.id, initialBlocksResult]);
 
-  const activeContent = fullArticleData?.fullText || article?.content || article?.description || '';
+  const activeContent =
+    fullArticleData?.fullText || initialBlocksResult?.fullText || article?.content || article?.description || '';
+
+  const activeBlocks = useMemo(() => {
+    let blocks: ArticleContentBlock[] = [];
+    if (fullArticleData?.blocks && fullArticleData.blocks.length > 0) {
+      blocks = fullArticleData.blocks;
+    } else if (initialBlocksResult?.blocks && initialBlocksResult.blocks.length > 0) {
+      blocks = initialBlocksResult.blocks;
+    } else {
+      const text = cleanNewsContent(activeContent);
+      const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+      if (lines.length > 0) {
+        blocks = lines.map((line): ArticleContentBlock => ({ type: 'paragraph', text: line }));
+      }
+    }
+
+    if (article?.title) {
+      const cleanTitle = article.title.trim().toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
+      blocks = blocks.filter((b) => {
+        if ((b.type === 'heading' || b.type === 'paragraph') && b.text) {
+          const cleanText = b.text.trim().toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
+          if (
+            cleanText === cleanTitle ||
+            (cleanText.length > 20 && cleanTitle === cleanText) ||
+            (cleanText.length > 25 && cleanTitle.startsWith(cleanText)) ||
+            (cleanTitle.length > 25 && cleanText.startsWith(cleanTitle))
+          ) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    return blocks;
+  }, [fullArticleData?.blocks, initialBlocksResult?.blocks, activeContent, article?.title]);
 
   const calculatedReadingTime = useMemo(() => {
     return estimateReadingTime(activeContent);
@@ -187,12 +253,14 @@ export function ArticleDetailItem({
     return generateAiSummary(article.title, activeContent);
   }, [article, activeContent]);
 
+  const cleanLead = useMemo(() => cleanLeadText(article?.description), [article?.description]);
+
   const isDescDuplicate = useMemo(() => {
-    if (!article?.description || !article?.title) return true;
+    if (!cleanLead || !article?.title) return true;
     const cleanT = article.title.trim().toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
-    const cleanD = stripHtml(article.description).trim().toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
+    const cleanD = cleanLead.trim().toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
     return cleanD.length === 0 || cleanD === cleanT || cleanT.startsWith(cleanD) || cleanD.startsWith(cleanT.slice(0, 25));
-  }, [article?.title, article?.description]);
+  }, [article?.title, cleanLead]);
 
   const otherArticles = useMemo(() => {
     if (!article) return [];
@@ -428,19 +496,86 @@ export function ArticleDetailItem({
     }
   };
 
-  const galleryImages = useMemo(
-    () =>
-      [
-        ...(displayImageUrl ? [displayImageUrl] : []),
-        ...(detailImages || []),
-        ...(fullArticleData?.images || []),
-      ].filter((url, idx, self) => url && typeof url === 'string' && self.indexOf(url) === idx),
-    [displayImageUrl, detailImages, fullArticleData?.images],
+  const galleryImages = useMemo(() => {
+    const fromBlocks = activeBlocks
+      .filter((b): b is ArticleContentBlock & { type: 'image'; url: string } => b.type === 'image' && Boolean(b.url))
+      .map((b) => b.url);
+
+    const candidates = [
+      ...(displayImageUrl ? [displayImageUrl] : []),
+      ...fromBlocks,
+      ...(detailImages || []),
+      ...(fullArticleData?.images || []),
+      ...(article?.images || []),
+    ];
+
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const url of candidates) {
+      const sanitized = sanitizeImageUrl(url);
+      if (sanitized && !seen.has(sanitized)) {
+        seen.add(sanitized);
+        result.push(sanitized);
+      }
+    }
+    return result;
+  }, [activeBlocks, displayImageUrl, detailImages, fullArticleData?.images, article?.images]);
+
+  const heroScrollRef = useRef<ScrollView>(null);
+  const [activeHeroIdx, setActiveHeroIdx] = useState(0);
+  const activeHeroIdxRef = useRef(0);
+  activeHeroIdxRef.current = activeHeroIdx;
+  const isUserInteractingHeroRef = useRef(false);
+
+  // Auto-slide hero images every 3.5s if multiple images available
+  useEffect(() => {
+    if (!isActive || galleryImages.length <= 1) return;
+
+    const timer = setInterval(() => {
+      if (isUserInteractingHeroRef.current) return;
+
+      const nextIdx = (activeHeroIdxRef.current + 1) % galleryImages.length;
+      heroScrollRef.current?.scrollTo({
+        x: nextIdx * screenWidth,
+        animated: true,
+      });
+      setActiveHeroIdx(nextIdx);
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [isActive, galleryImages.length, screenWidth]);
+
+  const handleHeroScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const xOffset = e.nativeEvent.contentOffset.x;
+      const idx = Math.round(xOffset / screenWidth);
+      if (idx >= 0 && idx < galleryImages.length && idx !== activeHeroIdxRef.current) {
+        setActiveHeroIdx(idx);
+      }
+    },
+    [screenWidth, galleryImages.length],
   );
+
+  const heroDisplayDots = useMemo(() => {
+    if (galleryImages.length <= 8) {
+      return galleryImages.map((_, i) => ({ index: i, active: i === activeHeroIdx }));
+    }
+    const maxDots = 7;
+    let start = Math.max(0, activeHeroIdx - Math.floor(maxDots / 2));
+    let end = start + maxDots;
+    if (end > galleryImages.length) {
+      end = galleryImages.length;
+      start = Math.max(0, end - maxDots);
+    }
+    return galleryImages.slice(start, end).map((_, i) => {
+      const realIndex = start + i;
+      return { index: realIndex, active: realIndex === activeHeroIdx };
+    });
+  }, [galleryImages, activeHeroIdx]);
 
   return (
     <View style={styles.itemRoot}>
-      {/* 1. Collapsible Sticky Header Bar */}
+      {/* 1. Collapsible Sticky Header Bar (Only visible when scrolled past hero) */}
       <Animated.View
         style={[
           styles.stickyHeader,
@@ -468,7 +603,7 @@ export function ArticleDetailItem({
             style={[styles.stickyIconBtn, { backgroundColor: colors.surfaceVariant }]}
             accessibilityLabel="ย้อนกลับ"
           >
-            <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
+            <MaterialCommunityIcons name="chevron-left" size={26} color={colors.text} />
           </Pressable>
 
           <View style={styles.stickyTitleWrap}>
@@ -507,29 +642,28 @@ export function ArticleDetailItem({
             </Pressable>
           </View>
         </View>
-      </Animated.View>
 
-      {/* 2. Reading Progress Bar */}
-      <View
-        pointerEvents="none"
-        style={[
-          styles.readingProgressTrack,
-          {
-            top: isScrolledPastHero ? insets.top + 52 : insets.top,
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-          },
-        ]}
-      >
+        {/* Reading Progress Line directly underneath Sticky Header */}
         <View
+          pointerEvents="none"
           style={[
-            styles.readingProgressFill,
+            styles.readingProgressBar,
             {
-              width: `${Math.round(readingProgress * 100)}%`,
-              backgroundColor: colors.primary,
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
             },
           ]}
-        />
-      </View>
+        >
+          <View
+            style={[
+              styles.readingProgressFill,
+              {
+                width: `${Math.round(readingProgress * 100)}%`,
+                backgroundColor: colors.primary,
+              },
+            ]}
+          />
+        </View>
+      </Animated.View>
 
       <ScrollView
         ref={mainScrollRef}
@@ -539,80 +673,124 @@ export function ArticleDetailItem({
         scrollEventThrottle={16}
         onScroll={onMainScroll}
       >
-        {/* 1. Immersive Hero Image Container */}
+        {/* 1. Immersive Hero Image Container (Matches reference design) */}
         <View style={[styles.heroContainer, { height: heroHeight, width: screenWidth }]}>
-          <Pressable
-            style={[styles.heroSlideItem, { width: screenWidth, height: heroHeight }]}
-            onPress={() => {
-              if (galleryImages.length > 0) {
-                onOpenViewer(galleryImages, 0);
-              }
-            }}
-            accessibilityLabel="รูปภาพประกอบข่าว"
-          >
-            {displayImageUrl ? (
-              <Image
-                source={{ uri: displayImageUrl }}
-                style={styles.heroImage}
-                resizeMode="cover"
-                onError={() => setImageErrorCount((prev) => prev + 1)}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.heroFallback,
-                  { backgroundColor: isDark ? '#0F172A' : '#1E293B' },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="newspaper-variant-outline"
-                  size={54}
-                  color={colors.primary}
-                />
-                <Text
-                  style={{
-                    color: '#94A3B8',
-                    fontSize: 12 * scale,
-                    marginTop: 8,
-                    fontFamily: typography.fontFamily,
+          {galleryImages.length > 0 ? (
+            <ScrollView
+              ref={heroScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              bounces={false}
+              nestedScrollEnabled
+              scrollEventThrottle={16}
+              onScroll={handleHeroScroll}
+              onScrollBeginDrag={() => {
+                isUserInteractingHeroRef.current = true;
+              }}
+              onScrollEndDrag={() => {
+                setTimeout(() => {
+                  isUserInteractingHeroRef.current = false;
+                }, 1500);
+              }}
+              onMomentumScrollEnd={(e) => {
+                handleHeroScroll(e);
+                isUserInteractingHeroRef.current = false;
+              }}
+            >
+              {galleryImages.map((item, index) => (
+                <Pressable
+                  key={`hero-slide-${index}-${item}`}
+                  style={[styles.heroSlideItem, { width: screenWidth, height: heroHeight }]}
+                  onPress={() => {
+                    onOpenViewer(galleryImages, index);
                   }}
+                  accessibilityLabel={`รูปภาพประกอบข่าวที่ ${index + 1}`}
                 >
-                  {articleCategory.label || article.author || 'IT News'}
-                </Text>
-              </View>
-            )}
+                  <Image
+                    source={{ uri: item }}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                    onError={() => setImageErrorCount((prev) => prev + 1)}
+                  />
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <Pressable
+              style={[styles.heroSlideItem, { width: screenWidth, height: heroHeight }]}
+              onPress={() => {
+                if (displayImageUrl) {
+                  onOpenViewer([displayImageUrl], 0);
+                }
+              }}
+            >
+              {displayImageUrl ? (
+                <Image
+                  source={{ uri: displayImageUrl }}
+                  style={styles.heroImage}
+                  resizeMode="cover"
+                  onError={() => setImageErrorCount((prev) => prev + 1)}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.heroFallback,
+                    { backgroundColor: isDark ? '#0F172A' : '#1E293B' },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="newspaper-variant-outline"
+                    size={54}
+                    color={colors.primary}
+                  />
+                  <Text
+                    style={{
+                      color: '#94A3B8',
+                      fontSize: 12 * scale,
+                      marginTop: 8,
+                      fontFamily: typography.fontFamily,
+                    }}
+                  >
+                    {articleCategory.label || article.author || 'IT News'}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          )}
 
-            {galleryImages.length > 1 && (
-              <View style={styles.galleryCountBadge}>
-                <MaterialCommunityIcons name="image-multiple" size={12} color="#FFFFFF" />
-                <Text style={styles.galleryCountText}>{galleryImages.length} รูป</Text>
-              </View>
-            )}
-          </Pressable>
+          {galleryImages.length > 1 && (
+            <View style={[styles.galleryCountBadge, { top: insets.top + 62 }]}>
+              <MaterialCommunityIcons name="image-multiple" size={12} color="#FFFFFF" />
+              <Text style={styles.galleryCountText}>{activeHeroIdx + 1} / {galleryImages.length}</Text>
+            </View>
+          )}
 
-          {/* Cinematic Bottom Gradient Overlay */}
+          {/* Top subtle gradient for floating buttons */}
           <LinearGradient
-            colors={[
-              'rgba(0, 0, 0, 0.45)',
-              'rgba(0, 0, 0, 0.1)',
-              'rgba(0, 0, 0, 0.4)',
-              'rgba(0, 0, 0, 0.82)',
-              'rgba(0, 0, 0, 0.96)',
-            ]}
-            locations={[0, 0.38, 0.62, 0.84, 1]}
+            colors={['rgba(0, 0, 0, 0.55)', 'rgba(0, 0, 0, 0.15)', 'transparent']}
+            locations={[0, 0.55, 1]}
+            style={[styles.topGradient, { height: insets.top + 70 }]}
+            pointerEvents="none"
+          />
+
+          {/* Bottom smooth dark gradient for headline readability */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0, 0, 0, 0.1)', 'rgba(0, 0, 0, 0.55)', 'rgba(0, 0, 0, 0.88)']}
+            locations={[0, 0.45, 0.72, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
 
-          {/* Floating Top Navigation: Back Button (Left), Bookmark & Share (Right) */}
+          {/* Floating Top Navigation: Back Button (Left), Bookmark & More (Right) */}
           <View style={[styles.floatingNav, { top: insets.top + 10 }]} pointerEvents="box-none">
             <Pressable
               hitSlop={12}
               onPress={() => navigation.goBack()}
-              style={styles.minimalBackBtn}
+              style={styles.floatingGlassBtn}
               accessibilityLabel="ย้อนกลับ"
             >
-              <MaterialCommunityIcons name="arrow-left" size={26} color="#FFFFFF" style={styles.iconShadow} />
+              <MaterialCommunityIcons name="chevron-left" size={28} color="#FFFFFF" style={styles.iconShadow} />
             </Pressable>
 
             <View style={styles.floatingNavRight}>
@@ -638,66 +816,71 @@ export function ArticleDetailItem({
                 style={styles.floatingGlassBtn}
                 accessibilityLabel="แชร์ข่าว"
               >
-                <MaterialCommunityIcons name="share-variant-outline" size={19} color="#FFFFFF" />
+                <MaterialCommunityIcons name="dots-vertical" size={21} color="#FFFFFF" />
               </Pressable>
             </View>
           </View>
 
-          {/* Overlaid Headline & Category at Hero Bottom */}
-          <View style={styles.heroOverlayContent}>
-            <View style={styles.heroBadgeRow}>
-              <View style={[styles.heroCategoryPill, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.heroCategoryText, { fontSize: 10.5 * scale }]}>
-                  {articleCategory.label || selectedFeed?.label || 'IT News'}
-                </Text>
+          {/* Headline & Subtitle Overlaid near Bottom of Hero (Above the curved sheet) */}
+          <View style={styles.heroOverlayContent} pointerEvents="box-none">
+            {galleryImages.length > 1 && (
+              <View style={styles.heroDotsContainer}>
+                {heroDisplayDots.map((dot) => (
+                  <View
+                    key={`hero-dot-${dot.index}`}
+                    style={[
+                      styles.heroDot,
+                      dot.active ? styles.heroDotActive : styles.heroDotInactive,
+                    ]}
+                  />
+                ))}
               </View>
-
-              <View style={styles.heroTimeBadge}>
-                <MaterialCommunityIcons name="calendar-outline" size={12} color="rgba(255, 255, 255, 0.85)" />
-                <Text style={[styles.heroTimeText, { fontSize: 11 * scale }]}>
-                  {formatThaiDate(article.publishedMillis)}
-                </Text>
-                {article.publishedMillis ? (
-                  <>
-                    <Text style={{ color: 'rgba(255, 255, 255, 0.6)', marginHorizontal: 3 }}>•</Text>
-                    <MaterialCommunityIcons name="clock-outline" size={11} color="rgba(255, 255, 255, 0.85)" />
-                    <Text style={[styles.heroTimeText, { fontSize: 11 * scale }]}>
-                      {formatRelative(article.publishedMillis)}
-                    </Text>
-                  </>
-                ) : null}
-              </View>
-            </View>
+            )}
 
             <Text
               style={[
                 styles.heroTitle,
                 {
                   fontSize: Math.min(23 * scale, 26),
-                  lineHeight: Math.min(23 * scale * 1.35, 36),
+                  lineHeight: Math.min(23 * scale * 1.32, 34),
                 },
               ]}
             >
               {article.title}
             </Text>
 
-            <View style={styles.heroAuthorRow}>
-              <View style={styles.heroAuthorAvatar}>
-                <MaterialCommunityIcons name="newspaper-variant" size={14} color="#FFFFFF" />
-              </View>
-              <Text numberOfLines={1} style={[styles.heroAuthorName, { fontSize: 12 * scale }]}>
-                {article.author || selectedFeed?.label || 'กองบรรณาธิการ'}
-              </Text>
-              <Text style={styles.heroDot}>•</Text>
-              <Text style={[styles.heroReadTime, { fontSize: 11.5 * scale }]}>
-                อ่าน {calculatedReadingTime} นาที
-              </Text>
-            </View>
+            <Text style={[styles.heroSubtitle, { fontSize: 13 * scale }]}>
+              {articleCategory.label || selectedFeed?.label || 'ข่าวเด่น'} • {formatRelative(article.publishedMillis) || formatThaiDate(article.publishedMillis)}
+            </Text>
           </View>
         </View>
 
-        {/* 2. Reader Body Section */}
-        <View style={styles.contentWrap}>
+        {/* 2. Overlapping Content Sheet with Rounded Top Corners (Matches reference mockup) */}
+        <View
+          style={[
+            styles.contentSheet,
+            {
+              backgroundColor: isDark ? colors.background : '#FFFFFF',
+            },
+          ]}
+        >
+          {/* Publisher / Source Row with Verified Badge */}
+          <View style={styles.publisherRow}>
+            <View style={styles.publisherLeft}>
+              <View style={[styles.publisherAvatar, { backgroundColor: colors.primary }]}>
+                <MaterialCommunityIcons name="newspaper-variant" size={16} color="#FFFFFF" />
+              </View>
+              <Text numberOfLines={1} style={[styles.publisherName, { color: colors.text, fontSize: 15.5 * scale }]}>
+                {article.author || selectedFeed?.label || 'IT News'}
+              </Text>
+              <MaterialCommunityIcons name="check-decagram" size={17} color="#22C55E" style={{ marginLeft: 5 }} />
+            </View>
+
+            <Text style={[styles.publisherTime, { color: colors.muted, fontSize: 12.5 * scale }]}>
+              {formatRelative(article.publishedMillis) || 'เมื่อสักครู่'}
+            </Text>
+          </View>
+
           {/* Quick Font Sizer Toolbar */}
           <View
             style={[
@@ -869,7 +1052,7 @@ export function ArticleDetailItem({
           ) : (
             <>
               {/* Description Lead */}
-              {article.description && !isDescDuplicate && (
+              {cleanLead && !isDescDuplicate ? (
                 <View
                   style={[
                     styles.leadContainer,
@@ -889,13 +1072,13 @@ export function ArticleDetailItem({
                       },
                     ]}
                   >
-                    {stripHtml(article.description)}
+                    {cleanLead}
                   </Text>
                 </View>
-              )}
+              ) : null}
 
-              {/* Full Scraped Content */}
-              {fullArticleData?.paragraphs && fullArticleData.paragraphs.length > 0 ? (
+              {/* Full Content Blocks (Paragraphs, Headings, Quotes, Lists, and Inline Images) */}
+              {activeBlocks.length > 0 ? (
                 <>
                   <View style={styles.fullArticleBadgeRow}>
                     <View
@@ -909,7 +1092,11 @@ export function ArticleDetailItem({
                     >
                       <MaterialCommunityIcons name="newspaper-variant-outline" size={14} color={colors.primary} />
                       <Text style={[styles.fullArticleBadgeText, { color: colors.primary }]}>
-                        เนื้อหาข่าวฉบับเต็ม ({fullArticleData.paragraphs.length} ย่อหน้า)
+                        เนื้อหาข่าวฉบับเต็ม ({activeBlocks.filter((b) => b.type !== 'image').length} ย่อหน้า
+                        {activeBlocks.filter((b) => b.type === 'image').length > 0
+                          ? ` • ${activeBlocks.filter((b) => b.type === 'image').length} รูปภาพ`
+                          : ''}
+                        )
                       </Text>
                     </View>
                     <Pressable
@@ -928,33 +1115,54 @@ export function ArticleDetailItem({
                     </Pressable>
                   </View>
 
-                  {fullArticleData.paragraphs.map((paragraph, index) => {
-                    const isHeading = paragraph.startsWith('📌 ');
-                    const isQuote = paragraph.startsWith('“') && paragraph.endsWith('”');
-                    const isList = paragraph.startsWith('• ');
-
-                    if (isHeading) {
+                  {activeBlocks.map((block, index) => {
+                    if (block.type === 'heading') {
                       return (
                         <Text
-                          key={`para-${index}`}
+                          key={`block-heading-${index}`}
                           style={[
                             styles.headingText,
                             {
                               color: colors.primary,
-                              fontSize: 17 * scale * fontScaleMultiplier,
+                              fontSize: 17.5 * scale * fontScaleMultiplier,
                               fontFamily: typography.fontFamily,
+                              marginTop: index === 0 ? 8 : 20,
+                              marginBottom: 8,
                             },
                           ]}
                         >
-                          {paragraph.replace(/^📌\s*/, '')}
+                          {block.text?.replace(/^📌\s*/, '')}
                         </Text>
                       );
                     }
 
-                    if (isQuote) {
+                    if (block.type === 'image' && block.url) {
+                      return (
+                        <ArticleInlineImage
+                          key={`block-img-${index}`}
+                          url={block.url}
+                          alt={block.alt}
+                          caption={block.caption}
+                          width={block.width}
+                          height={block.height}
+                          aspectRatio={block.aspectRatio}
+                          index={index}
+                          onPress={() => {
+                            const idx = galleryImages.indexOf(block.url!);
+                            onOpenViewer(galleryImages, idx >= 0 ? idx : 0);
+                          }}
+                          colors={colors}
+                          isDark={isDark}
+                          scale={scale}
+                          dataSaverEnabled={settings.dataSaverEnabled}
+                        />
+                      );
+                    }
+
+                    if (block.type === 'quote') {
                       return (
                         <View
-                          key={`para-${index}`}
+                          key={`block-quote-${index}`}
                           style={[
                             styles.quoteBox,
                             {
@@ -969,12 +1177,34 @@ export function ArticleDetailItem({
                               {
                                 color: colors.text,
                                 fontSize: 15.5 * scale * fontScaleMultiplier,
-                                lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * typography.body.lineHeightMultiplier),
+                                lineHeight: Math.round(
+                                  15.5 * scale * fontScaleMultiplier * typography.body.lineHeightMultiplier,
+                                ),
                                 fontFamily: typography.fontFamily,
                               },
                             ]}
                           >
-                            {paragraph}
+                            {block.text}
+                          </Text>
+                        </View>
+                      );
+                    }
+
+                    if (block.type === 'list') {
+                      return (
+                        <View key={`block-list-${index}`} style={styles.bulletRow}>
+                          <View style={[styles.bulletDot, { backgroundColor: colors.primary }]} />
+                          <Text
+                            style={[
+                              styles.bulletText,
+                              {
+                                color: colors.text,
+                                fontSize: 15.5 * scale * fontScaleMultiplier,
+                                lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * 1.6),
+                              },
+                            ]}
+                          >
+                            {block.text?.replace(/^•\s*/, '')}
                           </Text>
                         </View>
                       );
@@ -982,11 +1212,10 @@ export function ArticleDetailItem({
 
                     return (
                       <Text
-                        key={`para-${index}`}
+                        key={`block-para-${index}`}
                         style={[
                           styles.bodyParagraph,
                           styles.paragraphSpacing,
-                          isList && styles.listParagraph,
                           {
                             color: colors.text,
                             fontSize: 15.5 * scale * fontScaleMultiplier,
@@ -994,7 +1223,7 @@ export function ArticleDetailItem({
                           },
                         ]}
                       >
-                        {paragraph}
+                        {block.text}
                       </Text>
                     );
                   })}
@@ -1297,12 +1526,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  readingProgressTrack: {
-    height: 3,
+  readingProgressBar: {
+    bottom: 0,
+    height: 2.5,
     left: 0,
     position: 'absolute',
     right: 0,
-    zIndex: 95,
+    width: '100%',
   },
   readingProgressFill: {
     height: '100%',
@@ -1325,24 +1555,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  galleryCountBadge: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    borderRadius: 12,
-    bottom: 95,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    position: 'absolute',
-    right: 16,
-    zIndex: 10,
-  },
-  galleryCountText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
   floatingNav: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1351,9 +1563,13 @@ const styles = StyleSheet.create({
     right: 16,
     zIndex: 20,
   },
-  minimalBackBtn: {
+  floatingNavRight: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  floatingGlassBtn: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    backgroundColor: 'rgba(0, 0, 0, 0.38)',
     borderRadius: 20,
     height: 40,
     justifyContent: 'center',
@@ -1364,88 +1580,113 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  floatingNavRight: {
-    flexDirection: 'row',
-    gap: 8,
+  topGradient: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 10,
   },
-  floatingGlassBtn: {
+  galleryCountBadge: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    borderRadius: 20,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  heroOverlayContent: {
-    bottom: 16,
-    left: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: 12,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     position: 'absolute',
     right: 16,
     zIndex: 15,
   },
-  heroBadgeRow: {
+  galleryCountText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  heroOverlayContent: {
+    bottom: 38,
+    left: 20,
+    position: 'absolute',
+    right: 20,
+    zIndex: 15,
+  },
+  heroDotsContainer: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
     marginBottom: 8,
   },
-  heroCategoryPill: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  heroDot: {
+    borderRadius: 2,
+    height: 4,
+    marginRight: 5,
   },
-  heroCategoryText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    letterSpacing: 0.3,
+  heroDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 16,
   },
-  heroTimeBadge: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 4,
-  },
-  heroTimeText: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontWeight: '500',
+  heroDotInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    width: 6,
   },
   heroTitle: {
     color: '#FFFFFF',
+    fontFamily: typography.fontFamily,
     fontWeight: '800',
     letterSpacing: -0.3,
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.55)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.65)',
+    textShadowOffset: { width: 0, height: 1.5 },
+    textShadowRadius: 5,
   },
-  heroAuthorRow: {
+  heroSubtitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontFamily: typography.fontFamily,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  contentSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    elevation: 8,
+    marginTop: -24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  publisherRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  heroAuthorAvatar: {
+  publisherLeft: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 10,
-    height: 20,
+    flex: 1,
+    flexDirection: 'row',
+    marginRight: 10,
+  },
+  publisherAvatar: {
+    alignItems: 'center',
+    borderRadius: 14,
+    height: 28,
     justifyContent: 'center',
-    marginRight: 6,
-    width: 20,
+    marginRight: 8,
+    width: 28,
   },
-  heroAuthorName: {
-    color: 'rgba(255, 255, 255, 0.95)',
-    fontWeight: '600',
-    maxWidth: 160,
+  publisherName: {
+    fontFamily: typography.fontFamily,
+    fontWeight: '700',
+    maxWidth: 200,
   },
-  heroDot: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginHorizontal: 6,
-  },
-  heroReadTime: {
-    color: 'rgba(255, 255, 255, 0.85)',
+  publisherTime: {
+    fontFamily: typography.fontFamily,
     fontWeight: '500',
-  },
-  contentWrap: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
   },
   readerToolbar: {
     alignItems: 'center',

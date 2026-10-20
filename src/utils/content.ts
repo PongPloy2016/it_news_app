@@ -35,6 +35,21 @@ export function sanitizeImageUrl(url?: string): string | undefined {
   return cleaned;
 }
 
+export function cleanLeadText(raw?: string | null): string {
+  if (!raw) return '';
+  let text = stripHtml(raw);
+  text = text.replace(/\[\.\.\.\]/g, ' ');
+  text = text.replace(/The post .*?(?:appeared first on|first appeared on).*$/gi, '');
+  text = text.replace(/appeared first on .*$/gi, '');
+  text = text.replace(/first appeared on .*$/gi, '');
+  text = text.replace(/บทความนี้เผยแพร่ครั้งแรกที่.*$/gi, '');
+  text = text.replace(/อ่านเพิ่มเติมได้ที่.*$/gi, '');
+  text = text.replace(/อ่านต่อที่.*$/gi, '');
+  text = text.replace(/source:.*$/gi, '');
+  text = text.replace(/https?:\/\/\S+/gi, '');
+  return text.replace(/\s+/g, ' ').trim();
+}
+
 export function extractImage(...sources: Array<string | undefined>): string | undefined {
   const images = extractImages(...sources);
   return images[0] || undefined;
@@ -46,20 +61,38 @@ export function extractImages(...sources: Array<string | undefined>): string[] {
 
   for (const source of sources) {
     if (!source) continue;
-    // Match <img> tags and extract src, data-src, data-lazy-src, data-original, srcset
+    // Match <img> tags and extract highest resolution from srcset, data-*, or src
     const imgTagMatches = source.matchAll(/<img\b[^>]*>/gi);
     for (const match of imgTagMatches) {
       const tag = match[0];
-      const srcMatch =
-        tag.match(/\b(?:data-src|data-lazy-src|data-original|src)\s*=\s*["']([^"']+)["']/i);
-      let rawCandidate = srcMatch?.[1];
+      let rawCandidate: string | undefined;
 
-      if (!rawCandidate) {
-        // Fallback to srcset: get first image URL from "https://example.com/img.jpg 600w, ..."
-        const srcsetMatch = tag.match(/\bsrcset\s*=\s*["']([^"',\s]+)/i);
-        if (srcsetMatch?.[1]) {
-          rawCandidate = srcsetMatch[1];
+      // 1. Check srcset first for highest resolution candidate
+      const srcsetMatch = tag.match(/\bsrcset\s*=\s*["']([^"']+)["']/i);
+      if (srcsetMatch?.[1]) {
+        const parts = srcsetMatch[1].split(',');
+        let maxW = 0;
+        for (const part of parts) {
+          const tokens = part.trim().split(/\s+/);
+          if (tokens.length > 0 && (/^https?:\/\//i.test(tokens[0]) || tokens[0].startsWith('//'))) {
+            let w = 0;
+            if (tokens.length > 1 && tokens[1].endsWith('w')) {
+              w = parseInt(tokens[1].slice(0, -1), 10) || 0;
+            }
+            if (w >= maxW) {
+              maxW = w;
+              rawCandidate = tokens[0];
+            }
+          }
         }
+      }
+
+      // 2. Fallback to data attributes or src
+      if (!rawCandidate) {
+        const srcMatch = tag.match(
+          /\b(?:data-original|data-orig-file|data-large-file|data-src|data-lazy-src|src)\s*=\s*["']([^"']+)["']/i,
+        );
+        rawCandidate = srcMatch?.[1];
       }
 
       if (rawCandidate) {
@@ -232,17 +265,44 @@ export function extractArticleImagesFromHtml(html: string, pageUrl: string): str
 
   // 3. Extract images inside the isolated article body
   if (bodyHtml) {
-    const imgMatches = bodyHtml.matchAll(/<img\b[^>]*src\s*=\s*["']([^"']+)["']/gi);
-    for (const m of imgMatches) {
-      addUrl(he.decode(m[1]));
-    }
-    const lazyMatches = bodyHtml.matchAll(/<img\b[^>]*data-(?:src|original)\s*=\s*["']([^"']+)["']/gi);
-    for (const m of lazyMatches) {
-      addUrl(he.decode(m[1]));
+    const allImgMatches = bodyHtml.matchAll(/<img\b[^>]*>/gi);
+    for (const m of allImgMatches) {
+      const tag = m[0];
+      let candUrl: string | undefined;
+
+      const srcsetMatch = tag.match(/\bsrcset\s*=\s*["']([^"']+)["']/i);
+      if (srcsetMatch?.[1]) {
+        const parts = srcsetMatch[1].split(',');
+        let maxW = 0;
+        for (const part of parts) {
+          const tokens = part.trim().split(/\s+/);
+          if (tokens.length > 0 && (/^https?:\/\//i.test(tokens[0]) || tokens[0].startsWith('//') || tokens[0].startsWith('/'))) {
+            let w = 0;
+            if (tokens.length > 1 && tokens[1].endsWith('w')) {
+              w = parseInt(tokens[1].slice(0, -1), 10) || 0;
+            }
+            if (w >= maxW) {
+              maxW = w;
+              candUrl = tokens[0];
+            }
+          }
+        }
+      }
+
+      if (!candUrl) {
+        const attrMatch = tag.match(
+          /\b(?:data-original|data-orig-file|data-large-file|data-src|data-lazy-src|src)\s*=\s*["']([^"']+)["']/i,
+        );
+        candUrl = attrMatch?.[1];
+      }
+
+      if (candUrl) {
+        addUrl(he.decode(candUrl));
+      }
     }
   }
 
-  return images.slice(0, 8);
+  return images.slice(0, 10);
 }
 
 export function normalizeVideoEmbedUrl(rawUrl: string): string {
