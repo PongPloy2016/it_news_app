@@ -27,7 +27,8 @@ import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { NewsArticle } from '../types';
 import { cleanNewsContent, generateAiSummary } from '../utils/aiSummary';
-import { estimateReadingTime, formatRelative, sanitizeImageUrl, stripHtml } from '../utils/content';
+import { getDiverseArticleImage } from '../utils/articleVisuals';
+import { estimateReadingTime, formatDateWithRelative, formatRelative, formatThaiDate, sanitizeImageUrl, stripHtml } from '../utils/content';
 import { shareArticle } from '../utils/share';
 import { SpeechRate, speakArticleText, stopSpeaking } from '../utils/speech';
 
@@ -337,15 +338,18 @@ export function ArticleDetailItem({
     [heroHeight, insets.top],
   );
 
-  const [imageError, setImageError] = useState(false);
-  const displayImageUrl = !imageError ? sanitizeImageUrl(article?.imageUrl) : undefined;
+  const [imageErrorCount, setImageErrorCount] = useState(0);
+
+  useEffect(() => {
+    setImageErrorCount(0);
+  }, [article?.id]);
+
   const [detailImages, setDetailImages] = useState<string[] | undefined>(
     article?.images && article.images.length > 0 ? article.images : undefined,
   );
 
   useEffect(() => {
     if (!article) return;
-    setImageError(false);
     if (article.images && article.images.length > 1) {
       setDetailImages(article.images);
       return;
@@ -362,6 +366,37 @@ export function ArticleDetailItem({
       isMounted = false;
     };
   }, [article?.id, article?.link]);
+
+  const rawImageUrl = sanitizeImageUrl(article?.imageUrl);
+
+  const scrapedImage = useMemo(() => {
+    const list = [
+      ...(detailImages || []),
+      ...(fullArticleData?.images || []),
+    ];
+    return list.find((img) => {
+      const sanitized = sanitizeImageUrl(img);
+      return sanitized && sanitized !== rawImageUrl;
+    });
+  }, [detailImages, fullArticleData?.images, rawImageUrl]);
+
+  const displayImageUrl = useMemo(() => {
+    if (imageErrorCount >= 4) return undefined;
+
+    // 1. Direct article image (if not errored yet) - ALWAYS PREFER THE EXACT IMAGE PASSED FROM SLIDE/CARD
+    if (rawImageUrl && imageErrorCount === 0) {
+      return rawImageUrl;
+    }
+
+    // 2. If direct image failed (imageErrorCount >= 1) or was missing, check scraped image from web
+    if (scrapedImage && (imageErrorCount === 0 || imageErrorCount === 1)) {
+      const sanitized = sanitizeImageUrl(scrapedImage);
+      if (sanitized && sanitized !== rawImageUrl) return sanitized;
+    }
+
+    // 3. Curated high quality thematic fallback image
+    return getDiverseArticleImage(article, articleCategory?.key, imageErrorCount);
+  }, [imageErrorCount, rawImageUrl, scrapedImage, article, articleCategory?.key]);
 
   const bookmarked = Boolean(bookmarks[article.id]);
 
@@ -520,20 +555,30 @@ export function ArticleDetailItem({
                 source={{ uri: displayImageUrl }}
                 style={styles.heroImage}
                 resizeMode="cover"
-                onError={() => setImageError(true)}
+                onError={() => setImageErrorCount((prev) => prev + 1)}
               />
             ) : (
               <View
                 style={[
                   styles.heroFallback,
-                  { backgroundColor: isDark ? '#111827' : '#1E293B' },
+                  { backgroundColor: isDark ? '#0F172A' : '#1E293B' },
                 ]}
               >
                 <MaterialCommunityIcons
-                  name="image-broken-variant"
-                  size={64}
-                  color="#64748B"
+                  name="newspaper-variant-outline"
+                  size={54}
+                  color={colors.primary}
                 />
+                <Text
+                  style={{
+                    color: '#94A3B8',
+                    fontSize: 12 * scale,
+                    marginTop: 8,
+                    fontFamily: typography.fontFamily,
+                  }}
+                >
+                  {articleCategory.label || article.author || 'IT News'}
+                </Text>
               </View>
             )}
 
@@ -608,10 +653,19 @@ export function ArticleDetailItem({
               </View>
 
               <View style={styles.heroTimeBadge}>
-                <MaterialCommunityIcons name="clock-outline" size={12} color="rgba(255, 255, 255, 0.85)" />
+                <MaterialCommunityIcons name="calendar-outline" size={12} color="rgba(255, 255, 255, 0.85)" />
                 <Text style={[styles.heroTimeText, { fontSize: 11 * scale }]}>
-                  {formatRelative(article.publishedMillis)}
+                  {formatThaiDate(article.publishedMillis)}
                 </Text>
+                {article.publishedMillis ? (
+                  <>
+                    <Text style={{ color: 'rgba(255, 255, 255, 0.6)', marginHorizontal: 3 }}>•</Text>
+                    <MaterialCommunityIcons name="clock-outline" size={11} color="rgba(255, 255, 255, 0.85)" />
+                    <Text style={[styles.heroTimeText, { fontSize: 11 * scale }]}>
+                      {formatRelative(article.publishedMillis)}
+                    </Text>
+                  </>
+                ) : null}
               </View>
             </View>
 
@@ -1045,7 +1099,7 @@ export function ArticleDetailItem({
                   </Text>
                 </View>
                 <Text style={[styles.nextArticleTime, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                  {formatRelative(nextArticle.publishedMillis)}
+                  {formatDateWithRelative(nextArticle.publishedMillis, { shortYear: true })}
                 </Text>
               </View>
 
@@ -1067,9 +1121,13 @@ export function ArticleDetailItem({
                 ]}
                 accessibilityLabel={`อ่านข่าวถัดไป: ${nextArticle.title}`}
               >
-                {nextArticle.imageUrl ? (
+                {sanitizeImageUrl(nextArticle.imageUrl) || !settings.dataSaverEnabled ? (
                   <Image
-                    source={{ uri: sanitizeImageUrl(nextArticle.imageUrl) }}
+                    source={{
+                      uri:
+                        sanitizeImageUrl(nextArticle.imageUrl) ||
+                        getDiverseArticleImage(nextArticle, articleCategory?.key),
+                    }}
                     style={styles.nextArticleThumb}
                     resizeMode="cover"
                   />

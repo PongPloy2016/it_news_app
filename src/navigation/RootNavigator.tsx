@@ -4,8 +4,7 @@ import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScroll
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DrawerActions, getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, BackHandler, Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ScrollView as GHScrollView } from 'react-native-gesture-handler';
+import { ActivityIndicator, BackHandler, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
 import { BookmarksScreen } from '../screens/BookmarksScreen';
@@ -61,13 +60,11 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
   const closeDrawer = () => {
     try {
-      if (typeof (props.navigation as any).closeDrawer === 'function') {
-        (props.navigation as any).closeDrawer();
-      } else {
-        props.navigation.dispatch(DrawerActions.closeDrawer());
-      }
-    } catch {
       props.navigation.dispatch(DrawerActions.closeDrawer());
+    } catch {
+      try {
+        (props.navigation as any).closeDrawer?.();
+      } catch {}
     }
   };
 
@@ -167,6 +164,25 @@ function DrawerContent(props: DrawerContentComponentProps) {
     }
   };
 
+  const handleSelectChannel = (channel: (typeof channels)[number]) => {
+    // 1. Instantly trigger native drawer close animation
+    closeDrawer();
+
+    // 2. Ensure navigation to Latest tab if user was on another screen/tab
+    try {
+      (props.navigation as any).navigate('DrawerHome', { screen: 'Latest' });
+    } catch {}
+
+    // 3. Defer feed state update until drawer animation begins to prevent freezing
+    setTimeout(() => {
+      setSelectedFeedKey(channel.key);
+      const grp = feedGroups.find((g) => g.key === channel.groupKey);
+      if (grp) {
+        void analyticsService.logCategoryView(grp.key, grp.label, 'drawer');
+      }
+    }, 60);
+  };
+
   const renderChannelRow = (channel: (typeof channels)[number]) => {
     const isSelected = channel.key === selectedFeedKey;
     const stat = channelStats[channel.key];
@@ -177,14 +193,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
     return (
       <Pressable
         key={`${channel.groupKey}-${channel.key}`}
-        onPress={() => {
-          setSelectedFeedKey(channel.key);
-          const grp = feedGroups.find((g) => g.key === channel.groupKey);
-          if (grp) {
-            void analyticsService.logCategoryView(grp.key, grp.label, 'drawer');
-          }
-          closeDrawer();
-        }}
+        onPress={() => handleSelectChannel(channel)}
         style={({ pressed }) => [
           styles.channelRow,
           {
@@ -319,11 +328,10 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
       {/* 2. Modern Category Quick-Filter Module Pills (GestureHandler ScrollView with disallowInterruption) */}
       <View style={[styles.filterBarContainer, { borderBottomColor: colors.border }]}>
-        <GHScrollView
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled={true}
-          disallowInterruption={true}
           contentContainerStyle={styles.filterScroll}
           style={styles.filterScrollView}
         >
@@ -365,6 +373,15 @@ function DrawerContent(props: DrawerContentComponentProps) {
               <Pressable
                 key={group.key}
                 onPress={() => {
+                  if (isSelected && group.sources[0]) {
+                    handleSelectChannel({
+                      ...group.sources[0],
+                      groupKey: group.key,
+                      groupLabel: group.label,
+                      groupColor: group.color,
+                    });
+                    return;
+                  }
                   setFilterGroupKey(group.key);
                   setCollapsedGroups((prev) => ({ ...prev, [group.key]: false }));
                   setIsCategoryPickerOpen(false);
@@ -398,7 +415,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
               </Pressable>
             );
           })}
-        </GHScrollView>
+        </ScrollView>
 
         {/* Quick Dropdown Toggle Button on the right */}
         <Pressable
@@ -446,6 +463,9 @@ function DrawerContent(props: DrawerContentComponentProps) {
             onPress={() => {
               setFilterGroupKey('all');
               setIsCategoryPickerOpen(false);
+              if (channels[0]) {
+                handleSelectChannel(channels[0]);
+              }
             }}
             style={[
               styles.pickerMenuItem,
@@ -483,6 +503,14 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   setFilterGroupKey(group.key);
                   setCollapsedGroups((prev) => ({ ...prev, [group.key]: false }));
                   setIsCategoryPickerOpen(false);
+                  if (group.sources[0]) {
+                    handleSelectChannel({
+                      ...group.sources[0],
+                      groupKey: group.key,
+                      groupLabel: group.label,
+                      groupColor: group.color,
+                    });
+                  }
                   void analyticsService.logCategoryView(group.key, group.label, 'drawer_filter');
                 }}
                 style={[
@@ -538,7 +566,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
       </View>
 
       {/* 4. Modular Category Cards (Card Modules) */}
-      <GHScrollView
+      <ScrollView
         showsVerticalScrollIndicator={true}
         nestedScrollEnabled={true}
         contentContainerStyle={styles.channelScrollContent}
@@ -635,7 +663,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
             </View>
           );
         })}
-      </GHScrollView>
+      </ScrollView>
 
       {/* 5. Minimal Bottom Action Bar */}
       <View

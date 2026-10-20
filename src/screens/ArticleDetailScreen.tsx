@@ -120,8 +120,17 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
       list = [initialArticle];
     }
 
-    if (initialArticle && !list.some((a) => a.id === initialArticle.id)) {
-      list.unshift(initialArticle);
+    if (initialArticle) {
+      const existingIdx = list.findIndex((a) => a.id === initialArticle.id);
+      if (existingIdx >= 0) {
+        list[existingIdx] = {
+          ...list[existingIdx],
+          ...initialArticle,
+          imageUrl: initialArticle.imageUrl || list[existingIdx].imageUrl,
+        };
+      } else {
+        list.unshift(initialArticle);
+      }
     }
     return list;
   }, [
@@ -288,7 +297,7 @@ export function ArticleDetailScreen({ route, navigation }: Props) {
         onMomentumScrollEnd={onMomentumScrollEnd}
         windowSize={3}
         maxToRenderPerBatch={1}
-        initialNumToRender={1}
+        initialNumToRender={Math.max(initialIndex + 1, 2)}
         removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item, index }) => (
           <View style={{ width: screenWidth, height: '100%' }}>

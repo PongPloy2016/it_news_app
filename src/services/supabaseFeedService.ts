@@ -94,9 +94,9 @@ export async function loadFeedConfiguration(): Promise<FeedConfigurationResult> 
         throw new Error(sourceErr?.message || 'Empty feed_sources returned from Supabase');
       }
 
-      // Filter out any groups that are inactive (hide disabled groups)
+      // Filter out any groups that are inactive (hide disabled groups strictly following admin setting)
       const activeGroups = groups.filter((g: RemoteFeedGroup) => g.is_active !== false);
-      const groupsToParse = activeGroups.length > 0 ? activeGroups : groups;
+      const groupsToParse = activeGroups;
 
       const parsedGroups: FeedGroup[] = groupsToParse.map((g: RemoteFeedGroup) => {
         const groupSources: FeedSource[] = sources
@@ -113,7 +113,7 @@ export async function loadFeedConfiguration(): Promise<FeedConfigurationResult> 
           key: g.key,
           label: g.label,
           color: g.color || '#2F6FED',
-          is_active: g.is_active !== false,
+          is_active: true,
           sources: [createAggregateSource(g.key, g.label), ...groupSources],
         };
       });
@@ -145,11 +145,14 @@ export async function loadFeedConfiguration(): Promise<FeedConfigurationResult> 
   try {
     const cached = await storage.get<FeedGroup[]>(CACHE_KEY_GROUPS);
     if (cached && Array.isArray(cached) && cached.length > 0) {
-      return {
-        groups: cached,
-        sources: extractFeedSources(cached),
-        isFromSupabase: true,
-      };
+      const activeCached = cached.filter((g) => g.is_active !== false);
+      if (activeCached.length > 0) {
+        return {
+          groups: activeCached,
+          sources: extractFeedSources(activeCached),
+          isFromSupabase: true,
+        };
+      }
     }
   } catch {
     // Ignore cache reading error

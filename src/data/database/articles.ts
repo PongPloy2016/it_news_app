@@ -34,7 +34,12 @@ export const articleRepository = {
   },
 
   async clearCache(): Promise<void> {
-    await storage.multiRemove([STORAGE_KEYS.articles, STORAGE_KEYS.lastUpdated]);
+    await storage.multiRemove([
+      STORAGE_KEYS.articles,
+      STORAGE_KEYS.lastUpdated,
+      'blognone.categoryArticles',
+      'it_news.supabase_feed_groups',
+    ]);
   },
 
   async clearReadArticles(): Promise<void> {
@@ -66,19 +71,35 @@ export const articleRepository = {
     return sanitized;
   },
 
-  async saveCachedCategoryArticles(data: Record<string, NewsArticle[]>): Promise<void> {
+  async saveCachedCategoryArticles(
+    data: Record<string, NewsArticle[]>,
+    activeKeys?: string[],
+  ): Promise<void> {
     if (!data || Object.keys(data).length === 0) return;
-    const existing = (await storage.get<Record<string, NewsArticle[]>>('blognone.categoryArticles')) || {};
-    const merged: Record<string, NewsArticle[]> = { ...existing };
 
-    for (const [key, list] of Object.entries(data)) {
-      if (list && list.length > 0) {
-        merged[key] = list;
-        // Also save to per-feed cache for instant tab switching
-        void storage.set(`blognone.feed_${key}`, list.slice(0, 50));
+    let target: Record<string, NewsArticle[]>;
+    if (activeKeys && activeKeys.length > 0) {
+      // Overwrite mode: only keep active categories, strictly purging disabled ones
+      const allowed = new Set(activeKeys);
+      target = {};
+      for (const [key, list] of Object.entries(data)) {
+        if (allowed.has(key) && list && list.length > 0) {
+          target[key] = list;
+          void storage.set(`blognone.feed_${key}`, list.slice(0, 50));
+        }
+      }
+    } else {
+      const existing = (await storage.get<Record<string, NewsArticle[]>>('blognone.categoryArticles')) || {};
+      target = { ...existing };
+      for (const [key, list] of Object.entries(data)) {
+        if (list && list.length > 0) {
+          target[key] = list;
+          void storage.set(`blognone.feed_${key}`, list.slice(0, 50));
+        }
       }
     }
-    await storage.set('blognone.categoryArticles', merged);
+
+    await storage.set('blognone.categoryArticles', target);
   },
 };
 

@@ -12,7 +12,7 @@ import { FeedGroup } from '../../config/categories';
 import { getCategoryVisual } from '../../config/categoryVisuals';
 import { useNews } from '../../store/NewsContext';
 import { NewsArticle } from '../../types';
-import { formatRelative, sanitizeImageUrl } from '../../utils/content';
+import { formatDateWithRelative, formatRelative, sanitizeImageUrl } from '../../utils/content';
 import { getDiverseArticleImage } from '../../utils/articleVisuals';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -138,7 +138,14 @@ export function CategorySectionBlock({
           return (
             <Pressable
               key={`cat-card-${group.key}-${article.id}-${idx}`}
-              onPress={() => onPressArticle(article, articles, group.key, group.label)}
+              onPress={() =>
+                onPressArticle(
+                  { ...article, imageUrl: article.imageUrl || imgUri },
+                  articles,
+                  group.key,
+                  group.label,
+                )
+              }
               style={({ pressed }) => [
                 styles.card,
                 {
@@ -195,7 +202,9 @@ export function CategorySectionBlock({
                     numberOfLines={1}
                     style={[styles.cardTime, { color: colors.muted, fontSize: 10 * scale }]}
                   >
-                    {article.publishedMillis ? formatRelative(article.publishedMillis) : 'ล่าสุด'}
+                    {article.publishedMillis
+                      ? formatDateWithRelative(article.publishedMillis, { shortYear: true })
+                      : 'ล่าสุด'}
                   </Text>
                   <Pressable
                     hitSlop={6}
@@ -379,6 +388,7 @@ const styles = StyleSheet.create({
   cardTime: {
     fontWeight: '500',
     flex: 1,
+    marginRight: 6,
   },
   bookmarkIconBtn: {
     padding: 2,

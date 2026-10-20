@@ -10,7 +10,7 @@ import {
 import { useNews } from '../store/NewsContext';
 import { typography } from '../theme';
 import { CardLayoutOption, NewsArticle } from '../types';
-import { formatRelative, sanitizeImageUrl } from '../utils/content';
+import { formatDateWithRelative, formatRelative, sanitizeImageUrl } from '../utils/content';
 import { getDiverseArticleImage } from '../utils/articleVisuals';
 
 interface Props {
@@ -132,7 +132,7 @@ export function NewsCard({
                   numberOfLines={1}
                   style={[styles.gridDate, { color: colors.muted, fontSize: 10 * scale }]}
                 >
-                  {formatRelative(article.publishedMillis)}
+                  {formatDateWithRelative(article.publishedMillis, { shortYear: true })}
                 </Text>
               ) : null}
             </View>
@@ -230,7 +230,7 @@ export function NewsCard({
                   style={[styles.compactDate, { color: colors.muted, fontSize: 11 * scale }]}
                 >
                   {article.author ? ' · ' : ''}
-                  {formatRelative(article.publishedMillis)}
+                  {formatDateWithRelative(article.publishedMillis, { shortYear: true })}
                 </Text>
               ) : null}
             </View>
@@ -385,7 +385,7 @@ export function NewsCard({
             {article.publishedMillis ? (
               <Text numberOfLines={1} style={[styles.date, { color: colors.muted, fontSize: 11.5 * scale }]}>
                 {article.author ? ' · ' : ''}
-                {formatRelative(article.publishedMillis)}
+                {formatDateWithRelative(article.publishedMillis, { shortYear: true })}
               </Text>
             ) : null}
           </View>

@@ -31,11 +31,12 @@ export const createAggregateSource = (groupKey: string, groupLabel: string): Fee
   type: 'aggregate',
 });
 
-export const FEED_GROUPS: FeedGroup[] = [
+export const ALL_FEED_GROUPS: FeedGroup[] = [
   {
     key: 'tech-business',
     label: 'ข่าวเทคโนโลยีและธุรกิจดิจิทัล',
     color: '#2F6FED',
+    is_active: true,
     sources: [
       createAggregateSource('tech-business', 'ข่าวเทคโนโลยีและธุรกิจดิจิทัล'),
       ...techBusinessSources,
@@ -45,6 +46,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'international',
     label: 'ข่าวไอทีต่างประเทศ',
     color: '#0284C7',
+    is_active: true,
     sources: [
       createAggregateSource('international', 'ข่าวไอทีต่างประเทศ'),
       ...techInternationalSources,
@@ -54,6 +56,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'thai-news',
     label: 'ข่าวสำนักข่าวไทย',
     color: '#D946EF',
+    is_active: true,
     sources: [
       createAggregateSource('thai-news', 'ข่าวสำนักข่าวไทย'),
       ...thaiNewsSources,
@@ -63,6 +66,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'mobile',
     label: 'ข่าวมือถือและอุปกรณ์',
     color: '#17A673',
+    is_active: true,
     sources: [
       createAggregateSource('mobile', 'ข่าวมือถือและอุปกรณ์'),
       ...mobileSources,
@@ -72,6 +76,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'computer-games',
     label: 'ข่าวคอมพิวเตอร์และเกม',
     color: '#F59E0B',
+    is_active: false,
     sources: [
       createAggregateSource('computer-games', 'ข่าวคอมพิวเตอร์และเกม'),
       ...computerSources,
@@ -81,6 +86,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'ai-innovation',
     label: 'ปัญญาประดิษฐ์และ AI',
     color: '#8B5CF6',
+    is_active: false,
     sources: [
       createAggregateSource('ai-innovation', 'ปัญญาประดิษฐ์และ AI'),
       ...aiSources,
@@ -90,6 +96,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'weather-forecast',
     label: 'สภาพอากาศและฟ้าฝน',
     color: '#0284C7',
+    is_active: true,
     sources: [
       createAggregateSource('weather-forecast', 'สภาพอากาศและฟ้าฝน'),
       ...weatherSources,
@@ -99,6 +106,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'cybersecurity',
     label: 'ความปลอดภัยไซเบอร์และเตือนภัย',
     color: '#EF4444',
+    is_active: false,
     sources: [
       createAggregateSource('cybersecurity', 'ความปลอดภัยไซเบอร์และเตือนภัย'),
       ...cybersecuritySources,
@@ -108,6 +116,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'agriculture',
     label: 'ข่าวเกษตร',
     color: '#84CC16',
+    is_active: false,
     sources: [
       createAggregateSource('agriculture', 'ข่าวเกษตร'),
       ...agricultureSources,
@@ -117,6 +126,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'ev-vehicles',
     label: 'ยานยนต์ไฟฟ้าและเทคโนโลยี EV',
     color: '#10B981',
+    is_active: false,
     sources: [
       createAggregateSource('ev-vehicles', 'ยานยนต์ไฟฟ้าและเทคโนโลยี EV'),
       ...evSources,
@@ -126,6 +136,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'science-space',
     label: 'วิทยาศาสตร์และสำรวจอวกาศ',
     color: '#6366F1',
+    is_active: false,
     sources: [
       createAggregateSource('science-space', 'วิทยาศาสตร์และสำรวจอวกาศ'),
       ...scienceSpaceSources,
@@ -135,6 +146,7 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'fintech-crypto',
     label: 'การเงินดิจิทัลและบล็อกเชน',
     color: '#F59E0B',
+    is_active: false,
     sources: [
       createAggregateSource('fintech-crypto', 'การเงินดิจิทัลและบล็อกเชน'),
       ...fintechCryptoSources,
@@ -144,12 +156,15 @@ export const FEED_GROUPS: FeedGroup[] = [
     key: 'developer-coding',
     label: 'โปรแกรมมิ่งและนักพัฒนา',
     color: '#06B6D4',
+    is_active: true,
     sources: [
       createAggregateSource('developer-coding', 'โปรแกรมมิ่งและนักพัฒนา'),
       ...developerSources,
     ],
   },
 ];
+
+export const FEED_GROUPS: FeedGroup[] = ALL_FEED_GROUPS.filter((g) => g.is_active !== false);
 
 export const FEED_SOURCES: FeedSource[] = (() => {
   const seen = new Set<string>();

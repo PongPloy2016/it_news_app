@@ -131,9 +131,10 @@ export class HomeSectionsService {
       }
     }
 
-    // Save all loaded sections to cache in background
+    // Save all loaded sections to cache in background, strictly keeping only active groups
     if (Object.keys(map).length > 0) {
-      void articleRepository.saveCachedCategoryArticles(map);
+      const activeKeys = groups.map((g) => g.key);
+      void articleRepository.saveCachedCategoryArticles(map, activeKeys);
     }
 
     return map;
@@ -145,9 +146,19 @@ export class HomeSectionsService {
 
   /**
    * Extract top featured articles across all categories for the Hero slider
+   * Ensures diverse representation across active categories (at most 2 per category)
    */
-  getFeaturedHeroArticles(categoryMap: Record<string, NewsArticle[]>): NewsArticle[] {
-    const allArticles = Object.values(categoryMap).flat();
+  getFeaturedHeroArticles(
+    categoryMap: Record<string, NewsArticle[]>,
+    allowedKeys?: Set<string>,
+  ): NewsArticle[] {
+    let categories = Object.keys(categoryMap);
+    if (allowedKeys && allowedKeys.size > 0) {
+      categories = categories.filter((k) => allowedKeys.has(k));
+    }
+    if (categories.length === 0) return [];
+
+    const allArticles = categories.flatMap((k) => categoryMap[k] || []);
     const seen = new Set<string>();
     const unique: NewsArticle[] = [];
 
@@ -159,26 +170,125 @@ export class HomeSectionsService {
     }
 
     unique.sort((a, b) => (b.publishedMillis ?? 0) - (a.publishedMillis ?? 0));
-    return unique.slice(0, 6);
+
+    // Balanced selection: pick newest while capping at max 2 articles from any single category
+    const result: NewsArticle[] = [];
+    const catCounts: Record<string, number> = {};
+
+    for (const article of unique) {
+      if (result.length >= 6) break;
+      let catKey = 'general';
+      for (const k of categories) {
+        const list = categoryMap[k] || [];
+        if (list.some((a) => a.id === article.id)) {
+          catKey = k;
+          break;
+        }
+      }
+      const count = catCounts[catKey] || 0;
+      if (count < 2) {
+        catCounts[catKey] = count + 1;
+        result.push(article);
+      }
+    }
+
+    if (result.length < 6) {
+      const resultIds = new Set(result.map((a) => a.id));
+      for (const article of unique) {
+        if (result.length >= 6) break;
+        if (!resultIds.has(article.id)) {
+          resultIds.add(article.id);
+          result.push(article);
+        }
+      }
+    }
+
+    return result;
   }
 
   /**
-   * Extract trending highlight articles (excluding hero articles)
+   * Extract trending highlight articles by selecting the newest article
+   * from each distinct active category (1 per category)
    */
   getTrendingHighlights(
     categoryMap: Record<string, NewsArticle[]>,
     excludeIds: Set<string>,
-    limit: number = 4
+    limit: number = 6,
+    allowedKeys?: Set<string>,
   ): NewsArticle[] {
-    const allArticles = Object.values(categoryMap).flat();
+    let categories = Object.keys(categoryMap);
+    if (allowedKeys && allowedKeys.size > 0) {
+      categories = categories.filter((k) => allowedKeys.has(k));
+    }
+    if (categories.length === 0) return [];
+
+    // Priority ordering strictly based on active settings
+    const preferredOrder = [
+      'tech-business',
+      'international',
+      'thai-news',
+      'mobile',
+      'weather-forecast',
+      'developer-coding',
+    ];
+
+    const sortedCategories = [...categories].sort((a, b) => {
+      const idxA = preferredOrder.indexOf(a);
+      const idxB = preferredOrder.indexOf(b);
+      const priA = idxA === -1 ? 999 : idxA;
+      const priB = idxB === -1 ? 999 : idxB;
+      return priA - priB;
+    });
+
+    // Sort articles in each category queue by newest first
+    const categoryQueues = new Map<string, NewsArticle[]>();
+    for (const cat of sortedCategories) {
+      const articles = (categoryMap[cat] || []).filter((a) => a && a.id && a.title);
+      const sorted = [...articles].sort(
+        (a, b) => (b.publishedMillis ?? 0) - (a.publishedMillis ?? 0),
+      );
+      categoryQueues.set(cat, sorted);
+    }
+
     const seen = new Set<string>(excludeIds);
     const result: NewsArticle[] = [];
 
-    for (const article of allArticles) {
-      if (article && article.id && !seen.has(article.id)) {
-        seen.add(article.id);
-        result.push(article);
-        if (result.length >= limit) break;
+    // Pass 1: Select 1 newest article from each distinct category
+    for (const cat of sortedCategories) {
+      if (result.length >= limit) break;
+      const queue = categoryQueues.get(cat);
+      if (queue) {
+        while (queue.length > 0) {
+          const candidate = queue.shift()!;
+          if (!seen.has(candidate.id)) {
+            seen.add(candidate.id);
+            result.push(candidate);
+            break; // 1 article per category!
+          }
+        }
+      }
+    }
+
+    // Pass 2: If limit not reached, fill remaining round-robin
+    if (result.length < limit) {
+      let hasMore = true;
+      while (hasMore && result.length < limit) {
+        hasMore = false;
+        for (const cat of sortedCategories) {
+          if (result.length >= limit) break;
+          const queue = categoryQueues.get(cat);
+          if (queue && queue.length > 0) {
+            hasMore = true;
+            while (queue.length > 0) {
+              const candidate = queue.shift()!;
+              if (!seen.has(candidate.id)) {
+                seen.add(candidate.id);
+                result.push(candidate);
+                break;
+              }
+            }
+          }
+        }
       }
     }
 

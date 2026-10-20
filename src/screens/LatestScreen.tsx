@@ -162,8 +162,18 @@ export function LatestScreen() {
     void (async () => {
       try {
         const cached = await homeSectionsService.getCachedCategorySections();
-        if (isMounted && Object.keys(cached).length > 0) {
-          setCategorySections(cached);
+        const activeKeySet = new Set(feedGroups.map((g) => g.key));
+
+        // Filter cached categories to only include currently active feed groups from settings
+        const filteredCached: Record<string, NewsArticle[]> = {};
+        for (const [k, list] of Object.entries(cached)) {
+          if (activeKeySet.size === 0 || activeKeySet.has(k)) {
+            filteredCached[k] = list;
+          }
+        }
+
+        if (isMounted && Object.keys(filteredCached).length > 0) {
+          setCategorySections(filteredCached);
           setIsSectionsLoading(false);
           setLoadProgress(0.85);
           setLoadingStageText('โหลดข้อมูลแคชเรียบร้อยแล้ว');
@@ -187,17 +197,29 @@ export function LatestScreen() {
               }
             },
             (categoryKey, catArticles) => {
-              if (isMounted && catArticles.length > 0) {
-                setCategorySections((prev) => ({
-                  ...prev,
-                  [categoryKey]: catArticles,
-                }));
+              if (isMounted && catArticles.length > 0 && activeKeySet.has(categoryKey)) {
+                setCategorySections((prev) => {
+                  const next: Record<string, NewsArticle[]> = {};
+                  for (const [k, v] of Object.entries(prev)) {
+                    if (activeKeySet.has(k)) {
+                      next[k] = v;
+                    }
+                  }
+                  next[categoryKey] = catArticles;
+                  return next;
+                });
                 setIsSectionsLoading(false);
               }
             }
           );
           if (isMounted && Object.keys(fresh).length > 0) {
-            setCategorySections(fresh);
+            const nextFresh: Record<string, NewsArticle[]> = {};
+            for (const [k, v] of Object.entries(fresh)) {
+              if (activeKeySet.has(k)) {
+                nextFresh[k] = v;
+              }
+            }
+            setCategorySections(nextFresh);
             setLoadProgress(1);
             setLoadingStageText('โหลดข้อมูลข่าวสารครบถ้วนแล้ว');
           }
@@ -263,10 +285,10 @@ export function LatestScreen() {
   // Synchronize active group when selectedFeedKey changes externally (e.g. from drawer)
   useEffect(() => {
     const matchedGroup = feedGroups.find((group) => group.sources.some((item) => item.key === selectedFeedKey));
-    if (matchedGroup && activeGroupKey !== 'all' && activeGroupKey !== matchedGroup.key) {
+    if (matchedGroup && activeGroupKey !== matchedGroup.key) {
       setActiveGroupKey(matchedGroup.key);
     }
-  }, [feedGroups, selectedFeedKey, activeGroupKey]);
+  }, [feedGroups, selectedFeedKey]);
 
   // Handle waiting loading when entering the screen (Instant Cache First)
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -315,16 +337,24 @@ export function LatestScreen() {
               }
             },
             (categoryKey, catArticles) => {
-              if (catArticles.length > 0) {
-                setCategorySections((prev) => ({
-                  ...prev,
-                  [categoryKey]: catArticles,
-                }));
+              const activeKeySet = new Set(feedGroups.map((g) => g.key));
+              if (catArticles.length > 0 && activeKeySet.has(categoryKey)) {
+                setCategorySections((prev) => {
+                  const next: Record<string, NewsArticle[]> = {};
+                  for (const [k, v] of Object.entries(prev)) {
+                    if (activeKeySet.has(k)) {
+                      next[k] = v;
+                    }
+                  }
+                  next[categoryKey] = catArticles;
+                  return next;
+                });
               }
             },
           );
           // Preserve previously known article images
           setCategorySections((prev) => {
+            const activeKeySet = new Set(feedGroups.map((g) => g.key));
             const prevKnown = new Map(
               Object.values(prev)
                 .flat()
@@ -333,12 +363,14 @@ export function LatestScreen() {
             );
             const preserved: Record<string, NewsArticle[]> = {};
             for (const [k, list] of Object.entries(fresh)) {
-              preserved[k] = list.map((a) => ({
-                ...a,
-                imageUrl: a.imageUrl ?? prevKnown.get(a.id),
-              }));
+              if (activeKeySet.has(k)) {
+                preserved[k] = list.map((a) => ({
+                  ...a,
+                  imageUrl: a.imageUrl ?? prevKnown.get(a.id),
+                }));
+              }
             }
-            void articleRepository.saveCachedCategoryArticles(preserved);
+            void articleRepository.saveCachedCategoryArticles(preserved, Array.from(activeKeySet));
             return preserved;
           });
           setLoadProgress(1);
@@ -428,14 +460,16 @@ export function LatestScreen() {
 
   // Hero, highlights, and ticker derived data
   const heroArticles = useMemo(() => {
-    return homeSectionsService.getFeaturedHeroArticles(categorySections);
-  }, [categorySections]);
+    const activeKeySet = new Set(feedGroups.map((g) => g.key));
+    return homeSectionsService.getFeaturedHeroArticles(categorySections, activeKeySet);
+  }, [categorySections, feedGroups]);
 
   const heroIds = useMemo(() => new Set(heroArticles.map((a) => a.id)), [heroArticles]);
 
   const highlightArticles = useMemo(() => {
-    return homeSectionsService.getTrendingHighlights(categorySections, heroIds, 4);
-  }, [categorySections, heroIds]);
+    const activeKeySet = new Set(feedGroups.map((g) => g.key));
+    return homeSectionsService.getTrendingHighlights(categorySections, heroIds, 6, activeKeySet);
+  }, [categorySections, heroIds, feedGroups]);
 
   const tickerArticles = useMemo(() => {
     return homeSectionsService.getFlashTickerArticles(categorySections, 20);

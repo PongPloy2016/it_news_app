@@ -505,8 +505,8 @@ export function HomeEditorialSkeleton() {
           </Text>
         </View>
 
-        {/* 4 Highlight Cards (Matches loaded UI 4 articles 1:1) */}
-        {[0, 1, 2, 3].map((idx) => (
+        {/* 6 Highlight Cards (Matches loaded UI 6 articles 1:1) */}
+        {[0, 1, 2, 3, 4, 5].map((idx) => (
           <View
             key={`hl-skel-${idx}`}
             style={[

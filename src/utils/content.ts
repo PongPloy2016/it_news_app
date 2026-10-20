@@ -333,6 +333,45 @@ export function parseDate(raw?: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+const THAI_MONTHS_SHORT = [
+  'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
+];
+
+/**
+ * Format timestamp into Thai Buddhist date (e.g. "20 ต.ค. 2569" or "20 ต.ค. 69")
+ */
+export function formatThaiDate(
+  millis?: number,
+  options?: { shortYear?: boolean; noYear?: boolean },
+): string {
+  if (!millis) return '';
+  const d = new Date(millis);
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  const month = THAI_MONTHS_SHORT[d.getMonth()] || '';
+  if (options?.noYear) {
+    return `${day} ${month}`;
+  }
+  const beYear = d.getFullYear() + 543;
+  if (options?.shortYear) {
+    return `${day} ${month} ${String(beYear).slice(-2)}`;
+  }
+  return `${day} ${month} ${beYear}`;
+}
+
+export function formatDateWithRelative(
+  millis?: number,
+  options?: { shortYear?: boolean },
+): string {
+  if (!millis) return '';
+  const dateStr = formatThaiDate(millis, options);
+  const relStr = formatRelative(millis);
+  if (!dateStr) return relStr || '';
+  if (!relStr || relStr === dateStr) return dateStr;
+  return `${dateStr} • ${relStr}`;
+}
+
 export function formatRelative(millis?: number): string {
   if (!millis) return '';
   const minutes = Math.max(0, Math.floor((Date.now() - millis) / 60_000));
@@ -340,7 +379,6 @@ export function formatRelative(millis?: number): string {
   if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
   if (minutes < 1_440) return `${Math.floor(minutes / 60)} ชั่วโมงที่แล้ว`;
   if (minutes < 10_080) return `${Math.floor(minutes / 1_440)} วันที่แล้ว`;
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  }).format(new Date(millis));
+  return formatThaiDate(millis);
 }
+
