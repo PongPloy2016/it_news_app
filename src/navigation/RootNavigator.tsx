@@ -4,7 +4,7 @@ import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScroll
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DrawerActions, getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, BackHandler, Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Dimensions, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
 import { BookmarksScreen } from '../screens/BookmarksScreen';
@@ -18,6 +18,7 @@ import { useNews } from '../store/NewsContext';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
 import { analyticsService } from '../services/analyticsService';
+import { getCategoryVisual } from '../config/categoryVisuals';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -148,20 +149,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
   };
 
   const getCategoryIcon = (key: string): keyof typeof MaterialCommunityIcons.glyphMap => {
-    switch (key) {
-      case 'tech-business':
-        return 'laptop';
-      case 'international':
-        return 'earth';
-      case 'thai-news':
-        return 'newspaper-variant-outline';
-      case 'mobile':
-        return 'cellphone';
-      case 'computer-games':
-        return 'gamepad-variant-outline';
-      default:
-        return 'folder-outline';
-    }
+    return getCategoryVisual(key).icon;
   };
 
   const handleSelectChannel = (channel: (typeof channels)[number]) => {
@@ -496,6 +484,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
           {/* Each Group */}
           {feedGroups.map((group) => {
             const isSelected = filterGroupKey === group.key;
+            const groupVisual = getCategoryVisual(group.key, group.label, group.color);
             return (
               <Pressable
                 key={group.key}
@@ -520,7 +509,9 @@ function DrawerContent(props: DrawerContentComponentProps) {
                 ]}
               >
                 <View style={styles.pickerMenuItemLeft}>
-                  <View style={[styles.pickerMenuDot, { backgroundColor: group.color }]} />
+                  <View style={[styles.pickerMenuThumbWrap, { borderColor: withAlpha(group.color, 0.45) }]}>
+                    <Image source={{ uri: groupVisual.image }} style={styles.pickerMenuThumbImage} resizeMode="cover" />
+                  </View>
                   <Text
                     numberOfLines={1}
                     style={[
@@ -574,6 +565,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
       >
         {displayedGroups.map((group) => {
           const isCollapsed = Boolean(collapsedGroups[group.key]);
+          const visual = getCategoryVisual(group.key, group.label, group.color);
           const groupChannels = channels.filter((c) => c.groupKey === group.key);
           const hasSelectedChannel = groupChannels.some((c) => c.key === selectedFeedKey);
           const groupNewCount = groupChannels.reduce((sum, c) => {
@@ -591,7 +583,11 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   backgroundColor: colors.surfaceVariant,
                   borderColor: hasSelectedChannel
                     ? group.color
-                    : withAlpha(group.color, isCollapsed ? 0.2 : 0.45),
+                    : withAlpha(group.color, isCollapsed ? 0.22 : 0.45),
+                },
+                hasSelectedChannel && {
+                  borderLeftWidth: 3.5,
+                  borderLeftColor: group.color,
                 },
               ]}
             >
@@ -603,16 +599,52 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   {
                     backgroundColor: pressed
                       ? withAlpha(group.color, 0.12)
-                      : withAlpha(group.color, hasSelectedChannel ? 0.08 : 0.04),
+                      : hasSelectedChannel
+                      ? withAlpha(group.color, 0.08)
+                      : 'transparent',
                     borderBottomColor: withAlpha(colors.border, 0.5),
                     borderBottomWidth: !isCollapsed ? StyleSheet.hairlineWidth : 0,
                   },
                 ]}
               >
                 <View style={styles.moduleHeaderLeft}>
-                  <View style={[styles.moduleIconBadge, { backgroundColor: group.color }]}>
-                    <MaterialCommunityIcons name={getCategoryIcon(group.key)} size={17} color="#FFFFFF" />
+                  {/* Category Image Thumbnail with theme overlay & mini icon badge */}
+                  <View
+                    style={[
+                      styles.moduleThumbWrap,
+                      {
+                        borderColor: hasSelectedChannel
+                          ? group.color
+                          : withAlpha(group.color, 0.35),
+                        backgroundColor: withAlpha(group.color, 0.15),
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={{ uri: visual.image }}
+                      style={styles.moduleThumbImage}
+                      resizeMode="cover"
+                    />
+                    <View
+                      style={[
+                        styles.moduleThumbOverlay,
+                        { backgroundColor: withAlpha(group.color, 0.18) },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.moduleThumbIconBadge,
+                        {
+                          backgroundColor: group.color,
+                          borderColor: colors.surfaceVariant,
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons name={visual.icon} size={9} color="#FFFFFF" />
+                    </View>
                   </View>
+
+                  {/* Title & Metadata */}
                   <View style={styles.moduleTitleWrap}>
                     <Text
                       numberOfLines={1}
@@ -627,22 +659,40 @@ function DrawerContent(props: DrawerContentComponentProps) {
                     >
                       {group.label}
                     </Text>
-                    <Text style={[styles.moduleSubtitleText, { color: colors.muted, fontSize: 11 * scale }]}>
-                      {group.sources.length} ช่องข่าว {groupNewCount > 0 ? `· ${groupNewCount} ข่าวใหม่` : ''}
-                    </Text>
+
+                    <View style={styles.moduleMetaRow}>
+                      <View style={[styles.moduleCountPill, { backgroundColor: withAlpha(colors.text, 0.06) }]}>
+                        <Text style={[styles.moduleCountPillText, { color: colors.muted, fontSize: 10.5 * scale }]}>
+                          {group.sources.length} ช่องข่าว
+                        </Text>
+                      </View>
+
+                      {hasSelectedChannel && (
+                        <View style={[styles.activePill, { backgroundColor: withAlpha(group.color, 0.16) }]}>
+                          <View style={[styles.activeDot, { backgroundColor: group.color }]} />
+                          <Text style={[styles.activePillText, { color: group.color, fontSize: 10 * scale }]}>
+                            กำลังอ่าน
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
 
                 <View style={styles.moduleHeaderRight}>
                   {groupNewCount > 0 && (
                     <View style={styles.groupNewBadge}>
-                      <Text style={styles.groupNewBadgeText}>{groupNewCount}</Text>
+                      <Text style={styles.groupNewBadgeText}>{groupNewCount} ใหม่</Text>
                     </View>
                   )}
                   <View
                     style={[
                       styles.chevronCircle,
-                      { backgroundColor: withAlpha(colors.text, 0.06) },
+                      {
+                        backgroundColor: hasSelectedChannel
+                          ? withAlpha(group.color, 0.14)
+                          : withAlpha(colors.text, 0.06),
+                      },
                     ]}
                   >
                     <MaterialCommunityIcons
@@ -1045,7 +1095,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
+  },
+  pickerMenuThumbWrap: {
+    borderRadius: 7,
+    borderWidth: 1,
+    height: 24,
+    overflow: 'hidden',
+    width: 24,
+  },
+  pickerMenuThumbImage: {
+    height: '100%',
+    width: '100%',
   },
   pickerMenuDot: {
     borderRadius: 4,
@@ -1116,22 +1177,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    gap: 10,
+    gap: 11,
     paddingRight: 6,
   },
-  moduleIconBadge: {
+  moduleThumbWrap: {
     alignItems: 'center',
-    borderRadius: 10,
-    height: 34,
+    borderRadius: 12,
+    borderWidth: 1.2,
+    height: 44,
     justifyContent: 'center',
-    width: 34,
+    overflow: 'hidden',
+    position: 'relative',
+    width: 44,
+  },
+  moduleThumbImage: {
+    height: '100%',
+    width: '100%',
+  },
+  moduleThumbOverlay: {
+    ...StyleSheet.absoluteFill,
+  },
+  moduleThumbIconBadge: {
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1.5,
+    bottom: -1,
+    height: 16,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: -1,
+    width: 16,
   },
   moduleTitleWrap: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   moduleTitleText: {
     letterSpacing: -0.2,
+  },
+  moduleMetaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+  moduleCountPill: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+  },
+  moduleCountPillText: {
+    fontWeight: '600',
+  },
+  activePill: {
+    alignItems: 'center',
+    borderRadius: 6,
+    flexDirection: 'row',
+    gap: 3.5,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+  },
+  activeDot: {
+    borderRadius: 999,
+    height: 5,
+    width: 5,
+  },
+  activePillText: {
+    fontWeight: '700',
   },
   moduleSubtitleText: {
     fontWeight: '500',
