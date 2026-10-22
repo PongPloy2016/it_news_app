@@ -52,6 +52,20 @@ export const thaiNewsSources: FeedSource[] = [
   // 🇹🇭 สำนักข่าว / หนังสือพิมพ์
   // =========================
   {
+    key: 'thairath',
+    label: 'ไทยรัฐ',
+    url: 'https://www.thairath.co.th/rss/news',
+    homepage: 'https://www.thairath.co.th',
+    type: 'rss',
+  },
+  {
+    key: 'thairath-business',
+    label: 'ไทยรัฐ ธุรกิจ',
+    url: 'https://www.thairath.co.th/rss/business',
+    homepage: 'https://www.thairath.co.th/business',
+    type: 'rss',
+  },
+  {
     key: 'thestandard',
     label: 'THE STANDARD',
     url: 'https://thestandard.co/feed/',

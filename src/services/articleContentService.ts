@@ -49,7 +49,39 @@ export function extractArticleContentFromHtml(
 ): { blocks: ArticleContentBlock[]; paragraphs: string[]; fullText: string; images?: string[] } | null {
   if (!html) return null;
 
-  // 1. Remove non-content elements
+  // 1. Extract JSON-LD metadata before stripping scripts (high reliability for Thairath, Sanook, etc.)
+  const jsonLdImages: string[] = [];
+  let jsonLdBody: string | undefined;
+
+  const ldMatches = html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  for (const m of ldMatches) {
+    try {
+      const parsed = JSON.parse(m[1]);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      for (const item of items) {
+        if (item && (item['@type'] === 'NewsArticle' || item['@type'] === 'Article')) {
+          const imgs = Array.isArray(item.image)
+            ? item.image
+            : (item.image?.url ? [item.image.url] : (item.image ? [item.image] : []));
+          for (const u of imgs) {
+            if (typeof u === 'string') {
+              const san = sanitizeImageUrl(u);
+              if (san && !jsonLdImages.includes(san)) {
+                jsonLdImages.push(san);
+              }
+            }
+          }
+          if (item.articleBody && typeof item.articleBody === 'string' && item.articleBody.length > 80) {
+            jsonLdBody = item.articleBody;
+          }
+        }
+      }
+    } catch {
+      // Ignore JSON parse error
+    }
+  }
+
+  // 2. Remove non-content elements
   const clean = html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -62,18 +94,37 @@ export function extractArticleContentFromHtml(
     .replace(/<aside\b[^>]*>[\s\S]*?<\/aside>/gi, '')
     .replace(/<!--[\s\S]*?-->/g, '');
 
-  // 2. Locate candidate article container
+  // 3. Locate candidate article container
   let container = '';
   const articleMatch = clean.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
   if (articleMatch) {
     container = articleMatch[1];
   } else {
-    const classMatch = clean.match(
-      /<div\b[^>]*class=["']\s*[^"']*(?:entry-content|post-content|article-content|story-body|detail-content|content-feed|news-content|article-body|read-content|main-content|detail|content-item__body|td-post-content|elementor-widget-theme-post-content)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
-    );
-    if (classMatch) {
-      container = classMatch[1];
-    } else {
+    // Check known content container selectors (Thairath, Sanook, WordPress, etc.)
+    const CONTAINER_SELECTORS = [
+      /__item_article-content/i,
+      /\bitemprop=["']articleBody["']/i,
+      /\bclass=["'][^"']*\b(?:article-body|entry-content|post-content|story-body|detail-content|news-content|read-content)\b[^"']*["']/i,
+    ];
+
+    let foundIdx = -1;
+    for (const sel of CONTAINER_SELECTORS) {
+      const m = clean.match(sel);
+      if (m && m.index !== undefined) {
+        foundIdx = m.index;
+        break;
+      }
+    }
+
+    if (foundIdx !== -1) {
+      const tagEnd = clean.indexOf('>', foundIdx);
+      if (tagEnd !== -1) {
+        // Extract substantive content window from container
+        container = clean.slice(tagEnd + 1, tagEnd + 60000);
+      }
+    }
+
+    if (!container) {
       const mainMatch = clean.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
       container = mainMatch ? mainMatch[1] : clean;
     }
@@ -139,9 +190,9 @@ export function extractArticleContentFromHtml(
     const sanitized = sanitizeImageUrl(bestUrl);
     if (!sanitized) return null;
 
-    // Exclude trackers, avatars, icons, badges, banners, doubleclick
+    // Exclude trackers, avatars, icons, badges, banners, and subscription promotional images
     if (
-      /avatar|gravatar|logo|icon|tracking|badge|emoji|pixel|banner|doubleclick|feedsportal|feedburner|statcounter|1x1/i.test(
+      /avatar|gravatar|logo|icon|tracking|badge|emoji|pixel|banner|doubleclick|feedsportal|feedburner|statcounter|1x1|homedelivery|home-delivery|subscription|newspaper|delivery|promot|e-paper|epaper|premium-01|enews-01|homedelivery-01|forum2022|sponsor/i.test(
         sanitized,
       ) ||
       /\.(?:ico|svg)(?:\?.*)?$/i.test(sanitized)
@@ -149,11 +200,17 @@ export function extractArticleContentFromHtml(
       return null;
     }
 
-    if (seenImages.has(sanitized)) return null;
-    seenImages.add(sanitized);
-
     const altMatch = tag.match(/\balt\s*=\s*["']([^"']*)["']/i);
     const alt = altMatch?.[1] ? he.decode(altMatch[1]).trim() : undefined;
+    if (
+      alt &&
+      /home delivery|premium|digital newspaper|สมัครรับหนังสือพิมพ์|โฆษณา|sponsor/i.test(alt)
+    ) {
+      return null;
+    }
+
+    if (seenImages.has(sanitized)) return null;
+    seenImages.add(sanitized);
 
     const wMatch = tag.match(/\bwidth\s*=\s*["']?(\d+)["']?/i);
     const hMatch = tag.match(/\bheight\s*=\s*["']?(\d+)["']?/i);
@@ -174,6 +231,27 @@ export function extractArticleContentFromHtml(
 
   const blocks: ArticleContentBlock[] = [];
   const inArticleImages: string[] = [];
+
+  // Add JSON-LD high-res images first
+  for (const u of jsonLdImages) {
+    if (!inArticleImages.includes(u)) {
+      inArticleImages.push(u);
+    }
+  }
+
+  // Check highlight/lead image in page if any
+  const highlightImgMatch = clean.match(
+    /<div\b[^>]*class=["'][^"']*article-highlight-image[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+  );
+  if (highlightImgMatch) {
+    const imTag = highlightImgMatch[1].match(/<img\b[^>]*>/i);
+    if (imTag) {
+      const parsedImg = parseImgTag(imTag[0]);
+      if (parsedImg?.url && !inArticleImages.includes(parsedImg.url)) {
+        inArticleImages.unshift(parsedImg.url);
+      }
+    }
+  }
 
   // Match blocks in sequence: <figure>, <h1-6>, <blockquote>, <li>, <p>, or standalone <img>
   const pattern =
@@ -243,7 +321,7 @@ export function extractArticleContentFromHtml(
     }
   }
 
-  // Fallback: If no structured blocks, extract substantive <div> blocks or plain text lines
+  // Fallback 1: If no structured blocks, extract substantive <div> blocks or plain text lines
   if (blocks.length === 0) {
     const divMatches = container.matchAll(/<div\b[^>]*>([\s\S]*?)<\/div>/gi);
     for (const m of divMatches) {
@@ -255,6 +333,22 @@ export function extractArticleContentFromHtml(
     }
   }
 
+  // Fallback 2: JSON-LD body if DOM extraction produced fewer than 2 paragraphs
+  const currentParagraphs = blocks.filter((b) => b.type === 'paragraph');
+  if (currentParagraphs.length < 2 && jsonLdBody) {
+    const splitParas = jsonLdBody
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter((p) => p.length >= 20 && !JUNK_REGEX.test(p));
+    if (splitParas.length > currentParagraphs.length) {
+      blocks.length = 0;
+      for (const p of splitParas) {
+        blocks.push({ type: 'paragraph', text: p });
+      }
+    }
+  }
+
+  // Fallback 3: Plain lines
   if (blocks.length === 0) {
     const lines = clean
       .split(/\n+/)
@@ -314,18 +408,13 @@ export const articleContentService = {
         if (cachedJson) {
           const parsed = JSON.parse(cachedJson) as FullArticleResult;
           parsed.source = 'cache';
-          // Ensure blocks exist in cached result (upgrade old cache schema)
-          if (!parsed.blocks || parsed.blocks.length === 0) {
-            const upgraded = extractArticleContentFromHtml(
-              parsed.fullText || parsed.paragraphs?.join('\n\n') || '',
-              url,
-            );
-            if (upgraded && upgraded.blocks.length > 0) {
-              parsed.blocks = upgraded.blocks;
-            }
+          // Ensure blocks exist in cached result and re-fetch if previously only had <= 1 paragraph
+          if (!parsed.blocks || parsed.blocks.length === 0 || (parsed.paragraphCount !== undefined && parsed.paragraphCount <= 1)) {
+            // Bypass stale 1-paragraph cache to fetch rich full article from network
+          } else {
+            memoryCache.set(cacheKey, parsed);
+            return parsed;
           }
-          memoryCache.set(cacheKey, parsed);
-          return parsed;
         }
       } catch {
         // Fallback to network

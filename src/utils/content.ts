@@ -18,6 +18,11 @@ export function sanitizeImageUrl(url?: string): string | undefined {
     return undefined;
   }
 
+  // Filter out promotional/subscription banners (e.g. Thairath Home Delivery)
+  if (/homedelivery|home-delivery|subscription|enews-01|premium-01|homedelivery-01/i.test(cleaned)) {
+    return undefined;
+  }
+
   // Fix MGR Online broken CDN domain in RSS feed (mpics-cdn returns 404, while mpics.mgronline.com returns 200 OK)
   cleaned = cleaned.replace(/\/\/mpics-cdn\.mgronline\.com\//i, '//mpics.mgronline.com/');
   // Ensure protocol
@@ -105,7 +110,7 @@ export function extractImages(...sources: Array<string | undefined>): string[] {
         if (sanitized && !seen.has(sanitized)) {
           // Exclude tracker pixels, spacer GIFs, avatars, badges, and layout banners
           if (
-            !/feedsportal|feedburner|statcounter|doubleclick|googletagmanager|avatar|gravatar|badge|banner|\/jobs\//i.test(
+            !/feedsportal|feedburner|statcounter|doubleclick|googletagmanager|avatar|gravatar|badge|banner|\/jobs\/|homedelivery|home-delivery|subscription|enews-01|premium-01|homedelivery-01/i.test(
               sanitized,
             ) &&
             !/\.(?:ico|svg)(?:\?.*)?$/i.test(sanitized)
@@ -217,7 +222,7 @@ export function extractArticleImagesFromHtml(html: string, pageUrl: string): str
       const resolved = new URL(trimmed, pageUrl).href;
       if (
         !seen.has(resolved) &&
-        !/badge|banner|gtag|doubleclick|feedburner|feedsportal|statcounter|avatar|gravatar|defaultcover|\/jobs\/|emoji|logo|icon|tracking/i.test(
+        !/badge|banner|gtag|doubleclick|feedburner|feedsportal|statcounter|avatar|gravatar|defaultcover|\/jobs\/|emoji|logo|icon|tracking|homedelivery|home-delivery|subscription|enews-01|premium-01|homedelivery-01/i.test(
           resolved,
         ) &&
         !/\.(?:ico|svg)(?:\?.*)?$/i.test(resolved)
