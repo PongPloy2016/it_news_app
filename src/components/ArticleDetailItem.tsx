@@ -60,6 +60,106 @@ const REACTIONS_LIST: Array<{
   { key: 'tech', emoji: '⚡', label: 'ล้ำสมัย' },
 ];
 
+function withAlpha(hex: string, alpha: number): string {
+  if (!hex || !hex.startsWith('#')) return hex;
+  const clean = hex.replace('#', '');
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return hex;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Parses and renders text with clickable inline links (URLs & Markdown links)
+ */
+function renderLinkedText(
+  text: string,
+  baseStyle: any,
+  linkColor: string,
+  onOpenUrl: (url: string) => void,
+  keyPrefix = 'text',
+) {
+  if (!text) return null;
+
+  const LINK_REGEX = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|((?:https?:\/\/|www\.)[^\s<>"'{}|\\^`]+)/gi;
+
+  if (!LINK_REGEX.test(text)) {
+    return <Text style={baseStyle}>{text}</Text>;
+  }
+
+  LINK_REGEX.lastIndex = 0;
+
+  const elements: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = LINK_REGEX.exec(text)) !== null) {
+    const matchIndex = match.index;
+
+    if (matchIndex > lastIndex) {
+      elements.push(text.slice(lastIndex, matchIndex));
+    }
+
+    if (match[1] && match[2]) {
+      const linkLabel = match[1];
+      const linkUrl = match[2];
+      elements.push(
+        <Text
+          key={`${keyPrefix}-md-${matchIndex}`}
+          style={{
+            color: linkColor,
+            textDecorationLine: 'underline',
+            fontWeight: '600',
+          }}
+          onPress={() => onOpenUrl(linkUrl)}
+          suppressHighlighting={false}
+        >
+          {linkLabel}
+        </Text>,
+      );
+    } else if (match[3]) {
+      let rawUrl = match[3];
+      let trailingPunct = '';
+
+      while (/[.,;:!?\)\]]$/.test(rawUrl)) {
+        trailingPunct = rawUrl.slice(-1) + trailingPunct;
+        rawUrl = rawUrl.slice(0, -1);
+      }
+
+      const targetUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+
+      elements.push(
+        <Text
+          key={`${keyPrefix}-url-${matchIndex}`}
+          style={{
+            color: linkColor,
+            textDecorationLine: 'underline',
+            fontWeight: '600',
+          }}
+          onPress={() => onOpenUrl(targetUrl)}
+          suppressHighlighting={false}
+        >
+          {rawUrl}
+        </Text>,
+      );
+
+      if (trailingPunct) {
+        elements.push(trailingPunct);
+      }
+    }
+
+    lastIndex = LINK_REGEX.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    elements.push(text.slice(lastIndex));
+  }
+
+  return <Text style={baseStyle}>{elements}</Text>;
+}
+
 function getBaseReactionCounts(id: string): Record<ReactionType, number> {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
@@ -176,6 +276,26 @@ export function ArticleDetailItem({
       }
     },
     [article?.link, article?.id],
+  );
+
+  const handleOpenUrl = useCallback(
+    (url?: string) => {
+      if (!url) return;
+      let target = url.trim();
+      if (!target.startsWith('http://') && !target.startsWith('https://')) {
+        target = 'https://' + target;
+      }
+      try {
+        if (settings.linkOpenMode === 'external') {
+          void Linking.openURL(target);
+        } else {
+          navigation.navigate('WebView', { url: target, title: article?.title || 'แหล่งข่าวต้นฉบับ' });
+        }
+      } catch {
+        void Linking.openURL(target);
+      }
+    },
+    [settings.linkOpenMode, navigation, article?.title],
   );
 
   useEffect(() => {
@@ -1171,8 +1291,9 @@ export function ArticleDetailItem({
                             },
                           ]}
                         >
-                          <Text
-                            style={[
+                          {renderLinkedText(
+                            block.text || '',
+                            [
                               styles.quoteText,
                               {
                                 color: colors.text,
@@ -1182,10 +1303,11 @@ export function ArticleDetailItem({
                                 ),
                                 fontFamily: typography.fontFamily,
                               },
-                            ]}
-                          >
-                            {block.text}
-                          </Text>
+                            ],
+                            colors.primary,
+                            handleOpenUrl,
+                            `quote-${index}`,
+                          )}
                         </View>
                       );
                     }
@@ -1194,53 +1316,132 @@ export function ArticleDetailItem({
                       return (
                         <View key={`block-list-${index}`} style={styles.bulletRow}>
                           <View style={[styles.bulletDot, { backgroundColor: colors.primary }]} />
-                          <Text
-                            style={[
+                          {renderLinkedText(
+                            block.text?.replace(/^•\s*/, '') || '',
+                            [
                               styles.bulletText,
                               {
                                 color: colors.text,
                                 fontSize: 15.5 * scale * fontScaleMultiplier,
                                 lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * 1.6),
                               },
+                            ],
+                            colors.primary,
+                            handleOpenUrl,
+                            `list-${index}`,
+                          )}
+                        </View>
+                      );
+                    }
+
+                    // Check if paragraph is a standalone Source Citation line (e.g. "แหล่งข่าว : https://...")
+                    const sourceMatch = block.text?.match(
+                      /^(?:📡\s*|🔗\s*)?(แหล่งข่าว|ที่มา|source|credit|ref)\s*[:：]\s*(https?:\/\/[^\s]+|www\.[^\s]+)$/i,
+                    );
+                    if (sourceMatch) {
+                      const sourceLabel = sourceMatch[1];
+                      let sourceUrl = sourceMatch[2].trim();
+                      let trailingPunct = '';
+                      while (/[.,;:!?\)\]]$/.test(sourceUrl)) {
+                        trailingPunct = sourceUrl.slice(-1) + trailingPunct;
+                        sourceUrl = sourceUrl.slice(0, -1);
+                      }
+                      const targetUrl = sourceUrl.startsWith('http') ? sourceUrl : `https://${sourceUrl}`;
+
+                      return (
+                        <View
+                          key={`block-source-${index}`}
+                          style={[
+                            styles.sourceCitationCard,
+                            {
+                              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0',
+                            },
+                          ]}
+                        >
+                          <View style={styles.sourceCitationHeader}>
+                            <MaterialCommunityIcons name="newspaper-variant-outline" size={16} color={colors.primary} />
+                            <Text style={[styles.sourceCitationLabel, { color: colors.muted, fontSize: 12.5 * scale }]}>
+                              {sourceLabel}
+                            </Text>
+                          </View>
+                          <Pressable
+                            onPress={() => handleOpenUrl(targetUrl)}
+                            style={({ pressed }) => [
+                              styles.sourceCitationBtn,
+                              {
+                                backgroundColor: pressed
+                                  ? (isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0')
+                                  : (isDark ? 'rgba(255, 255, 255, 0.03)' : '#FFFFFF'),
+                                borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E2E8F0',
+                              },
                             ]}
+                            hitSlop={8}
                           >
-                            {block.text?.replace(/^•\s*/, '')}
-                          </Text>
+                            <View style={styles.sourceCitationUrlWrap}>
+                              <MaterialCommunityIcons name="link-variant" size={15} color={colors.primary} />
+                              <Text
+                                style={[
+                                  styles.sourceCitationUrl,
+                                  {
+                                    color: colors.primary,
+                                    fontSize: 13.5 * scale * fontScaleMultiplier,
+                                    lineHeight: Math.round(13.5 * scale * fontScaleMultiplier * 1.4),
+                                  },
+                                ]}
+                                numberOfLines={2}
+                              >
+                                {sourceUrl}
+                              </Text>
+                            </View>
+                            <View style={[styles.sourceCitationAction, { backgroundColor: withAlpha(colors.primary, 0.12) }]}>
+                              <Text style={[styles.sourceCitationActionText, { color: colors.primary, fontSize: 11.5 * scale }]}>
+                                เปิดอ่าน
+                              </Text>
+                              <MaterialCommunityIcons name="open-in-new" size={13} color={colors.primary} />
+                            </View>
+                          </Pressable>
                         </View>
                       );
                     }
 
                     return (
-                      <Text
-                        key={`block-para-${index}`}
-                        style={[
-                          styles.bodyParagraph,
-                          styles.paragraphSpacing,
-                          {
-                            color: colors.text,
-                            fontSize: 15.5 * scale * fontScaleMultiplier,
-                            lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * 1.6),
-                          },
-                        ]}
-                      >
-                        {block.text}
-                      </Text>
+                      <View key={`block-para-${index}`} style={styles.paragraphSpacing}>
+                        {renderLinkedText(
+                          block.text || '',
+                          [
+                            styles.bodyParagraph,
+                            {
+                              color: colors.text,
+                              fontSize: 15.5 * scale * fontScaleMultiplier,
+                              lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * 1.6),
+                            },
+                          ],
+                          colors.primary,
+                          handleOpenUrl,
+                          `para-${index}`,
+                        )}
+                      </View>
                     );
                   })}
                 </>
               ) : (
-                <Text
-                  style={[
-                    styles.bodyParagraph,
-                    {
-                      color: colors.text,
-                      fontSize: 15.5 * scale * fontScaleMultiplier,
-                      lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * 1.6),
-                    },
-                  ]}
-                >
-                  {cleanNewsContent(activeContent)}
-                </Text>
+                <View style={styles.paragraphSpacing}>
+                  {renderLinkedText(
+                    cleanNewsContent(activeContent) || activeContent,
+                    [
+                      styles.bodyParagraph,
+                      {
+                        color: colors.text,
+                        fontSize: 15.5 * scale * fontScaleMultiplier,
+                        lineHeight: Math.round(15.5 * scale * fontScaleMultiplier * 1.6),
+                      },
+                    ],
+                    colors.primary,
+                    handleOpenUrl,
+                    'fallback-content',
+                  )}
+                </View>
               )}
 
               {/* Loading Full Content Indicator */}
@@ -2045,5 +2246,52 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 5,
     width: 46,
+  },
+  sourceCitationCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    marginVertical: 14,
+    padding: 12,
+  },
+  sourceCitationHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 8,
+  },
+  sourceCitationLabel: {
+    fontWeight: '700',
+  },
+  sourceCitationBtn: {
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  sourceCitationUrlWrap: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    marginRight: 8,
+  },
+  sourceCitationUrl: {
+    flex: 1,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  sourceCitationAction: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  sourceCitationActionText: {
+    fontWeight: '700',
   },
 });
