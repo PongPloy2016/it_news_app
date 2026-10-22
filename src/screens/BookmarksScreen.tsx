@@ -266,7 +266,7 @@ export function BookmarksScreen() {
             </Pressable>
           )}
 
-          {allArticles.length > 0 && (
+          {allArticles.length > 0 && remoteSettings.clear_bookmarks_enabled === true && (
             <Pressable
               onPress={handleConfirmClearAll}
               disabled={isSyncingBookmarks}

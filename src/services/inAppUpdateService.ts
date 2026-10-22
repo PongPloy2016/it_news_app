@@ -1,8 +1,8 @@
 import { NativeModules, Platform, Linking } from 'react-native';
 import { RemoteAppSettings } from '../types';
 
-export const CURRENT_APP_VERSION = '1.0.3';
-export const CURRENT_VERSION_CODE = 8;
+export const CURRENT_APP_VERSION = '1.0.4';
+export const CURRENT_VERSION_CODE = 9;
 export const PLAY_STORE_PACKAGE_NAME = 'com.pongploydev.technewsth.app';
 export const PLAY_STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${PLAY_STORE_PACKAGE_NAME}`;
 export const PLAY_STORE_MARKET_URI = `market://details?id=${PLAY_STORE_PACKAGE_NAME}`;
@@ -108,8 +108,8 @@ class InAppUpdateService {
   public async evaluateUpdateStatus(remoteSettings?: RemoteAppSettings | null): Promise<CheckUpdateStatus> {
     const playInfo = await this.getPlayUpdateInfo();
 
-    const minVersion = remoteSettings?.min_supported_version || '1.0.3';
-    const latestVersion = remoteSettings?.latest_version || '1.0.3';
+    const minVersion = remoteSettings?.min_supported_version || '1.0.4';
+    const latestVersion = remoteSettings?.latest_version || '1.0.4';
     const remoteMinVersionCode = (remoteSettings as any)?.min_version_code as number | undefined;
 
     // Check if remote configuration enforces a mandatory update

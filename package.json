@@ -1,6 +1,6 @@
 {
   "name": "react-native-app",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -52,7 +52,7 @@
   },
   "private": true,
   "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-7344555333906095~5385475966",
+    "android_app_id": "ca-app-pub-4252101594093237~5088377311",
     "ios_app_id": "ca-app-pub-3940256099942544~1458695864"
   }
 }

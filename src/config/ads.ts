@@ -1,7 +1,7 @@
 import mobileAds, { TestIds } from 'react-native-google-mobile-ads';
 
-export const ADMOB_APP_ID = 'ca-app-pub-7344555333906095~5385475966';
-export const PRODUCTION_BANNER_AD_UNIT_ID = 'ca-app-pub-7344555333906095/4882078930';
+export const ADMOB_APP_ID = 'ca-app-pub-4252101594093237~5088377311';
+export const PRODUCTION_BANNER_AD_UNIT_ID = 'ca-app-pub-4252101594093237/3628558622';
 export const PRODUCTION_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-7344555333906095/9939973650';
 
 /**

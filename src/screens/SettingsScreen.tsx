@@ -163,7 +163,7 @@ export function SettingsScreen() {
       category: feedbackCategory,
       message: feedbackMessage.trim(),
       contact: feedbackContact.trim() || undefined,
-      app_version: remoteSettings.latest_version || '1.0.3',
+      app_version: remoteSettings.latest_version || '1.0.4',
       device_platform: Platform.OS,
     });
     setIsSubmitting(false);
@@ -286,7 +286,7 @@ export function SettingsScreen() {
             >
               <View style={styles.brandLiveDot} />
               <Text style={[styles.brandVersionText, { color: colors.primary, fontSize: 11 * scale }]}>
-                v{remoteSettings.latest_version || '1.0.3'}
+                v{remoteSettings.latest_version || '1.0.4'}
               </Text>
             </View>
           </View>
@@ -1279,7 +1279,15 @@ export function SettingsScreen() {
           </View>
 
           {/* Row 3: Clear Cached Articles */}
-          <View style={[styles.storageRowItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border }]}>
+          <View
+            style={[
+              styles.storageRowItem,
+              {
+                borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : colors.border,
+                borderBottomWidth: remoteSettings.clear_bookmarks_enabled ? StyleSheet.hairlineWidth : 0,
+              },
+            ]}
+          >
             <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={[styles.storageItemTitle, { color: colors.text, fontSize: 13.5 * scale }]}>
                 {t.storage_cache_title}
@@ -1301,47 +1309,49 @@ export function SettingsScreen() {
             </Pressable>
           </View>
 
-          {/* Row 4: Clear Bookmarks (Destructive) */}
-          <View style={[styles.storageRowItem, { borderBottomWidth: 0 }]}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={[styles.storageItemTitle, { color: colors.error, fontSize: 13.5 * scale }]}>
-                {t.storage_bookmarks_title}
-              </Text>
-              <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                {bookmarkCount > 0
-                  ? remoteSettings.cloud_sync_enabled !== false
-                    ? t.storage_bookmarks_cloud_sub.replace('{count}', String(bookmarkCount))
-                    : t.storage_bookmarks_local_sub.replace('{count}', String(bookmarkCount))
-                  : t.storage_bookmarks_empty}
-              </Text>
+          {/* Row 4: Clear Bookmarks (Destructive) - ควบคุมผ่าน Supabase Remote Settings */}
+          {remoteSettings.clear_bookmarks_enabled === true && (
+            <View style={[styles.storageRowItem, { borderBottomWidth: 0 }]}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={[styles.storageItemTitle, { color: colors.error, fontSize: 13.5 * scale }]}>
+                  {t.storage_bookmarks_title}
+                </Text>
+                <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
+                  {bookmarkCount > 0
+                    ? remoteSettings.cloud_sync_enabled !== false
+                      ? t.storage_bookmarks_cloud_sub.replace('{count}', String(bookmarkCount))
+                      : t.storage_bookmarks_local_sub.replace('{count}', String(bookmarkCount))
+                    : t.storage_bookmarks_empty}
+                </Text>
+              </View>
+              <Pressable
+                disabled={bookmarkCount === 0}
+                onPress={() => {
+                  const message =
+                    remoteSettings.cloud_sync_enabled !== false
+                      ? t.alert_confirm_delete_bookmarks.replace('{count}', String(bookmarkCount))
+                      : t.alert_confirm_delete_bookmarks_local.replace('{count}', String(bookmarkCount));
+                  Alert.alert(
+                    t.storage_bookmarks_title,
+                    message,
+                    [
+                      { text: t.btn_cancel, style: 'cancel' },
+                      { text: t.btn_delete_all, style: 'destructive', onPress: clearBookmarks },
+                    ],
+                  );
+                }}
+                style={[
+                  styles.tablePillBtnDestructive,
+                  { backgroundColor: isDark ? '#3E1418' : '#FEE2E2', borderColor: colors.error },
+                  bookmarkCount === 0 && { opacity: 0.4 },
+                ]}
+              >
+                <Text style={[styles.tablePillBtnDestructiveText, { color: colors.error, fontSize: 12 * scale }]}>
+                  {t.btn_delete_all}
+                </Text>
+              </Pressable>
             </View>
-            <Pressable
-              disabled={bookmarkCount === 0}
-              onPress={() => {
-                const message =
-                  remoteSettings.cloud_sync_enabled !== false
-                    ? t.alert_confirm_delete_bookmarks.replace('{count}', String(bookmarkCount))
-                    : t.alert_confirm_delete_bookmarks_local.replace('{count}', String(bookmarkCount));
-                Alert.alert(
-                  t.storage_bookmarks_title,
-                  message,
-                  [
-                    { text: t.btn_cancel, style: 'cancel' },
-                    { text: t.btn_delete_all, style: 'destructive', onPress: clearBookmarks },
-                  ],
-                );
-              }}
-              style={[
-                styles.tablePillBtnDestructive,
-                { backgroundColor: isDark ? '#3E1418' : '#FEE2E2', borderColor: colors.error },
-                bookmarkCount === 0 && { opacity: 0.4 },
-              ]}
-            >
-              <Text style={[styles.tablePillBtnDestructiveText, { color: colors.error, fontSize: 12 * scale }]}>
-                {t.btn_delete_all}
-              </Text>
-            </Pressable>
-          </View>
+          )}
         </View>
       </Section>
 
@@ -1522,7 +1532,7 @@ export function SettingsScreen() {
       {/* 9. Footer Credit */}
       <View style={styles.footerWrap}>
         <Text style={[styles.footerText, { color: colors.muted, fontSize: 12 * scale }]}>
-          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.3')}
+          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.4')}
         </Text>
       </View>
 

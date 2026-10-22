@@ -27,12 +27,24 @@ export const oneSignalService = {
       // Initialize OneSignal with App ID
       OneSignal.initialize(appId);
       this.isInitialized = true;
-      console.log('[OneSignalService] Initialized with App ID:', appId);
+      // Pause default OneSignal In-App Messages so the app's custom UI handles welcome and permission
+      OneSignal.InAppMessages.setPaused(true);
 
       // Set up default notification listeners
       this.setupNotificationListeners();
     } catch (error) {
       console.warn('[OneSignalService] Initialization failed:', error);
+    }
+  },
+
+  /**
+   * Control whether In-App Messages are paused.
+   */
+  setInAppMessagesPaused(paused: boolean): void {
+    try {
+      OneSignal.InAppMessages.setPaused(paused);
+    } catch (error) {
+      console.warn('[OneSignalService] setInAppMessagesPaused error:', error);
     }
   },
 

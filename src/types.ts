@@ -60,6 +60,7 @@ export interface RemoteAppSettings {
   default_font_size?: FontSizeOption;
   data_saver_default?: boolean;
   cloud_sync_enabled?: boolean;
+  clear_bookmarks_enabled?: boolean;
   related_news_limit?: number;
   rss_source_name?: string;
   rss_source_url?: string;

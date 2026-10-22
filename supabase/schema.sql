@@ -248,6 +248,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
     default_font_size TEXT NOT NULL DEFAULT 'medium',
     data_saver_default BOOLEAN NOT NULL DEFAULT false,
     cloud_sync_enabled BOOLEAN NOT NULL DEFAULT true,
+    clear_bookmarks_enabled BOOLEAN NOT NULL DEFAULT false,
     related_news_limit INTEGER NOT NULL DEFAULT 10,
     rss_source_name TEXT NOT NULL DEFAULT 'Blognone',
     rss_source_url TEXT NOT NULL DEFAULT 'https://www.blognone.com',

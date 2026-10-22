@@ -2,7 +2,7 @@
   "expo": {
     "name": "TechThaiNews",
     "slug": "techthainews",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -29,7 +29,7 @@
         "resizeMode": "contain",
         "backgroundColor": "#0B132B"
       },
-      "versionCode": 8,
+      "versionCode": 9,
       "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "usesCleartextTraffic": true
@@ -52,7 +52,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-7344555333906095~5385475966",
+          "androidAppId": "ca-app-pub-4252101594093237~5088377311",
           "iosAppId": "ca-app-pub-3940256099942544~1458695864"
         }
       ]

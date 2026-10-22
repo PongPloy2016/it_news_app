@@ -14,6 +14,7 @@ import { oneSignalService } from './src/services/oneSignalService';
 import { analyticsService } from './src/services/analyticsService';
 import { inAppUpdateService, CheckUpdateStatus } from './src/services/inAppUpdateService';
 import { ForceUpdateModal } from './src/components/ForceUpdateModal';
+import { WelcomeNotificationModal } from './src/components/WelcomeNotificationModal';
 import { FEED_GROUPS } from './src/config/categories';
 
 function resolveThaiScreenInfo(route?: { name: string; params?: any }): {
@@ -223,6 +224,7 @@ function AppShell() {
         updateStatus={updateStatus}
         onDismiss={() => setShowUpdateModal(false)}
       />
+      {!showUpdateModal && <WelcomeNotificationModal />}
     </GestureHandlerRootView>
   );
 }
