@@ -40,7 +40,7 @@ export const DEFAULT_REMOTE_SETTINGS: RemoteAppSettings = {
   default_font_size: 'medium',
   data_saver_default: false,
   cloud_sync_enabled: true,
-  clear_bookmarks_enabled: false,
+  clear_bookmarks_enabled: true,
   related_news_limit: 10,
   rss_source_name: 'Blognone',
   rss_source_url: 'https://www.blognone.com',

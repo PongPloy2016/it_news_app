@@ -517,10 +517,9 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const clearBookmarks = useCallback(() => {
     setBookmarks({});
     void bookmarkRepository.clearBookmarks();
-    if (isCloudSyncActive) {
-      void supabaseBookmarkService.clearRemoteBookmarks();
-    }
-  }, [isCloudSyncActive]);
+    // Intentionally delete ONLY from device (local storage/memory).
+    // Do NOT delete from Supabase Cloud.
+  }, []);
 
   const clearNewsCache = useCallback(async () => {
     setArticles([]);

@@ -154,9 +154,9 @@ export const translations = {
     storage_cache_has: '{count} ข่าวที่โหลดเก็บไว้ในหน่วยความจำ',
     storage_cache_empty: 'ไม่มีแคช',
     btn_clear_cache: 'ล้างแคช',
-    storage_bookmarks_title: 'ล้างข่าวที่บันทึกไว้ทั้งหมด',
-    storage_bookmarks_cloud_sub: 'ลบ {count} ข่าวออกจากเครื่องและ Cloud',
-    storage_bookmarks_local_sub: 'ลบ {count} ข่าวออกจากเครื่อง',
+    storage_bookmarks_title: 'ล้างข่าวที่บันทึกในเครื่อง',
+    storage_bookmarks_cloud_sub: 'ลบ {count} ข่าวออกจากเครื่องนี้ (ข้อมูลบน Cloud ยังคงอยู่)',
+    storage_bookmarks_local_sub: 'ลบ {count} ข่าวออกจากเครื่องนี้เท่านั้น',
     storage_bookmarks_empty: 'ไม่มีบุ๊กมาร์ก',
     btn_delete_all: 'ลบทั้งหมด',
 
@@ -210,7 +210,7 @@ export const translations = {
     alert_clear_search_success: 'ลบประวัติการค้นหาเรียบร้อยแล้ว',
     alert_clear_cache_success: 'ล้างแคชข่าวเรียบร้อยแล้ว',
     alert_confirm_delete_bookmarks: 'ข่าวที่บันทึกไว้ทั้งหมด ({count} ข่าว) จะถูกลบออกจากเครื่องและ Supabase Cloud ถาวรและไม่สามารถย้อนกลับได้',
-    alert_confirm_delete_bookmarks_local: 'ข่าวที่บันทึกไว้ทั้งหมด ({count} ข่าว) จะถูกลบออกจากเครื่องถาวรและไม่สามารถย้อนกลับได้',
+    alert_confirm_delete_bookmarks_local: 'คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด ({count} ข่าว) ออกจากเครื่องนี้ใช่หรือไม่?\n\n(ข้อมูลบน Cloud จะยังคงอยู่ และสามารถกดซิงค์กลับมาได้ตลอดเวลา)',
   },
 
   en: {
@@ -334,9 +334,9 @@ export const translations = {
     storage_cache_has: '{count} articles cached locally',
     storage_cache_empty: 'No cache data',
     btn_clear_cache: 'Clear Cache',
-    storage_bookmarks_title: 'Clear All Saved Bookmarks',
-    storage_bookmarks_cloud_sub: 'Delete {count} bookmarks from device and Cloud',
-    storage_bookmarks_local_sub: 'Delete {count} bookmarks from device',
+    storage_bookmarks_title: 'Clear Local Saved Bookmarks',
+    storage_bookmarks_cloud_sub: 'Delete {count} bookmarks locally (keeps Cloud data)',
+    storage_bookmarks_local_sub: 'Delete {count} bookmarks from this device only',
     storage_bookmarks_empty: 'No bookmarks saved',
     btn_delete_all: 'Delete All',
 
@@ -390,7 +390,7 @@ export const translations = {
     alert_clear_search_success: 'Search history has been cleared successfully.',
     alert_clear_cache_success: 'News cache cleared successfully.',
     alert_confirm_delete_bookmarks: 'All ({count}) saved bookmarks will be permanently removed from this device and Cloud.',
-    alert_confirm_delete_bookmarks_local: 'All ({count}) saved bookmarks will be permanently deleted from this device.',
+    alert_confirm_delete_bookmarks_local: 'Are you sure you want to delete all ({count}) saved bookmarks from this device only?\n\n(Your data in Cloud will remain intact and can be synced back anytime).',
   },
 };
 

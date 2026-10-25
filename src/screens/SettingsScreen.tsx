@@ -1309,8 +1309,8 @@ export function SettingsScreen() {
             </Pressable>
           </View>
 
-          {/* Row 4: Clear Bookmarks (Destructive) - ควบคุมผ่าน Supabase Remote Settings */}
-          {remoteSettings.clear_bookmarks_enabled === true && (
+          {/* Row 4: Clear Bookmarks (Local Device Only - Never touches Cloud) */}
+          {remoteSettings.clear_bookmarks_enabled !== false && (
             <View style={[styles.storageRowItem, { borderBottomWidth: 0 }]}>
               <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={[styles.storageItemTitle, { color: colors.error, fontSize: 13.5 * scale }]}>
@@ -1318,7 +1318,7 @@ export function SettingsScreen() {
                 </Text>
                 <Text style={[styles.storageItemSub, { color: colors.muted, fontSize: 11.5 * scale }]}>
                   {bookmarkCount > 0
-                    ? remoteSettings.cloud_sync_enabled !== false
+                    ? isCloudSyncActive
                       ? t.storage_bookmarks_cloud_sub.replace('{count}', String(bookmarkCount))
                       : t.storage_bookmarks_local_sub.replace('{count}', String(bookmarkCount))
                     : t.storage_bookmarks_empty}
@@ -1327,10 +1327,7 @@ export function SettingsScreen() {
               <Pressable
                 disabled={bookmarkCount === 0}
                 onPress={() => {
-                  const message =
-                    remoteSettings.cloud_sync_enabled !== false
-                      ? t.alert_confirm_delete_bookmarks.replace('{count}', String(bookmarkCount))
-                      : t.alert_confirm_delete_bookmarks_local.replace('{count}', String(bookmarkCount));
+                  const message = t.alert_confirm_delete_bookmarks_local.replace('{count}', String(bookmarkCount));
                   Alert.alert(
                     t.storage_bookmarks_title,
                     message,

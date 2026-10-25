@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -47,6 +47,7 @@ export function BookmarksScreen() {
   const [lastSyncedTime, setLastSyncedTime] = useState<Date | null>(new Date());
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
   const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const userClearedLocalRef = useRef(false);
 
   // Sync with Supabase on screen focus & track screen view
   useFocusEffect(
@@ -55,6 +56,8 @@ export function BookmarksScreen() {
         page_title: 'ข่าวที่บันทึกไว้',
       });
       if (!isCloudSyncActive) return;
+      // If user recently cleared local bookmarks, skip automatic pull-down until manual action
+      if (userClearedLocalRef.current) return;
       void syncCloudBookmarks().then((res) => {
         if (res.success) {
           setLastSyncedTime(new Date());
@@ -114,6 +117,7 @@ export function BookmarksScreen() {
   // Sync down action
   const handleSyncDown = useCallback(
     async (triggerSkeleton = false) => {
+      userClearedLocalRef.current = false;
       if (triggerSkeleton) {
         setIsManualSyncing(true);
       }
@@ -137,27 +141,27 @@ export function BookmarksScreen() {
     [syncCloudBookmarks],
   );
 
-  // Clear all confirmation alert
+  // Clear all confirmation alert (Local device only - never touches Cloud)
   const handleConfirmClearAll = () => {
     if (allArticles.length === 0) return;
-    const confirmMessage =
-      remoteSettings.cloud_sync_enabled !== false
-        ? `คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด (${allArticles.length} รายการ) ออกจากเครื่องและ Supabase Cloud ใช่หรือไม่?`
-        : `คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด (${allArticles.length} รายการ) ออกจากเครื่องใช่หรือไม่?`;
+    const confirmMessage = isCloudSyncActive
+      ? `คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด (${allArticles.length} รายการ) ออกจากเครื่องนี้ใช่หรือไม่?\n\n(ข้อมูลบน Cloud จะยังคงอยู่ และสามารถกดปุ่ม "ดึงข่าวลง" เพื่อนำกลับมาได้ทุกเมื่อ)`
+      : `คุณต้องการลบข่าวที่บันทึกไว้ทั้งหมด (${allArticles.length} รายการ) ออกจากเครื่องนี้ใช่หรือไม่?`;
     Alert.alert(
-      'ล้างข่าวที่บันทึกทั้งหมด',
+      'ล้างข่าวที่บันทึกในเครื่อง',
       confirmMessage,
       [
         { text: 'ยกเลิก', style: 'cancel' },
         {
-          text: 'ลบทั้งหมด',
+          text: 'ลบออกจากเครื่อง',
           style: 'destructive',
           onPress: () => {
+            userClearedLocalRef.current = true;
             clearBookmarks();
             setSelectedSource('all');
             setSearchQuery('');
-            setSyncFeedback('✓ ล้างข่าวที่บันทึกทั้งหมดเรียบร้อยแล้ว');
-            setTimeout(() => setSyncFeedback(null), 3500);
+            setSyncFeedback('✓ ลบข่าวออกจากเครื่องเรียบร้อยแล้ว (ข้อมูลบน Cloud ยังคงอยู่)');
+            setTimeout(() => setSyncFeedback(null), 4000);
           },
         },
       ],
@@ -266,7 +270,7 @@ export function BookmarksScreen() {
             </Pressable>
           )}
 
-          {allArticles.length > 0 && remoteSettings.clear_bookmarks_enabled === true && (
+          {allArticles.length > 0 && remoteSettings.clear_bookmarks_enabled !== false && (
             <Pressable
               onPress={handleConfirmClearAll}
               disabled={isSyncingBookmarks}
@@ -275,7 +279,7 @@ export function BookmarksScreen() {
                 styles.clearAllBtn,
                 { opacity: pressed ? 0.6 : 1 },
               ]}
-              accessibilityLabel="ล้างข่าวที่บันทึกทั้งหมด"
+              accessibilityLabel="ล้างข่าวที่บันทึกในเครื่อง"
             >
               <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
             </Pressable>
