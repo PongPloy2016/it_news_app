@@ -577,6 +577,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
           return (
             <View
               key={group.key}
+              collapsable={false}
               style={[
                 styles.moduleCard,
                 {
@@ -593,6 +594,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
             >
               {/* Module Header Tile */}
               <Pressable
+                collapsable={false}
                 onPress={() => toggleGroupCollapse(group.key)}
                 style={({ pressed }) => [
                   styles.moduleHeader,
@@ -607,9 +609,10 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   },
                 ]}
               >
-                <View style={styles.moduleHeaderLeft}>
+                <View collapsable={false} style={styles.moduleHeaderLeft}>
                   {/* Category Image Thumbnail with theme overlay & mini icon badge */}
                   <View
+                    collapsable={false}
                     style={[
                       styles.moduleThumbWrap,
                       {
@@ -645,7 +648,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   </View>
 
                   {/* Title & Metadata */}
-                  <View style={styles.moduleTitleWrap}>
+                  <View collapsable={false} style={styles.moduleTitleWrap}>
                     <Text
                       numberOfLines={1}
                       style={[
@@ -679,7 +682,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   </View>
                 </View>
 
-                <View style={styles.moduleHeaderRight}>
+                <View collapsable={false} style={styles.moduleHeaderRight}>
                   {groupNewCount > 0 && (
                     <View style={styles.groupNewBadge}>
                       <Text style={styles.groupNewBadgeText}>{groupNewCount} ใหม่</Text>
@@ -706,7 +709,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
               {/* Module Channels List */}
               {!isCollapsed && (
-                <View style={styles.moduleContent}>
+                <View collapsable={false} style={styles.moduleContent}>
                   {groupChannels.map(renderChannelRow)}
                 </View>
               )}
@@ -1164,14 +1167,15 @@ const styles = StyleSheet.create({
   moduleCard: {
     borderRadius: 14,
     borderWidth: 1.2,
-    overflow: 'hidden',
   },
   moduleHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    minHeight: 56,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    width: '100%',
   },
   moduleHeaderLeft: {
     alignItems: 'center',
@@ -1191,11 +1195,16 @@ const styles = StyleSheet.create({
     width: 44,
   },
   moduleThumbImage: {
-    height: '100%',
-    width: '100%',
+    borderRadius: 11,
+    height: 44,
+    width: 44,
   },
   moduleThumbOverlay: {
-    ...StyleSheet.absoluteFill,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   moduleThumbIconBadge: {
     alignItems: 'center',
@@ -1272,7 +1281,10 @@ const styles = StyleSheet.create({
     width: 28,
   },
   moduleContent: {
+    borderBottomLeftRadius: 13,
+    borderBottomRightRadius: 13,
     borderTopWidth: 0,
+    overflow: 'hidden',
   },
   channelRow: {
     alignItems: 'center',
