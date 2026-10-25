@@ -4,8 +4,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
+  Pressable,
   Animated,
   Easing,
   Platform,
@@ -189,9 +188,7 @@ export function WelcomeNotificationModal({
             },
           ]}
         >
-          <TouchableWithoutFeedback onPress={handleDismiss}>
-            <View style={StyleSheet.absoluteFill} />
-          </TouchableWithoutFeedback>
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleDismiss} accessibilityLabel="ปิดหน้าต่าง" />
         </Animated.View>
 
         {/* Floating Card Dialog */}
@@ -224,15 +221,14 @@ export function WelcomeNotificationModal({
             />
 
             {/* Frosted Close Button (X) */}
-            <TouchableOpacity
+            <Pressable
               onPress={handleDismiss}
-              style={styles.closeBtn}
-              hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-              activeOpacity={0.7}
+              style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+              hitSlop={{ top: 16, right: 16, bottom: 16, left: 16 }}
               accessibilityLabel="ปิดหน้าต่าง"
             >
               <MaterialCommunityIcons name="close" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            </Pressable>
 
             {/* Live Indicator Pill on Banner */}
             <View style={styles.badgePill}>
@@ -272,11 +268,10 @@ export function WelcomeNotificationModal({
             </View>
 
             {/* Action Buttons */}
-            <TouchableOpacity
-              activeOpacity={0.88}
+            <Pressable
               onPress={handleEnableNotifications}
               disabled={isSubmitting}
-              style={styles.primaryBtnTouchable}
+              style={({ pressed }) => [styles.primaryBtnTouchable, pressed && { opacity: 0.88 }]}
             >
               <LinearGradient
                 colors={['#2563EB', '#1D4ED8']}
@@ -294,17 +289,17 @@ export function WelcomeNotificationModal({
                   {isSubmitting ? 'กำลังตั้งค่า...' : 'เปิดการแจ้งเตือน'}
                 </Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              activeOpacity={0.7}
+            <Pressable
               onPress={handleDismiss}
-              style={styles.secondaryBtn}
+              style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.7 }]}
+              hitSlop={8}
             >
               <Text style={[styles.secondaryBtnText, { color: textMuted }]}>
                 ไว้ภายหลัง
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </Animated.View>
       </View>
@@ -368,6 +363,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+    elevation: 12,
   },
   badgePill: {
     position: 'absolute',

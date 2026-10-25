@@ -9,10 +9,10 @@ import {
   Modal,
   PanResponder,
   Platform,
+  Pressable,
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -234,11 +234,13 @@ export function ImageViewerModal({
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
-        onStartShouldSetPanResponderCapture: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponderCapture: () => true,
-        onPanResponderTerminationRequest: () => false,
-        onShouldBlockNativeResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          return Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4;
+        },
+        onMoveShouldSetPanResponderCapture: () => false,
+        onPanResponderTerminationRequest: () => true,
+        onShouldBlockNativeResponder: () => false,
 
         onPanResponderGrant: (evt) => {
           const touches = evt.nativeEvent.touches;
@@ -451,14 +453,14 @@ export function ImageViewerModal({
 
         {/* Top Header Bar */}
         <View style={[styles.header, { paddingTop: topInset }]}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={onClose}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            activeOpacity={0.7}
+          <Pressable
+            style={({ pressed }) => [styles.headerButton, pressed && { opacity: 0.7 }]}
+            onPress={() => onCloseRef.current()}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            accessibilityLabel="ปิดหน้าต่างรูปภาพ"
           >
             <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Photo Counter */}
           {hasMultipleImages ? (
@@ -476,19 +478,22 @@ export function ImageViewerModal({
           )}
 
           {/* Reset Zoom Button in Header */}
-          <TouchableOpacity
-            style={[styles.headerButton, zoomPercent === 100 && styles.headerButtonDisabled]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.headerButton,
+              zoomPercent === 100 && styles.headerButtonDisabled,
+              pressed && { opacity: 0.7 },
+            ]}
             onPress={handleReset}
             disabled={zoomPercent === 100}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            activeOpacity={0.7}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
           >
             <MaterialCommunityIcons
               name="fit-to-screen-outline"
               size={20}
               color={zoomPercent === 100 ? '#64748B' : '#FFFFFF'}
             />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Main Image Stage - captures all multi-touch pinch and pan gestures */}
@@ -534,78 +539,80 @@ export function ImageViewerModal({
 
         {/* Floating Side Arrow: Previous */}
         {hasMultipleImages && currentIndex > 0 && (
-          <TouchableOpacity
-            style={[styles.arrowButton, styles.arrowLeft]}
+          <Pressable
+            style={({ pressed }) => [styles.arrowButton, styles.arrowLeft, pressed && { opacity: 0.7 }]}
             onPress={goToPrevImage}
-            activeOpacity={0.8}
             hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
           >
             <MaterialCommunityIcons name="chevron-left" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {/* Floating Side Arrow: Next */}
         {hasMultipleImages && currentIndex < images.length - 1 && (
-          <TouchableOpacity
-            style={[styles.arrowButton, styles.arrowRight]}
+          <Pressable
+            style={({ pressed }) => [styles.arrowButton, styles.arrowRight, pressed && { opacity: 0.7 }]}
             onPress={goToNextImage}
-            activeOpacity={0.8}
             hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
           >
             <MaterialCommunityIcons name="chevron-right" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {/* Bottom Floating Control Bar */}
         <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           {/* Zoom Controls Pill */}
           <View style={styles.zoomControlPill}>
-            <TouchableOpacity
-              style={styles.zoomBtn}
+            <Pressable
+              style={({ pressed }) => [styles.zoomBtn, pressed && { opacity: 0.7 }]}
               onPress={handleZoomOut}
               disabled={currentScale.current <= MIN_SCALE}
-              activeOpacity={0.7}
+              hitSlop={8}
             >
               <MaterialCommunityIcons
                 name="magnify-minus-outline"
                 size={22}
                 color={currentScale.current <= MIN_SCALE ? '#64748B' : '#FFFFFF'}
               />
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity style={styles.zoomPercentBadge} onPress={handleReset} activeOpacity={0.7}>
+            <Pressable
+              style={({ pressed }) => [styles.zoomPercentBadge, pressed && { opacity: 0.7 }]}
+              onPress={handleReset}
+              hitSlop={8}
+            >
               <Text style={styles.zoomPercentText}>{zoomPercent}%</Text>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              style={styles.zoomBtn}
+            <Pressable
+              style={({ pressed }) => [styles.zoomBtn, pressed && { opacity: 0.7 }]}
               onPress={handleZoomIn}
               disabled={currentScale.current >= MAX_SCALE}
-              activeOpacity={0.7}
+              hitSlop={8}
             >
               <MaterialCommunityIcons
                 name="magnify-plus-outline"
                 size={22}
                 color={currentScale.current >= MAX_SCALE ? '#64748B' : '#FFFFFF'}
               />
-            </TouchableOpacity>
+            </Pressable>
 
             <View style={styles.pillDivider} />
 
-            <TouchableOpacity
-              style={styles.zoomBtn}
+            <Pressable
+              style={({ pressed }) => [styles.zoomBtn, pressed && { opacity: 0.7 }]}
               onPress={handleReset}
-              activeOpacity={0.7}
+              hitSlop={8}
             >
               <MaterialCommunityIcons name="restart" size={20} color="#38BDF8" />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* Dots Indicator if multiple images */}
           {hasMultipleImages && (
             <View style={styles.dotsContainer}>
               {images.map((_, idx) => (
-                <TouchableOpacity
+                <Pressable
                   key={`dot-${idx}`}
                   onPress={() => {
                     setCurrentIndex(idx);
@@ -613,7 +620,7 @@ export function ImageViewerModal({
                     setHasError(false);
                     resetZoomImmediate();
                   }}
-                  activeOpacity={0.6}
+                  hitSlop={8}
                   style={[
                     styles.dot,
                     currentIndex === idx ? styles.activeDot : styles.inactiveDot,
@@ -645,7 +652,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    zIndex: 10,
+    zIndex: 9999,
+    elevation: 25,
   },
   headerButton: {
     alignItems: 'center',

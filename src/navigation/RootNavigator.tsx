@@ -61,12 +61,29 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
   const closeDrawer = () => {
     try {
+      if (typeof (props.navigation as any).closeDrawer === 'function') {
+        (props.navigation as any).closeDrawer();
+        return;
+      }
+    } catch {}
+
+    try {
+      if (props.state?.key) {
+        props.navigation.dispatch({
+          ...DrawerActions.closeDrawer(),
+          target: props.state.key,
+        });
+        return;
+      }
+    } catch {}
+
+    try {
       props.navigation.dispatch(DrawerActions.closeDrawer());
-    } catch {
-      try {
-        (props.navigation as any).closeDrawer?.();
-      } catch {}
-    }
+    } catch {}
+
+    try {
+      props.navigation.getParent()?.dispatch(DrawerActions.closeDrawer());
+    } catch {}
   };
 
   // Handle Android hardware back button when drawer is open
@@ -428,9 +445,15 @@ function DrawerContent(props: DrawerContentComponentProps) {
 
       {/* Quick Dropdown Picker Menu Popup */}
       {isCategoryPickerOpen && (
-        <View
-          style={[
-            styles.pickerMenuCard,
+        <>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setIsCategoryPickerOpen(false)}
+            accessibilityLabel="ปิดเมนูเลือกหมวดหมู่"
+          />
+          <View
+            style={[
+              styles.pickerMenuCard,
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
@@ -533,7 +556,8 @@ function DrawerContent(props: DrawerContentComponentProps) {
             );
           })}
         </View>
-      )}
+      </>
+    )}
 
       {/* 3. Section Action Bar (Expand/Collapse All) */}
       <View style={styles.sectionHeaderRow}>
@@ -936,7 +960,6 @@ function MainDrawer() {
         drawerStyle: { backgroundColor: colors.surface, width: drawerWidth },
         drawerType: 'front',
         swipeEnabled: true,
-        swipeEdgeWidth: 80,
         overlayColor: 'rgba(0, 0, 0, 0.55)',
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.text,
