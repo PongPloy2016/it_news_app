@@ -1,8 +1,8 @@
 import { NativeModules, Platform, Linking } from 'react-native';
 import { RemoteAppSettings } from '../types';
 
-export const CURRENT_APP_VERSION = '1.0.4';
-export const CURRENT_VERSION_CODE = 9;
+export const CURRENT_APP_VERSION = '1.0.5';
+export const CURRENT_VERSION_CODE = 10;
 export const PLAY_STORE_PACKAGE_NAME = 'com.pongploydev.technewsth.app';
 export const PLAY_STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${PLAY_STORE_PACKAGE_NAME}`;
 export const PLAY_STORE_MARKET_URI = `market://details?id=${PLAY_STORE_PACKAGE_NAME}`;

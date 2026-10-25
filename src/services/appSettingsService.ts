@@ -18,7 +18,7 @@ export const DEFAULT_REMOTE_SETTINGS: RemoteAppSettings = {
   admob_banner_id_android: 'ca-app-pub-4252101594093237/3628558622',
   admob_interstitial_id_android: 'ca-app-pub-7344555333906095/9939973650',
   min_supported_version: '1.0.4',
-  latest_version: '1.0.4',
+  latest_version: '1.0.5',
   force_update_title: 'มีเวอร์ชันใหม่พร้อมใช้งาน',
   force_update_message: 'กรุณาอัปเดตเป็นเวอร์ชันล่าสุดเพื่อการใช้งานที่ราบรื่นและปลอดภัย',
   is_maintenance: false,
@@ -119,7 +119,7 @@ export async function submitAppFeedback(
         category: feedback.category,
         message: feedback.message,
         contact: feedback.contact ?? null,
-        app_version: feedback.app_version ?? '1.0.4',
+        app_version: feedback.app_version ?? '1.0.5',
         device_platform: feedback.device_platform ?? 'android',
       },
     ]);
