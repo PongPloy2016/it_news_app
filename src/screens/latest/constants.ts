@@ -11,7 +11,7 @@ export const withAlpha = (hex: string, alpha: number): string => {
 };
 
 export const GROUP_ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
-  all: 'view-dashboard-outline',
+  all: 'layers-triple',
   'tech-business': 'laptop',
   international: 'earth',
   'thai-news': 'newspaper',

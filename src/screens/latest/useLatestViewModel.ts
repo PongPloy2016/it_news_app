@@ -503,7 +503,7 @@ export function useLatestViewModel(): LatestViewModel {
     const allTab: UnderlineTabItem = {
       key: 'all',
       label: resolvedLanguage === 'en' ? 'All' : 'รวมทุกหมวด',
-      iconName: 'view-dashboard-outline',
+      iconName: 'layers-triple',
       color: '#0EA5E9',
     };
     const groupTabs: UnderlineTabItem[] = feedGroups.map((group) => {

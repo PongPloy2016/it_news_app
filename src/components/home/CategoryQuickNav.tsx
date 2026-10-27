@@ -43,6 +43,35 @@ export function CategoryQuickNav({ groups, totalArticlesCount, onSelectCategory 
         contentContainerStyle={styles.scrollContent}
         style={styles.scrollView}
       >
+        {/* All / รวม Pill */}
+        <Pressable
+          key="nav-all"
+          onPress={() => onSelectCategory('all')}
+          style={({ pressed }) => [
+            styles.pillBtn,
+            {
+              backgroundColor: colors.surface,
+              borderColor: '#0EA5E9',
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="layers-triple"
+            size={14 * scale}
+            color="#0EA5E9"
+            style={{ marginRight: 5 }}
+          />
+          <Text
+            style={[
+              styles.pillText,
+              { color: colors.text, fontSize: 11.5 * scale, fontWeight: '700' },
+            ]}
+          >
+            {resolvedLanguage === 'en' ? 'All' : 'รวมทุกหมวด'}
+          </Text>
+        </Pressable>
+
         {groups.map((group) => {
           const visual = getCategoryVisual(group.key, group.label, group.color, resolvedLanguage);
           return (

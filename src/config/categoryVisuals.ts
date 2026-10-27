@@ -625,6 +625,21 @@ export function getCategoryVisual(
   color?: string,
   lang: 'th' | 'en' = 'th',
 ): CategoryVisual {
+  if (key === 'all') {
+    return {
+      image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=700&auto=format&fit=crop&q=80',
+      icon: 'layers-triple',
+      color: color || '#0EA5E9',
+      shortLabel: lang === 'en' ? 'All' : 'รวมทุกหมวด',
+      tagline: lang === 'en' ? 'All categories in one place' : 'รวมทุกหมวดหมู่ข่าวสารในที่เดียว',
+      label: lang === 'en' ? 'All Categories' : 'รวมทุกหมวดหมู่',
+      label_th: 'รวมทุกหมวดหมู่',
+      label_en: 'All Categories',
+      short_th: 'รวมทุกหมวด',
+      short_en: 'All',
+    };
+  }
+
   const def = CATEGORY_DEFINITIONS[key];
   if (def) {
     const i18n = lang === 'en' ? def.en : def.th;
