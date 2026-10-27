@@ -35,8 +35,8 @@ export function FloatingSlideBar({ vm }: FloatingSlideBarProps) {
         style={[
           styles.floatingSlideBar,
           {
-            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.94)',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+            backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.1)',
           },
         ]}
       >

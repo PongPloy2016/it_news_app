@@ -29,6 +29,7 @@ interface UnderlineTabBarProps<T extends string = string> {
   indicatorColor?: string;
   style?: StyleProp<ViewStyle>;
   scrollable?: boolean;
+  showUnderline?: boolean;
 }
 
 export function UnderlineTabBar<T extends string = string>({
@@ -38,6 +39,7 @@ export function UnderlineTabBar<T extends string = string>({
   indicatorColor,
   style,
   scrollable = false,
+  showUnderline = false,
 }: UnderlineTabBarProps<T>) {
   const { colors, scale, isDark } = useNews();
   const [layouts, setLayouts] = useState<Record<string, { x: number; width: number }>>({});
@@ -120,9 +122,15 @@ export function UnderlineTabBar<T extends string = string>({
                     : pressed
                     ? colors.surfaceVariant
                     : isDark
-                    ? '#27272A'
-                    : '#F1F3F5',
+                    ? '#162032'
+                    : '#F1F5F9',
+                  borderColor: isActive
+                    ? tabActiveBg
+                    : isDark
+                    ? 'rgba(255, 255, 255, 0.12)'
+                    : 'rgba(0, 0, 0, 0.06)',
                 },
+                isActive && styles.tabPillActiveShadow,
               ]}
               hitSlop={6}
             >
@@ -185,8 +193,8 @@ export function UnderlineTabBar<T extends string = string>({
         );
       })}
 
-      {/* Animated Underline Indicator Bar */}
-      {isInitialized && (
+      {/* Animated Underline Indicator Bar (Only if showUnderline is true) */}
+      {showUnderline && isInitialized && (
         <Animated.View
           style={[
             styles.underlineBar,
@@ -222,18 +230,19 @@ export function UnderlineTabBar<T extends string = string>({
 const styles = StyleSheet.create({
   container: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingBottom: 4,
+    paddingBottom: 6,
     marginBottom: 8,
     position: 'relative',
   },
   scrollContent: {
     paddingHorizontal: 2,
+    paddingVertical: 2,
   },
   tabsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     position: 'relative',
-    paddingBottom: 7,
+    paddingBottom: 2,
     gap: 8,
   },
   tabItemWrap: {
@@ -242,9 +251,17 @@ const styles = StyleSheet.create({
   tabPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 999,
+    borderWidth: 1,
+  },
+  tabPillActiveShadow: {
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
   tabLabel: {
     letterSpacing: -0.1,
@@ -268,7 +285,7 @@ const styles = StyleSheet.create({
   underlineBar: {
     position: 'absolute',
     bottom: 0,
-    height: 3.5,
+    height: 3,
     borderRadius: 2,
   },
 });

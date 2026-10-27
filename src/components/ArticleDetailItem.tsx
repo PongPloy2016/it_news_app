@@ -71,6 +71,25 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+function cleanAuthorName(rawAuthor?: string): string {
+  if (!rawAuthor) return '';
+  const name = rawAuthor.split('·')[0]?.trim() || '';
+  if (name.includes('@')) {
+    const lower = name.toLowerCase();
+    if (lower.includes('thaipbs')) return 'Thai PBS';
+    if (lower.includes('blognone')) return 'Blognone';
+    if (lower.includes('droidsans')) return 'DroidSans';
+    if (lower.includes('brandinside')) return 'Brand Inside';
+    if (lower.includes('marketingoops')) return 'MarketingOops';
+    const domainPart = name.split('@')[1];
+    if (domainPart) {
+      const base = domainPart.split('.')[0];
+      return base.charAt(0).toUpperCase() + base.slice(1);
+    }
+  }
+  return name;
+}
+
 /**
  * Parses and renders text with clickable inline links (URLs & Markdown links)
  */
@@ -788,7 +807,7 @@ export function ArticleDetailItem({
       <ScrollView
         ref={mainScrollRef}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}
+        contentContainerStyle={{ paddingBottom: 130 + insets.bottom }}
         bounces={false}
         scrollEventThrottle={16}
         onScroll={onMainScroll}
@@ -896,8 +915,13 @@ export function ArticleDetailItem({
 
           {/* Bottom smooth dark gradient for headline readability */}
           <LinearGradient
-            colors={['transparent', 'rgba(0, 0, 0, 0.1)', 'rgba(0, 0, 0, 0.55)', 'rgba(0, 0, 0, 0.88)']}
-            locations={[0, 0.45, 0.72, 1]}
+            colors={[
+              'transparent',
+              'rgba(0, 0, 0, 0.22)',
+              'rgba(0, 0, 0, 0.68)',
+              'rgba(0, 0, 0, 0.92)',
+            ]}
+            locations={[0, 0.32, 0.65, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
@@ -991,7 +1015,7 @@ export function ArticleDetailItem({
                 <MaterialCommunityIcons name="newspaper-variant" size={16} color="#FFFFFF" />
               </View>
               <Text numberOfLines={1} style={[styles.publisherName, { color: colors.text, fontSize: 15.5 * scale }]}>
-                {article.author || selectedFeed?.label || 'IT News'}
+                {cleanAuthorName(article.author) || selectedFeed?.label || 'IT News'}
               </Text>
               <MaterialCommunityIcons name="check-decagram" size={17} color="#22C55E" style={{ marginLeft: 5 }} />
             </View>

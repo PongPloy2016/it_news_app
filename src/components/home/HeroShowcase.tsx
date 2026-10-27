@@ -2,7 +2,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
+  Easing,
   FlatList,
   Image,
   NativeScrollEvent,
@@ -21,7 +23,26 @@ import { getDiverseArticleImage } from '../../utils/articleVisuals';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SLIDER_WIDTH = SCREEN_WIDTH - 32;
-const SLIDER_HEIGHT = 220;
+const SLIDER_HEIGHT = 240;
+
+function cleanAuthorDisplayName(rawAuthor?: string): string {
+  if (!rawAuthor) return '';
+  const name = rawAuthor.split('·')[0]?.trim() || '';
+  if (name.includes('@')) {
+    const lower = name.toLowerCase();
+    if (lower.includes('thaipbs')) return 'Thai PBS';
+    if (lower.includes('blognone')) return 'Blognone';
+    if (lower.includes('droidsans')) return 'DroidSans';
+    if (lower.includes('brandinside')) return 'Brand Inside';
+    if (lower.includes('marketingoops')) return 'MarketingOops';
+    const domainPart = name.split('@')[1];
+    if (domainPart) {
+      const mainName = domainPart.split('.')[0];
+      return mainName.charAt(0).toUpperCase() + mainName.slice(1);
+    }
+  }
+  return name;
+}
 
 interface Props {
   heroArticles: NewsArticle[];
@@ -32,6 +53,146 @@ interface Props {
     categoryKey?: string,
     categoryLabel?: string,
   ) => void;
+}
+
+function HeroCardPressable({
+  children,
+  onPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: any;
+}) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.982,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut} style={style}>
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function AnimatedIndicatorDot({
+  isActive,
+  onPress,
+  styles,
+}: {
+  isActive: boolean;
+  onPress: () => void;
+  styles: any;
+}) {
+  const widthAnim = useRef(new Animated.Value(isActive ? 26 : 6)).current;
+
+  useEffect(() => {
+    Animated.spring(widthAnim, {
+      toValue: isActive ? 26 : 6,
+      friction: 7,
+      tension: 90,
+      useNativeDriver: false,
+    }).start();
+  }, [isActive, widthAnim]);
+
+  return (
+    <Pressable onPress={onPress} hitSlop={6}>
+      <Animated.View
+        style={[
+          styles.dashIndicator,
+          isActive ? styles.dashActive : styles.dashInactive,
+          { width: widthAnim },
+        ]}
+      />
+    </Pressable>
+  );
+}
+
+function AnimatedHighlightCard({
+  children,
+  onPress,
+  style,
+  index,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: any;
+  index: number;
+}) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(14)).current;
+
+  useEffect(() => {
+    const delay = Math.min(index * 60, 360);
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 320,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          friction: 7,
+          tension: 80,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [fadeAnim, translateY, index]);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.975,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY }, { scale: scaleAnim }],
+      }}
+    >
+      <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut} style={style}>
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
 }
 
 export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }: Props) {
@@ -214,12 +375,12 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
             })}
             renderItem={({ item }) => {
               const itemCat = getArticleCategoryInfo(item);
-              const authorLabel = item.author?.split('·')[0]?.trim() || '';
+              const authorLabel = cleanAuthorDisplayName(item.author);
               const imgUri = getImageUrl(item);
               const hasPermanentError = (imageErrors[item.id] || 0) >= 3;
 
               return (
-                <Pressable
+                <HeroCardPressable
                   onPress={() =>
                     onPressArticle(
                       { ...item, imageUrl: item.imageUrl || imgUri },
@@ -251,10 +412,10 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
                     />
                   )}
 
-                  {/* Gradient Overlay */}
+                  {/* Gradient Overlay for high-contrast headline readability */}
                   <LinearGradient
-                    colors={['transparent', 'rgba(10, 14, 23, 0.55)', 'rgba(10, 14, 23, 0.95)']}
-                    locations={[0, 0.45, 1]}
+                    colors={['transparent', 'rgba(10, 14, 23, 0.35)', 'rgba(10, 14, 23, 0.78)', 'rgba(10, 14, 23, 0.96)']}
+                    locations={[0, 0.32, 0.65, 1]}
                     style={styles.gradientOverlay}
                   />
 
@@ -263,7 +424,7 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
                     <View style={styles.topSlideBadge}>
                       <MaterialCommunityIcons name="lightning-bolt" size={11 * scale} color="#FDE047" />
                       <Text style={[styles.topSlideBadgeText, { fontSize: 10 * scale }]}>
-                        {activeSlide + 1}/{heroArticles.length} ข่าวเด่น • อีก {heroArticles.length - 1} ข่าว
+                        ข่าวเด่น {activeSlide + 1}/{heroArticles.length}
                       </Text>
                     </View>
                   )}
@@ -295,7 +456,7 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
 
                     {/* Bold Title */}
                     <Text
-                      numberOfLines={2}
+                      numberOfLines={3}
                       style={[styles.slideTitle, { fontSize: 16.5 * scale }]}
                     >
                       {item.title}
@@ -322,7 +483,7 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
                       ) : null}
                     </View>
                   </View>
-                </Pressable>
+                </HeroCardPressable>
               );
             }}
           />
@@ -330,22 +491,17 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
           {/* Slider Dash / Indicator Bar */}
           {heroArticles.length > 1 && (
             <View style={styles.indicatorsRow}>
-              {heroArticles.map((_, idx) => {
-                const isActive = idx === activeSlide;
-                return (
-                  <Pressable
-                    key={idx}
-                    onPress={() => {
-                      sliderRef.current?.scrollToIndex({ index: idx, animated: true });
-                      setActiveSlide(idx);
-                    }}
-                    style={[
-                      styles.dashIndicator,
-                      isActive ? styles.dashActive : styles.dashInactive,
-                    ]}
-                  />
-                );
-              })}
+              {heroArticles.map((_, idx) => (
+                <AnimatedIndicatorDot
+                  key={`dot-${idx}`}
+                  isActive={idx === activeSlide}
+                  onPress={() => {
+                    sliderRef.current?.scrollToIndex({ index: idx, animated: true });
+                    setActiveSlide(idx);
+                  }}
+                  styles={styles}
+                />
+              ))}
             </View>
           )}
         </View>
@@ -356,14 +512,14 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
         <View style={styles.highlightsContainer}>
           <View style={styles.highlightsHeader}>
             <View style={styles.highlightsHeaderLeft}>
-              <MaterialCommunityIcons name="trending-up" size={16 * scale} color="#0EA5E9" />
-              <Text style={[styles.highlightsHeading, { color: colors.text, fontSize: 13.5 * scale }]}>
+              <MaterialCommunityIcons name="trending-up" size={18 * scale} color="#0EA5E9" />
+              <Text style={[styles.highlightsHeading, { color: isDark ? '#38BDF8' : '#0284C7', fontSize: 16.5 * scale }]}>
                 ประเด็นร้อนน่าสนใจ
               </Text>
             </View>
-            <View style={[styles.highlightsCountBadge, { backgroundColor: isDark ? 'rgba(14, 165, 233, 0.15)' : 'rgba(14, 165, 233, 0.1)' }]}>
+            <View style={[styles.highlightsCountBadge, { backgroundColor: isDark ? 'rgba(14, 165, 233, 0.15)' : 'rgba(14, 165, 233, 0.08)' }]}>
               <Text style={[styles.highlightsCountText, { fontSize: 11 * scale }]}>
-                อีก {highlightArticles.length} ข่าว
+                {highlightArticles.length} ข่าวฮิต
               </Text>
             </View>
           </View>
@@ -372,11 +528,12 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
             {highlightArticles.map((article, idx) => {
               const imgUri = getImageUrl(article);
               const articleCat = getArticleCategoryInfo(article);
-              const authorLabel = article.author?.split('·')[0]?.trim() || '';
+              const authorLabel = cleanAuthorDisplayName(article.author);
 
               return (
-                <Pressable
+                <AnimatedHighlightCard
                   key={`hl-${article.id}-${idx}`}
+                  index={idx}
                   onPress={() =>
                     onPressArticle(
                       { ...article, imageUrl: article.imageUrl || imgUri },
@@ -385,15 +542,61 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
                       'ประเด็นร้อนน่าสนใจ',
                     )
                   }
-                  style={({ pressed }) => [
+                  style={[
                     styles.highlightItem,
                     {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      opacity: pressed ? 0.8 : 1,
+                      backgroundColor: isDark ? '#131D31' : colors.surface,
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.border,
                     },
                   ]}
                 >
+                  <View style={styles.highlightBody}>
+                    <Text
+                      numberOfLines={3}
+                      style={[styles.highlightTitle, { color: colors.text, fontSize: 13.5 * scale }]}
+                    >
+                      {article.title}
+                    </Text>
+
+                    <View style={styles.highlightMetaRow}>
+                      <View style={[styles.highlightSubBadge, { backgroundColor: articleCat.color }]}>
+                        <MaterialCommunityIcons
+                          name={articleCat.icon}
+                          size={9 * scale}
+                          color="#FFFFFF"
+                          style={{ marginRight: 3 }}
+                        />
+                        <Text style={[styles.highlightSubBadgeText, { fontSize: 9 * scale }]}>
+                          {articleCat.label}
+                        </Text>
+                      </View>
+
+                      {authorLabel ? (
+                        <>
+                          <Text style={[styles.highlightDot, { color: colors.muted }]}>•</Text>
+                          <Text
+                            numberOfLines={1}
+                            style={[styles.highlightAuthor, { color: colors.muted, fontSize: 9.5 * scale }]}
+                          >
+                            {authorLabel}
+                          </Text>
+                        </>
+                      ) : null}
+
+                      {article.publishedMillis ? (
+                        <>
+                          <Text style={[styles.highlightDot, { color: colors.muted }]}>•</Text>
+                          <Text
+                            numberOfLines={1}
+                            style={[styles.highlightTime, { color: colors.muted, fontSize: 9.5 * scale }]}
+                          >
+                            {formatRelative(article.publishedMillis)}
+                          </Text>
+                        </>
+                      ) : null}
+                    </View>
+                  </View>
+
                   {(imageErrors[article.id] || 0) >= 3 ? (
                     <View style={[styles.highlightThumb, styles.highlightFallbackWrap, { backgroundColor: colors.surfaceVariant }]}>
                       <MaterialCommunityIcons name="newspaper-variant-outline" size={24 * scale} color={colors.primary} />
@@ -413,69 +616,14 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
                       />
                     </View>
                   )}
-                  <View style={styles.highlightBody}>
-                    <View style={styles.highlightMetaRow}>
-                      <View style={[styles.highlightSubBadge, { backgroundColor: articleCat.color }]}>
-                        <MaterialCommunityIcons
-                          name={articleCat.icon}
-                          size={8.5 * scale}
-                          color="#FFFFFF"
-                          style={{ marginRight: 2 }}
-                        />
-                        <Text style={[styles.highlightSubBadgeText, { fontSize: 8.5 * scale }]}>
-                          {articleCat.label}
-                        </Text>
-                      </View>
 
-                      {authorLabel ? (
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.highlightAuthor, { color: colors.muted, fontSize: 9.5 * scale }]}
-                        >
-                          {authorLabel}
-                        </Text>
-                      ) : null}
-                    </View>
-
-                    <Text
-                      numberOfLines={2}
-                      style={[styles.highlightTitle, { color: colors.text, fontSize: 12 * scale }]}
-                    >
-                      {article.title}
-                    </Text>
-                    <View style={styles.highlightTimeRow}>
-                      <MaterialCommunityIcons
-                        name="calendar-blank-outline"
-                        size={10.5 * scale}
-                        color={colors.muted}
-                      />
-                      <Text
-                        numberOfLines={1}
-                        style={[styles.highlightTime, { color: colors.muted, fontSize: 10 * scale }]}
-                      >
-                        {article.publishedMillis
-                          ? formatThaiDate(article.publishedMillis, { shortYear: true })
-                          : 'วันนี้'}
-                      </Text>
-                      {article.publishedMillis ? (
-                        <>
-                          <Text style={[styles.highlightDot, { color: colors.muted }]}>•</Text>
-                          <MaterialCommunityIcons
-                            name="clock-outline"
-                            size={10 * scale}
-                            color={colors.muted}
-                          />
-                          <Text
-                            numberOfLines={1}
-                            style={[styles.highlightTime, { color: colors.muted, fontSize: 10 * scale }]}
-                          >
-                            {formatRelative(article.publishedMillis)}
-                          </Text>
-                        </>
-                      ) : null}
-                    </View>
-                  </View>
-                </Pressable>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={18 * scale}
+                    color={isDark ? '#475569' : '#CBD5E1'}
+                    style={styles.highlightChevron}
+                  />
+                </AnimatedHighlightCard>
               );
             })}
           </View>
@@ -495,9 +643,11 @@ const styles = StyleSheet.create({
   },
   slideCard: {
     height: SLIDER_HEIGHT,
-    borderRadius: 14,
+    borderRadius: 22,
     overflow: 'hidden',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   slideImage: {
     ...StyleSheet.absoluteFill,
@@ -573,28 +723,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
-    marginTop: 8,
+    marginTop: 10,
+    marginBottom: 4,
   },
   dashIndicator: {
-    height: 4,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 999,
   },
   dashActive: {
-    width: 22,
+    width: 26,
     backgroundColor: '#0EA5E9',
   },
   dashInactive: {
-    width: 8,
-    backgroundColor: 'rgba(148, 163, 184, 0.4)',
+    width: 6,
+    backgroundColor: 'rgba(14, 165, 233, 0.28)',
   },
   highlightsContainer: {
-    marginTop: 4,
+    marginTop: 8,
   },
   highlightsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   highlightsHeaderLeft: {
     flexDirection: 'row',
@@ -603,39 +754,45 @@ const styles = StyleSheet.create({
   },
   highlightsHeading: {
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
   highlightsList: {
-    gap: 8,
+    gap: 10,
   },
   highlightItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 10,
   },
   highlightThumb: {
-    width: 66,
-    height: 66,
-    borderRadius: 8,
+    width: 68,
+    height: 68,
+    borderRadius: 14,
   },
   highlightBody: {
     flex: 1,
     justifyContent: 'center',
   },
+  highlightTitle: {
+    fontWeight: '700',
+    lineHeight: 18,
+    marginBottom: 6,
+  },
   highlightMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 3,
+    flexWrap: 'wrap',
+    gap: 3,
   },
   highlightSubBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 5,
-    paddingVertical: 1.5,
-    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
   },
   highlightSubBadgeText: {
     color: '#FFFFFF',
@@ -644,25 +801,17 @@ const styles = StyleSheet.create({
   },
   highlightAuthor: {
     fontWeight: '600',
-    textTransform: 'uppercase',
-    flexShrink: 1,
-  },
-  highlightTitle: {
-    fontWeight: '700',
-    lineHeight: 16,
-    marginBottom: 4,
-  },
-  highlightTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
+    maxWidth: 90,
   },
   highlightTime: {
     fontWeight: '500',
   },
   highlightDot: {
-    marginHorizontal: 1,
+    marginHorizontal: 2,
     fontSize: 9,
+  },
+  highlightChevron: {
+    marginLeft: -2,
   },
   topSlideBadge: {
     position: 'absolute',
