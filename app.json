@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pongploydev.technewsth.app",
+      "buildNumber": "11",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
@@ -29,7 +30,7 @@
         "resizeMode": "contain",
         "backgroundColor": "#0B132B"
       },
-      "versionCode": 10,
+      "versionCode": 11,
       "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "usesCleartextTraffic": true
