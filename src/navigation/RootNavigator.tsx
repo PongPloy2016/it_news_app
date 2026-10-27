@@ -4,7 +4,7 @@ import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScroll
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DrawerActions, getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, Dimensions, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, Dimensions, Easing, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
@@ -1007,55 +1007,119 @@ function CustomBottomTabBar({ state, descriptors, navigation }: BottomTabBarProp
   );
 }
 
-function BrandHeaderTitle() {
-  const { colors, scale, isDark, resolvedLanguage } = useNews();
+function HeaderRunningText({ text, color, scale }: { text: string; color: string; scale: number }) {
+  const containerWidth = 190;
+  const [textWidth, setTextWidth] = useState(280);
+  const translateX = useRef(new Animated.Value(containerWidth)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (textWidth <= 0) return;
+
+    if (animRef.current) {
+      animRef.current.stop();
+    }
+
+    translateX.setValue(containerWidth);
+
+    const totalDistance = containerWidth + textWidth + 24;
+    // Speed: 36 px/sec for smooth, readable pace
+    const duration = (totalDistance / 36) * 1000;
+
+    const startAnimation = () => {
+      translateX.setValue(containerWidth);
+      const anim = Animated.timing(translateX, {
+        toValue: -textWidth - 12,
+        duration,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      });
+
+      animRef.current = anim;
+      anim.start(({ finished }) => {
+        if (finished) {
+          startAnimation();
+        }
+      });
+    };
+
+    startAnimation();
+
+    return () => {
+      if (animRef.current) {
+        animRef.current.stop();
+      }
+    };
+  }, [text, textWidth, translateX]);
 
   return (
-    <View style={styles.brandHeaderContainer}>
-      <View
-        style={[
-          styles.brandHeaderIconBadge,
-          {
-            backgroundColor: colors.primary,
-          },
-        ]}
-      >
-        <MaterialCommunityIcons name="newspaper-variant-outline" size={16 * scale} color="#FFFFFF" />
-      </View>
-
-      <Text
-        style={[
-          styles.brandHeaderTitleText,
-          {
-            color: colors.text,
-            fontSize: 18 * scale,
-            fontFamily: typography.fontFamily,
-          },
-        ]}
-      >
-        {resolvedLanguage === 'en' ? 'Thai News' : 'ข่าวไทย'}
-      </Text>
-
-      <View
-        style={[
-          styles.brandHeaderNewsBadge,
-          {
-            backgroundColor: isDark ? withAlpha(colors.primary, 0.22) : withAlpha(colors.primary, 0.12),
-            borderColor: withAlpha(colors.primary, 0.35),
-          },
-        ]}
-      >
+    <View style={styles.marqueeViewport}>
+      <Animated.View style={{ flexDirection: 'row', width: 2000, transform: [{ translateX }] }}>
         <Text
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0 && Math.abs(w - textWidth) > 3) {
+              setTextWidth(w);
+            }
+          }}
+          numberOfLines={1}
           style={[
-            styles.brandHeaderNewsBadgeText,
+            styles.marqueeText,
             {
-              color: colors.primary,
-              fontSize: 10 * scale,
+              color,
+              fontSize: 9.5 * scale,
             },
           ]}
         >
-          NEWS
+          {text}
         </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+function BrandHeaderTitle() {
+  const { colors, scale, isDark, resolvedLanguage } = useNews();
+  const slogan =
+    resolvedLanguage === 'en'
+      ? 'Leading IT & tech news application for tech enthusiasts'
+      : 'แอปพลิเคชันรวมข่าวสารไอทีและเทคโนโลยีชั้นนำสำหรับคนที่สนใจ';
+
+  return (
+    <View style={styles.brandHeaderContainer}>
+      {/* 1. App Logo & TechThaiNews Title */}
+      <View style={styles.brandTitleRow}>
+        <Image
+          source={require('../../assets/icon.png')}
+          style={styles.brandAppLogo}
+          resizeMode="cover"
+        />
+        <Text
+          style={[
+            styles.brandHeaderTitleText,
+            {
+              fontSize: 16.5 * scale,
+              fontFamily: typography.fontFamily,
+            },
+          ]}
+        >
+          <Text style={{ color: colors.text }}>TechThai</Text>
+          <Text style={{ color: colors.primary }}>News</Text>
+        </Text>
+      </View>
+
+      {/* 2. Running Marquee Tagline Capsule */}
+      <View
+        style={[
+          styles.brandMarqueeBadge,
+          {
+            backgroundColor: isDark ? withAlpha(colors.primary, 0.16) : withAlpha(colors.primary, 0.08),
+            borderColor: withAlpha(colors.primary, 0.28),
+          },
+        ]}
+      >
+        <View style={[styles.brandLiveDot, { backgroundColor: colors.primary }]} />
+        <HeaderRunningText text={slogan} color={isDark ? colors.text : colors.primary} scale={scale} />
       </View>
     </View>
   );
@@ -1086,7 +1150,7 @@ function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined
   const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
   switch (routeName) {
     case 'Latest':
-      return 'ข่าวไทย News';
+      return 'TechThaiNews';
     case 'Categories':
       return t.tab_categories;
     case 'Search':
@@ -1096,7 +1160,7 @@ function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined
     case 'Settings':
       return t.tab_settings;
     default:
-      return 'ข่าวไทย News';
+      return 'TechThaiNews';
   }
 }
 
@@ -1221,6 +1285,7 @@ function MainDrawer() {
         headerTitleAlign: 'center',
         headerStyle: {
           backgroundColor: colors.surface,
+          height: Platform.OS === 'ios' ? 70 : 66,
           borderBottomWidth: StyleSheet.hairlineWidth,
           borderBottomColor: withAlpha(colors.border, isDark ? 0.35 : 0.55),
           elevation: 2.5,
@@ -1758,35 +1823,49 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   brandHeaderContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
-  brandHeaderIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 3,
-    elevation: 3,
+  brandAppLogo: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   brandHeaderTitleText: {
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  brandHeaderNewsBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  brandHeaderNewsBadgeText: {
     fontWeight: '900',
-    letterSpacing: 0.8,
+    letterSpacing: -0.4,
+  },
+  brandMarqueeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 1.5,
+    borderRadius: 10,
+    borderWidth: 0.8,
+    maxWidth: 220,
+  },
+  brandLiveDot: {
+    width: 4.5,
+    height: 4.5,
+    borderRadius: 2.5,
+    marginRight: 6,
+  },
+  marqueeViewport: {
+    width: 185,
+    overflow: 'hidden',
+  },
+  marqueeText: {
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   headerRoundBtn: {
     width: 38,
