@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView, useDrawerStatus } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { DrawerActions } from '@react-navigation/native';
+import { DrawerActions, getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, BackHandler, Dimensions, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1005,12 +1005,59 @@ function CustomBottomTabBar({ state, descriptors, navigation }: BottomTabBarProp
   );
 }
 
-function MainTabs() {
-  const { colors, t, setActiveGroupKey } = useNews();
-  const insets = useSafeAreaInsets();
+function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined>, string>, t: any): string {
+  const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
+  switch (routeName) {
+    case 'Latest':
+      return 'IT News App';
+    case 'Categories':
+      return t.tab_categories;
+    case 'Search':
+      return t.tab_search;
+    case 'Bookmarks':
+      return t.tab_bookmarks;
+    case 'Settings':
+      return t.tab_settings;
+    default:
+      return 'IT News App';
+  }
+}
+
+function BookmarksHeaderRight() {
+  const { syncCloudBookmarks, isSyncingBookmarks, isCloudSyncActive, colors } = useNews();
+
+  if (!isCloudSyncActive) return null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+    <Pressable
+      hitSlop={12}
+      onPress={() => void syncCloudBookmarks()}
+      disabled={isSyncingBookmarks}
+      style={{
+        marginRight: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 16,
+        backgroundColor: colors.surfaceVariant,
+      }}
+      accessibilityLabel="ซิงค์บุ๊กมาร์กกับ Supabase Cloud"
+    >
+      {isSyncingBookmarks ? (
+        <ActivityIndicator size="small" color={colors.primary} />
+      ) : (
+        <MaterialCommunityIcons name="cloud-sync-outline" size={21} color={colors.primary} />
+      )}
+    </Pressable>
+  );
+}
+
+function MainTabs() {
+  const { colors, t, setActiveGroupKey } = useNews();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tab.Navigator
         tabBar={(props) => <CustomBottomTabBar {...props} />}
         screenOptions={{
@@ -1085,15 +1132,18 @@ function MainTabs() {
 }
 
 function MainDrawer() {
-  const { colors, scale } = useNews();
+  const { colors, scale, t } = useNews();
   const screenWidth = Dimensions.get('window').width;
   const drawerWidth = Math.min(320, Math.round(screenWidth * 0.80));
 
   return (
     <Drawer.Navigator
       drawerContent={(props) => <DrawerContent {...props} />}
-      screenOptions={{
-        headerShown: false,
+      screenOptions={({ navigation }) => ({
+        headerShown: true,
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
         drawerStyle: { backgroundColor: colors.surface, width: drawerWidth },
         drawerType: 'front',
         swipeEnabled: true,
@@ -1102,11 +1152,27 @@ function MainDrawer() {
         drawerInactiveTintColor: colors.text,
         drawerLabelStyle: { fontWeight: '700', fontSize: 14 * scale },
         drawerItemStyle: { borderRadius: 12, marginHorizontal: 10, marginVertical: 2 },
-      }}
+        headerLeft: () => (
+          <Pressable
+            hitSlop={12}
+            style={{ marginLeft: 16 }}
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          >
+            <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
+          </Pressable>
+        ),
+      })}
     >
       <Drawer.Screen
         name="DrawerHome"
         component={MainTabs}
+        options={({ route }) => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
+          return {
+            headerTitle: getDrawerHeaderTitle(route, t),
+            headerRight: routeName === 'Bookmarks' ? () => <BookmarksHeaderRight /> : undefined,
+          };
+        }}
       />
     </Drawer.Navigator>
   );
