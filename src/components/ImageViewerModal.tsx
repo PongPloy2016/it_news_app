@@ -26,7 +26,7 @@ interface ImageViewerModalProps {
 }
 
 const MIN_SCALE = 1.0;
-const MAX_SCALE = 4.5;
+const MAX_SCALE = 5.0;
 
 export function ImageViewerModal({
   visible,
@@ -42,6 +42,7 @@ export function ImageViewerModal({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [zoomPercent, setZoomPercent] = useState(100);
+  const zoomPercentRef = useRef(100);
 
   // Animated values for 60fps hardware-accelerated transforms
   const scale = useRef(new Animated.Value(1)).current;
@@ -56,6 +57,7 @@ export function ImageViewerModal({
   // Pinch & Pan multi-touch tracking
   const pinchRef = useRef({
     isPinching: false,
+    wasPinching: false,
     startDistance: 0,
     startScale: 1,
     startFocal: { x: 0, y: 0 },
@@ -124,6 +126,7 @@ export function ImageViewerModal({
     currentScale.current = 1;
     currentTranslateX.current = 0;
     currentTranslateY.current = 0;
+    zoomPercentRef.current = 100;
     scale.setValue(1);
     translateX.setValue(0);
     translateY.setValue(0);
@@ -132,26 +135,44 @@ export function ImageViewerModal({
 
   // Snap translation within scale boundaries with spring animation
   const snapTranslationsToBounds = useCallback(() => {
-    const maxTx = Math.max(0, ((currentScale.current - 1) * screenWidth) / 2);
-    const maxTy = Math.max(0, ((currentScale.current - 1) * screenHeight) / 2);
+    const s = currentScale.current;
+    if (s <= 1.02) {
+      currentScale.current = 1;
+      currentTranslateX.current = 0;
+      currentTranslateY.current = 0;
+      zoomPercentRef.current = 100;
+      setZoomPercent(100);
+      Animated.parallel([
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, bounciness: 3 }),
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 3 }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 3 }),
+      ]).start();
+      return;
+    }
+
+    const maxTx = Math.max(0, ((s - 1) * screenWidth) / 2);
+    const maxTy = Math.max(0, ((s - 1) * screenHeight) / 2);
 
     const targetTx = Math.max(-maxTx, Math.min(currentTranslateX.current, maxTx));
     const targetTy = Math.max(-maxTy, Math.min(currentTranslateY.current, maxTy));
 
     currentTranslateX.current = targetTx;
     currentTranslateY.current = targetTy;
+    zoomPercentRef.current = Math.round(s * 100);
+    setZoomPercent(Math.round(s * 100));
 
     Animated.parallel([
       Animated.spring(translateX, { toValue: targetTx, useNativeDriver: true, bounciness: 3 }),
       Animated.spring(translateY, { toValue: targetTy, useNativeDriver: true, bounciness: 3 }),
     ]).start();
-  }, [screenWidth, screenHeight, translateX, translateY]);
+  }, [screenWidth, screenHeight, scale, translateX, translateY]);
 
   // Smoothly animate zoom and pan to target scale
   const zoomTo = useCallback(
     (targetScale: number, animated = true) => {
       const clampedScale = Math.max(MIN_SCALE, Math.min(targetScale, MAX_SCALE));
       currentScale.current = clampedScale;
+      zoomPercentRef.current = Math.round(clampedScale * 100);
       setZoomPercent(Math.round(clampedScale * 100));
 
       if (clampedScale <= 1.05) {
@@ -221,13 +242,42 @@ export function ImageViewerModal({
     }
   }, [resetZoomImmediate]);
 
-  const handleDoubleTap = useCallback(() => {
-    if (currentScale.current > 1.2) {
-      zoomTo(1, true);
-    } else {
-      zoomTo(2.5, true);
-    }
-  }, [zoomTo]);
+  const handleDoubleTap = useCallback(
+    (tapX?: number, tapY?: number) => {
+      if (currentScale.current > 1.2) {
+        zoomTo(1, true);
+      } else {
+        const targetScale = 2.5;
+        if (tapX !== undefined && tapY !== undefined) {
+          const centerX = screenWidth / 2;
+          const centerY = screenHeight / 2;
+          const pX = (tapX - centerX - currentTranslateX.current) / currentScale.current;
+          const pY = (tapY - centerY - currentTranslateY.current) / currentScale.current;
+          const targetTx = tapX - centerX - pX * targetScale;
+          const targetTy = tapY - centerY - pY * targetScale;
+          const maxTx = Math.max(0, ((targetScale - 1) * screenWidth) / 2);
+          const maxTy = Math.max(0, ((targetScale - 1) * screenHeight) / 2);
+          const clampedTx = Math.max(-maxTx, Math.min(targetTx, maxTx));
+          const clampedTy = Math.max(-maxTy, Math.min(targetTy, maxTy));
+
+          currentScale.current = targetScale;
+          currentTranslateX.current = clampedTx;
+          currentTranslateY.current = clampedTy;
+          zoomPercentRef.current = Math.round(targetScale * 100);
+          setZoomPercent(Math.round(targetScale * 100));
+
+          Animated.parallel([
+            Animated.spring(scale, { toValue: targetScale, useNativeDriver: true, bounciness: 2 }),
+            Animated.spring(translateX, { toValue: clampedTx, useNativeDriver: true, bounciness: 2 }),
+            Animated.spring(translateY, { toValue: clampedTy, useNativeDriver: true, bounciness: 2 }),
+          ]).start();
+        } else {
+          zoomTo(targetScale, true);
+        }
+      }
+    },
+    [zoomTo, screenWidth, screenHeight, scale, translateX, translateY],
+  );
 
   // Robust Multi-touch PanResponder for Pinch-to-Zoom, Pan, and Double-Tap
   const panResponder = useMemo(
@@ -235,21 +285,30 @@ export function ImageViewerModal({
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onStartShouldSetPanResponderCapture: () => false,
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          return Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4;
+        onMoveShouldSetPanResponder: (evt, gestureState) => {
+          return (
+            evt.nativeEvent.touches.length >= 2 ||
+            Math.abs(gestureState.dx) > 2 ||
+            Math.abs(gestureState.dy) > 2
+          );
         },
-        onMoveShouldSetPanResponderCapture: () => false,
-        onPanResponderTerminationRequest: () => true,
-        onShouldBlockNativeResponder: () => false,
+        onMoveShouldSetPanResponderCapture: (evt) => {
+          // Unconditionally capture 2-finger multi-touch so pinch-zoom is never interrupted
+          return evt.nativeEvent.touches.length >= 2;
+        },
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
 
         onPanResponderGrant: (evt) => {
           const touches = evt.nativeEvent.touches;
           if (touches.length >= 2) {
-            const [t1, t2] = touches;
+            const t1 = touches[0];
+            const t2 = touches[1];
             const dist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
             pinchRef.current = {
               isPinching: true,
-              startDistance: Math.max(dist, 1),
+              wasPinching: true,
+              startDistance: Math.max(dist, 10),
               startScale: currentScale.current,
               startFocal: {
                 x: (t1.pageX + t2.pageX) / 2,
@@ -262,6 +321,7 @@ export function ImageViewerModal({
             };
           } else if (touches.length === 1) {
             pinchRef.current.isPinching = false;
+            pinchRef.current.wasPinching = false;
             singleTouchRef.current = {
               startX: touches[0].pageX,
               startY: touches[0].pageY,
@@ -278,14 +338,16 @@ export function ImageViewerModal({
 
           // 1. PINCH ZOOM: 2 or more fingers active
           if (touches.length >= 2) {
-            const [t1, t2] = touches;
+            const t1 = touches[0];
+            const t2 = touches[1];
             const currentDist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
 
             // Dynamically initialize pinch session if second finger arrived during move
             if (!pinchRef.current.isPinching || pinchRef.current.startDistance === 0) {
               pinchRef.current = {
                 isPinching: true,
-                startDistance: Math.max(currentDist, 1),
+                wasPinching: true,
+                startDistance: Math.max(currentDist, 10),
                 startScale: currentScale.current,
                 startFocal: {
                   x: (t1.pageX + t2.pageX) / 2,
@@ -302,25 +364,38 @@ export function ImageViewerModal({
             // Real-time pinch zoom calculation with rubber-banding
             const scaleFactor = currentDist / pinchRef.current.startDistance;
             const targetScale = pinchRef.current.startScale * scaleFactor;
-            const newScale = Math.max(0.75, Math.min(targetScale, MAX_SCALE + 1.0));
+            const newScale = Math.max(0.7, Math.min(targetScale, MAX_SCALE + 1.2));
 
             currentScale.current = newScale;
             scale.setValue(newScale);
-            setZoomPercent(Math.round(newScale * 100));
 
-            // Pan with focal point during pinch
+            // Accurate focal point translation
+            const centerX = screenWidth / 2;
+            const centerY = screenHeight / 2;
+            const pX =
+              (pinchRef.current.startFocal.x - centerX - pinchRef.current.startTranslate.x) /
+              pinchRef.current.startScale;
+            const pY =
+              (pinchRef.current.startFocal.y - centerY - pinchRef.current.startTranslate.y) /
+              pinchRef.current.startScale;
+
             const currentFocalX = (t1.pageX + t2.pageX) / 2;
             const currentFocalY = (t1.pageY + t2.pageY) / 2;
-            const deltaFocalX = currentFocalX - pinchRef.current.startFocal.x;
-            const deltaFocalY = currentFocalY - pinchRef.current.startFocal.y;
 
-            const nextTx = pinchRef.current.startTranslate.x + deltaFocalX;
-            const nextTy = pinchRef.current.startTranslate.y + deltaFocalY;
+            const nextTx = currentFocalX - centerX - pX * newScale;
+            const nextTy = currentFocalY - centerY - pY * newScale;
 
             currentTranslateX.current = nextTx;
             currentTranslateY.current = nextTy;
             translateX.setValue(nextTx);
             translateY.setValue(nextTy);
+
+            // Throttle zoom percentage update to maintain 60fps
+            const newPercent = Math.round(newScale * 100);
+            if (Math.abs(newPercent - zoomPercentRef.current) >= 5) {
+              zoomPercentRef.current = newPercent;
+              setZoomPercent(newPercent);
+            }
             return;
           }
 
@@ -350,14 +425,14 @@ export function ImageViewerModal({
               const maxTx = ((currentScale.current - 1) * screenWidth) / 2;
               const maxTy = ((currentScale.current - 1) * screenHeight) / 2;
 
-              const clampedX = Math.max(-maxTx - 50, Math.min(nextX, maxTx + 50));
-              const clampedY = Math.max(-maxTy - 50, Math.min(nextY, maxTy + 50));
+              const clampedX = Math.max(-maxTx - 60, Math.min(nextX, maxTx + 60));
+              const clampedY = Math.max(-maxTy - 60, Math.min(nextY, maxTy + 60));
 
               currentTranslateX.current = clampedX;
               currentTranslateY.current = clampedY;
               translateX.setValue(clampedX);
               translateY.setValue(clampedY);
-            } else {
+            } else if (!pinchRef.current.wasPinching) {
               // Scale ~1.0: vertical pull down to dismiss preview
               const deltaY = touches[0].pageY - singleTouchRef.current.startY;
               if (deltaY > 0) {
@@ -368,8 +443,9 @@ export function ImageViewerModal({
         },
 
         onPanResponderRelease: (evt, gestureState) => {
-          const hadPinch = pinchRef.current.isPinching;
+          const hadPinch = pinchRef.current.wasPinching;
           pinchRef.current.isPinching = false;
+          pinchRef.current.wasPinching = false;
           pinchRef.current.startDistance = 0;
 
           const now = Date.now();
@@ -378,7 +454,9 @@ export function ImageViewerModal({
           // Double Tap check
           if (isTap && !hadPinch) {
             if (now - lastTapTime.current < 280) {
-              handleDoubleTap();
+              const tapX = evt.nativeEvent.pageX;
+              const tapY = evt.nativeEvent.pageY;
+              handleDoubleTap(tapX, tapY);
               lastTapTime.current = 0;
               return;
             }
@@ -424,8 +502,36 @@ export function ImageViewerModal({
             }
           }
         },
+
+        onPanResponderTerminate: () => {
+          const hadPinch = pinchRef.current.wasPinching;
+          pinchRef.current.isPinching = false;
+          pinchRef.current.wasPinching = false;
+          pinchRef.current.startDistance = 0;
+
+          if (hadPinch || currentScale.current > 1.05) {
+            snapTranslationsToBounds();
+          } else {
+            Animated.parallel([
+              Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+              Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
+              Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+            ]).start();
+          }
+        },
       }),
-    [screenWidth, screenHeight, handleDoubleTap, zoomTo, snapTranslationsToBounds, goToNextImage, goToPrevImage],
+    [
+      screenWidth,
+      screenHeight,
+      handleDoubleTap,
+      zoomTo,
+      snapTranslationsToBounds,
+      goToNextImage,
+      goToPrevImage,
+      scale,
+      translateX,
+      translateY,
+    ],
   );
 
   if (!visible || images.length === 0) {

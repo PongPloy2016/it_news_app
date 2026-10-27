@@ -63,6 +63,9 @@ export const imageService = {
 
     try {
       let targetUrl = link;
+      if (targetUrl.startsWith('http://') && (targetUrl.includes('kapook.com') || targetUrl.includes('ejan.co'))) {
+        targetUrl = targetUrl.replace(/^http:\/\//i, 'https://');
+      }
       if (targetUrl.includes('news.google.com/rss/articles/')) {
         const resolved = await resolveGoogleNewsUrl(targetUrl);
         if (resolved) {
@@ -70,12 +73,29 @@ export const imageService = {
         }
       }
 
-      const response = await fetch(targetUrl, {
-        signal: controller.signal,
-        headers: FETCH_HEADERS,
-      });
-      if (!response.ok) return [];
-      const html = await response.text();
+      let html = '';
+      if (targetUrl.includes('ejan.co')) {
+        const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
+          signal: controller.signal,
+          headers: { 'X-Return-Format': 'html' },
+        });
+        if (jinaRes.ok) html = await jinaRes.text();
+      } else {
+        const response = await fetch(targetUrl, {
+          signal: controller.signal,
+          headers: FETCH_HEADERS,
+        });
+        if (response.ok) {
+          html = await response.text();
+        } else if (response.status === 403 || response.status === 503) {
+          const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
+            signal: controller.signal,
+            headers: { 'X-Return-Format': 'html' },
+          });
+          if (jinaRes.ok) html = await jinaRes.text();
+        }
+      }
+      if (!html) return [];
       return extractArticleImagesFromHtml(html, targetUrl);
     } catch {
       return [];
@@ -108,13 +128,30 @@ export const imageService = {
             }
           }
 
-          const response = await fetch(targetUrl, {
-            signal: controller.signal,
-            headers: FETCH_HEADERS,
-          });
-          if (!response.ok) return;
+          let html = '';
+          if (targetUrl.includes('ejan.co')) {
+            const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
+              signal: controller.signal,
+              headers: { 'X-Return-Format': 'html' },
+            });
+            if (jinaRes.ok) html = await jinaRes.text();
+          } else {
+            const response = await fetch(targetUrl, {
+              signal: controller.signal,
+              headers: FETCH_HEADERS,
+            });
+            if (response.ok) {
+              html = await response.text();
+            } else if (response.status === 403 || response.status === 503) {
+              const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
+                signal: controller.signal,
+                headers: { 'X-Return-Format': 'html' },
+              });
+              if (jinaRes.ok) html = await jinaRes.text();
+            }
+          }
+          if (!html) return;
 
-          const html = await response.text();
           const imageUrl = extractOgImage(html, targetUrl);
           const videoUrl = !article.videoUrl ? extractVideoUrl(html) : undefined;
           if (!imageUrl && !videoUrl && targetUrl === article.link) return;

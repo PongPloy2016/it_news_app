@@ -19,7 +19,11 @@ import { TopProgressBar, HomeLoadingProgressCard } from '../../../components/Loa
 import { formatRelative } from '../../../utils/content';
 import { withAlpha } from '../constants';
 import { LatestViewModel } from '../types';
+import { FlashDispatchTicker } from '../../../components/home/FlashDispatchTicker';
+import { HeroShowcase } from '../../../components/home/HeroShowcase';
 import { CategoryTabBar } from './CategoryTabBar';
+import { SourceQuickNav } from './SourceQuickNav';
+import { SourceSectionBlock } from './SourceSectionBlock';
 import { SourceTabBar } from './SourceTabBar';
 import { StatusFilterBar } from './StatusFilterBar';
 
@@ -34,6 +38,7 @@ export function CategoryFeedView({ vm }: CategoryFeedViewProps) {
     settings,
     activeGroup,
     selectedFeed,
+    isAggregateFeed,
     articles,
     filteredArticles,
     visibleArticles,
@@ -48,8 +53,13 @@ export function CategoryFeedView({ vm }: CategoryFeedViewProps) {
     isShowingCachedFeed,
     statusFilter,
     setStatusFilter,
+    categoryHeroArticles,
+    categoryHighlightArticles,
+    categoryTickerArticles,
+    sourceSections,
     handleRefreshAll,
     handlePressArticle,
+    handleSourceSelect,
     handleLayoutToggle,
     handleEndReached,
     toggleBookmark,
@@ -122,9 +132,46 @@ export function CategoryFeedView({ vm }: CategoryFeedViewProps) {
             {/* Custom Refresh Indicator Header during pull-to-refresh */}
             <CustomRefreshHeader
               visible={isRefreshing}
-              label="กำลังอัปเดตข่าวล่าสุด..."
+              label={`กำลังอัปเดตข่าว${activeGroup?.label || ''}...`}
               color={groupColor}
             />
+
+            {/* When viewing "ทั้งหมด (All)" of this category, render the Editorial layout! */}
+            {isAggregateFeed && (
+              <>
+                {/* 1. Flash Dispatch Ticker (ข่าวด่วนหมุนเวียนของหมวดนี้) */}
+                <FlashDispatchTicker
+                  articles={categoryTickerArticles}
+                  onPressArticle={handlePressArticle}
+                />
+
+                {/* 2. Hero Showcase Slider + Trending Highlights ของหมวดนี้ */}
+                <HeroShowcase
+                  heroArticles={categoryHeroArticles}
+                  highlightArticles={categoryHighlightArticles}
+                  onPressArticle={handlePressArticle}
+                />
+
+                {/* 3. Source Quick Nav (แถบทางลัดเลือกสำนักข่าว) */}
+                <SourceQuickNav
+                  sources={sourceSections}
+                  accentColor={groupColor}
+                  onSelectSource={handleSourceSelect}
+                />
+
+                {/* 4. Source Section Blocks (บล็อกแยกตามแต่ละสำนักข่าวในหมวดนี้) */}
+                {sourceSections.map(({ source, articles: srcArticles }) => (
+                  <SourceSectionBlock
+                    key={`source-sec-${source.key}`}
+                    source={source}
+                    articles={srcArticles}
+                    accentColor={groupColor}
+                    onPressArticle={handlePressArticle}
+                    onViewAll={handleSourceSelect}
+                  />
+                ))}
+              </>
+            )}
 
             {/* New Articles Banner on Refresh */}
             {lastRefreshNewCount > 0 && (
@@ -174,8 +221,8 @@ export function CategoryFeedView({ vm }: CategoryFeedViewProps) {
             <View style={styles.headingRow}>
               <View style={{ flex: 1, marginRight: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={[styles.heading, { color: colors.text, fontSize: 21 * scale }]}>
-                    {selectedFeed.label}
+                  <Text style={[styles.heading, { color: colors.text, fontSize: 19 * scale }]}>
+                    {isAggregateFeed ? `รวมข่าวทั้งหมด (${articles.length})` : selectedFeed.label}
                   </Text>
                   {newArticlesCount > 0 && (
                     <View style={styles.newHeaderBadge}>

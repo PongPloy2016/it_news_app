@@ -46,6 +46,7 @@ import {
   ThemeMode,
 } from '../types';
 import { resolveLanguage, translations } from '../i18n';
+import { isThaiMojibake, repairMojibakeArticles } from '../utils/content';
 
 const defaultSettings: AppSettings = {
   themeMode: 'system',
@@ -229,14 +230,28 @@ export function NewsProvider({ children }: PropsWithChildren) {
 
         if (cachedFeedKey) {
           setSelectedFeedKeyState(cachedFeedKey);
-          const perFeed = await articleRepository.getCachedFeedArticles(cachedFeedKey);
+          let perFeed = await articleRepository.getCachedFeedArticles(cachedFeedKey);
           if (perFeed && perFeed.length > 0) {
+            if (perFeed.some((a) => isThaiMojibake(a.title))) {
+              perFeed = await repairMojibakeArticles(perFeed);
+              void articleRepository.saveCachedFeedArticles(cachedFeedKey, perFeed);
+            }
             setArticles(perFeed);
           } else if (cachedArticles?.length) {
-            setArticles(cachedArticles);
+            let initialArticles = cachedArticles;
+            if (initialArticles.some((a) => isThaiMojibake(a.title))) {
+              initialArticles = await repairMojibakeArticles(initialArticles);
+              void articleRepository.saveCachedArticles(initialArticles);
+            }
+            setArticles(initialArticles);
           }
         } else if (cachedArticles?.length) {
-          setArticles(cachedArticles);
+          let initialArticles = cachedArticles;
+          if (initialArticles.some((a) => isThaiMojibake(a.title))) {
+            initialArticles = await repairMojibakeArticles(initialArticles);
+            void articleRepository.saveCachedArticles(initialArticles);
+          }
+          setArticles(initialArticles);
         }
         if (cachedBookmarks) setBookmarks(cachedBookmarks);
         if (cachedHistory) setSearchHistory(cachedHistory);
@@ -373,8 +388,12 @@ export function NewsProvider({ children }: PropsWithChildren) {
       // Instant Cache First: immediately load cached articles for this feed!
       void (async () => {
         try {
-          const cached = await articleRepository.getCachedFeedArticles(nextKey);
+          let cached = await articleRepository.getCachedFeedArticles(nextKey);
           if (cached && cached.length > 0) {
+            if (cached.some((a) => isThaiMojibake(a.title))) {
+              cached = await repairMojibakeArticles(cached);
+              void articleRepository.saveCachedFeedArticles(nextKey, cached);
+            }
             setArticles(cached);
             setHasFetchError(false);
           }
@@ -385,6 +404,30 @@ export function NewsProvider({ children }: PropsWithChildren) {
     },
     [feedSources],
   );
+
+  // Auto-heal any articles containing corrupted Thai mojibake text
+  useEffect(() => {
+    if (articles.length > 0 && articles.some((a) => isThaiMojibake(a.title))) {
+      let isMounted = true;
+      void (async () => {
+        try {
+          const repaired = await repairMojibakeArticles(articles);
+          if (isMounted && repaired.some((a, i) => a.title !== articles[i]?.title)) {
+            setArticles(repaired);
+            feedService.registerArticles(repaired);
+            if (selectedFeedKey) {
+              void articleRepository.saveCachedFeedArticles(selectedFeedKey, repaired);
+            }
+          }
+        } catch {
+          // ignore auto-heal error
+        }
+      })();
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [articles, selectedFeedKey]);
 
   useEffect(() => {
     if (!isHydrated) return;

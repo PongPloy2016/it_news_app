@@ -4,6 +4,7 @@ import { FeedSource } from '../config/feeds';
 import { fetchAndParseFeed } from '../data/rss';
 import { dedupeAndSortArticles } from '../data/rss/dedupe';
 import { NewsArticle } from '../types';
+import { isThaiMojibake, repairMojibakeArticles } from '../utils/content';
 
 type QueueTask = {
   feed: FeedSource;
@@ -70,10 +71,14 @@ class FeedServiceQueue {
       ];
     }
 
-    // Check memory cache within 5 minutes
+    // Check memory cache within 5 minutes (skip if contaminated with mojibake)
     const cached = this.cache.get(feed.key);
     if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
-      return cached.articles;
+      if (cached.articles.some((a) => isThaiMojibake(a.title))) {
+        this.cache.delete(feed.key);
+      } else {
+        return cached.articles;
+      }
     }
 
     return new Promise<NewsArticle[]>((resolve, reject) => {
@@ -98,10 +103,14 @@ class FeedServiceQueue {
     aggregateFeed: FeedSource,
     priority: number = 0,
   ): Promise<NewsArticle[]> {
-    // Check memory cache within 3 minutes
+    // Check memory cache within 3 minutes (skip if contaminated with mojibake)
     const cached = this.cache.get(aggregateFeed.key);
     if (cached && Date.now() - cached.timestamp < 3 * 60 * 1000) {
-      return cached.articles;
+      if (cached.articles.some((a) => isThaiMojibake(a.title))) {
+        this.cache.delete(aggregateFeed.key);
+      } else {
+        return cached.articles;
+      }
     }
 
     const group = this.feedGroups.find((g) => g.sources.some((s) => s.key === aggregateFeed.key));
@@ -139,7 +148,10 @@ class FeedServiceQueue {
     }
 
     // Deduplicate and sort by publishedMillis descending (newest first)
-    const sorted = dedupeAndSortArticles(mergedArticles);
+    let sorted = dedupeAndSortArticles(mergedArticles);
+    if (sorted.some((a) => isThaiMojibake(a.title))) {
+      sorted = await repairMojibakeArticles(sorted);
+    }
 
     this.registerArticles(sorted);
     this.cache.set(aggregateFeed.key, { articles: sorted, timestamp: Date.now() });

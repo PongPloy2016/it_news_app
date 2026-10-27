@@ -1,11 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScrollView, useDrawerStatus } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { DrawerActions, getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, BackHandler, Dimensions, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { DrawerActions } from '@react-navigation/native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, BackHandler, Dimensions, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
 import { BookmarksScreen } from '../screens/BookmarksScreen';
 import { CategoriesScreen } from '../screens/CategoriesScreen';
@@ -862,157 +863,237 @@ function DrawerContent(props: DrawerContentComponentProps) {
   );
 }
 
-function MainTabs() {
-  const { colors, scale, t, setActiveGroupKey } = useNews();
+function CustomBottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { colors, scale, isDark, setActiveGroupKey } = useNews();
   const insets = useSafeAreaInsets();
+  const centerScaleAnim = useRef(new Animated.Value(1)).current;
 
   const bottomInset = insets.bottom;
-  const paddingBottom = Math.max(bottomInset, 8);
+  const paddingBottom = Math.max(bottomInset, 6);
   const tabHeight = 58 + paddingBottom;
 
+  const handleCenterPressIn = () => {
+    Animated.spring(centerScaleAnim, {
+      toValue: 0.88,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCenterPressOut = () => {
+    Animated.spring(centerScaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCenterPress = () => {
+    try {
+      navigation.dispatch(DrawerActions.openDrawer());
+    } catch {
+      navigation.getParent()?.dispatch(DrawerActions.openDrawer());
+    }
+  };
+
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+    <View
+      style={[
+        styles.customTabBarContainer,
+        {
+          backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+          borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
           height: tabHeight,
-          paddingBottom: paddingBottom,
-          paddingTop: 6,
+          paddingBottom,
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: {
-          fontWeight: '700',
-          fontSize: 11 * scale,
-        },
-      }}
+      ]}
     >
-      <Tab.Screen
-        name="Latest"
-        component={LatestScreen}
-        options={{
-          title: t.tab_latest,
-          tabBarLabel: t.tab_latest,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
-          ),
-        }}
-        listeners={{
-          tabPress: () => {
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+        const color = isFocused ? colors.primary : colors.muted;
+
+        if (route.name === 'Categories') {
+          return (
+            <View key={route.key} style={styles.centerTabItem}>
+              <Animated.View style={{ transform: [{ scale: centerScaleAnim }] }}>
+                <Pressable
+                  onPress={handleCenterPress}
+                  onPressIn={handleCenterPressIn}
+                  onPressOut={handleCenterPressOut}
+                  style={styles.floatingMenuButton}
+                  accessibilityLabel="เปิดเมนูหมวดหมู่ข่าวทั้งหมด"
+                >
+                  <LinearGradient
+                    colors={['#0EA5E9', '#0284C7']}
+                    style={[
+                      styles.floatingMenuGradient,
+                      { borderColor: isDark ? '#0F172A' : '#FFFFFF' },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="view-grid" size={25 * scale} color="#FFFFFF" />
+                  </LinearGradient>
+                </Pressable>
+              </Animated.View>
+              <Pressable onPress={handleCenterPress} hitSlop={4}>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.centerTabLabel,
+                    {
+                      color: isFocused ? colors.primary : colors.muted,
+                      fontSize: 10 * scale,
+                      fontWeight: isFocused ? '800' : '600',
+                    },
+                  ]}
+                >
+                  {options.tabBarLabel?.toString() || options.title || 'หมวดหมู่'}
+                </Text>
+              </Pressable>
+            </View>
+          );
+        }
+
+        const onPress = () => {
+          if (route.name === 'Latest') {
             setActiveGroupKey('all');
-          },
-        }}
-      />
-      <Tab.Screen
-        name="Categories"
-        component={CategoriesScreen}
-        options={{
-          title: t.tab_categories,
-          tabBarLabel: t.tab_categories,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="view-grid-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{
-          title: t.tab_search,
-          tabBarLabel: t.tab_search,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="magnify" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Bookmarks"
-        component={BookmarksScreen}
-        options={{
-          title: t.tab_bookmarks,
-          tabBarLabel: t.tab_bookmarks,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bookmark-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          title: t.tab_settings,
-          tabBarLabel: t.tab_settings,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+          }
+
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        return (
+          <Pressable
+            key={route.key}
+            onPress={onPress}
+            style={styles.customTabItem}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+          >
+            {options.tabBarIcon?.({
+              focused: isFocused,
+              color,
+              size: 21 * scale,
+            })}
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.customTabLabel,
+                {
+                  color,
+                  fontSize: 10 * scale,
+                  fontWeight: isFocused ? '800' : '600',
+                },
+              ]}
+            >
+              {options.tabBarLabel?.toString() || options.title || route.name}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
-function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined>, string>, t: any): string {
-  const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
-  switch (routeName) {
-    case 'Latest':
-      return 'IT News App';
-    case 'Categories':
-      return t.tab_categories;
-    case 'Search':
-      return t.tab_search;
-    case 'Bookmarks':
-      return t.tab_bookmarks;
-    case 'Settings':
-      return t.tab_settings;
-    default:
-      return 'IT News App';
-  }
-}
-
-function BookmarksHeaderRight() {
-  const { syncCloudBookmarks, isSyncingBookmarks, isCloudSyncActive, colors } = useNews();
-
-  if (!isCloudSyncActive) return null;
+function MainTabs() {
+  const { colors, t, setActiveGroupKey } = useNews();
+  const insets = useSafeAreaInsets();
 
   return (
-    <Pressable
-      hitSlop={12}
-      onPress={() => void syncCloudBookmarks()}
-      disabled={isSyncingBookmarks}
-      style={{
-        marginRight: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 16,
-        backgroundColor: colors.surfaceVariant,
-      }}
-      accessibilityLabel="ซิงค์บุ๊กมาร์กกับ Supabase Cloud"
-    >
-      {isSyncingBookmarks ? (
-        <ActivityIndicator size="small" color={colors.primary} />
-      ) : (
-        <MaterialCommunityIcons name="cloud-sync-outline" size={21} color={colors.primary} />
-      )}
-    </Pressable>
+    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+      <Tab.Navigator
+        tabBar={(props) => <CustomBottomTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.muted,
+        }}
+      >
+        <Tab.Screen
+          name="Latest"
+          component={LatestScreen}
+          options={{
+            title: t.tab_latest,
+            tabBarLabel: t.tab_latest,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
+            ),
+          }}
+          listeners={{
+            tabPress: () => {
+              setActiveGroupKey('all');
+            },
+          }}
+        />
+        <Tab.Screen
+          name="Search"
+          component={SearchScreen}
+          options={{
+            title: t.tab_search,
+            tabBarLabel: t.tab_search,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="magnify" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Categories"
+          component={CategoriesScreen}
+          options={{
+            title: t.tab_categories,
+            tabBarLabel: t.tab_categories,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="view-grid-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Bookmarks"
+          component={BookmarksScreen}
+          options={{
+            title: t.tab_bookmarks,
+            tabBarLabel: t.tab_bookmarks,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="bookmark-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            title: t.tab_settings,
+            tabBarLabel: t.tab_settings,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </View>
   );
 }
 
 function MainDrawer() {
-  const { colors, scale, t } = useNews();
+  const { colors, scale } = useNews();
   const screenWidth = Dimensions.get('window').width;
   const drawerWidth = Math.min(320, Math.round(screenWidth * 0.80));
 
   return (
     <Drawer.Navigator
       drawerContent={(props) => <DrawerContent {...props} />}
-      screenOptions={({ navigation }) => ({
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
+      screenOptions={{
+        headerShown: false,
         drawerStyle: { backgroundColor: colors.surface, width: drawerWidth },
         drawerType: 'front',
         swipeEnabled: true,
@@ -1021,27 +1102,11 @@ function MainDrawer() {
         drawerInactiveTintColor: colors.text,
         drawerLabelStyle: { fontWeight: '700', fontSize: 14 * scale },
         drawerItemStyle: { borderRadius: 12, marginHorizontal: 10, marginVertical: 2 },
-        headerLeft: () => (
-          <Pressable
-            hitSlop={12}
-            style={{ marginLeft: 16 }}
-            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-          >
-            <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
-          </Pressable>
-        ),
-      })}
+      }}
     >
       <Drawer.Screen
         name="DrawerHome"
         component={MainTabs}
-        options={({ route }) => {
-          const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
-          return {
-            headerTitle: getDrawerHeaderTitle(route, t),
-            headerRight: routeName === 'Bookmarks' ? () => <BookmarksHeaderRight /> : undefined,
-          };
-        }}
       />
     </Drawer.Navigator>
   );
@@ -1464,5 +1529,60 @@ const styles = StyleSheet.create({
   bottomDivider: {
     height: 20,
     width: StyleSheet.hairlineWidth,
+  },
+  customTabBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 6,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 8,
+    overflow: 'visible',
+  },
+  customTabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 2,
+  },
+  customTabLabel: {
+    letterSpacing: -0.2,
+  },
+  centerTabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'visible',
+  },
+  floatingMenuButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    marginTop: -22,
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatingMenuGradient: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+  },
+  centerTabLabel: {
+    letterSpacing: -0.2,
+    marginTop: 3,
   },
 });

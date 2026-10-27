@@ -30,6 +30,7 @@ interface UnderlineTabBarProps<T extends string = string> {
   style?: StyleProp<ViewStyle>;
   scrollable?: boolean;
   showUnderline?: boolean;
+  onPressMenu?: () => void;
 }
 
 export function UnderlineTabBar<T extends string = string>({
@@ -40,6 +41,7 @@ export function UnderlineTabBar<T extends string = string>({
   style,
   scrollable = false,
   showUnderline = false,
+  onPressMenu,
 }: UnderlineTabBarProps<T>) {
   const { colors, scale, isDark } = useNews();
   const [layouts, setLayouts] = useState<Record<string, { x: number; width: number }>>({});
@@ -97,6 +99,27 @@ export function UnderlineTabBar<T extends string = string>({
 
   const content = (
     <View style={styles.tabsRow}>
+      {onPressMenu && (
+        <Pressable
+          onPress={onPressMenu}
+          style={({ pressed }) => [
+            styles.tabMenuBtn,
+            {
+              backgroundColor: isDark ? '#162032' : '#F1F5F9',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+              opacity: pressed ? 0.75 : 1,
+            },
+          ]}
+          hitSlop={6}
+          accessibilityLabel="เปิดเมนูหมวดหมู่ข่าวทั้งหมด"
+        >
+          <MaterialCommunityIcons
+            name="menu"
+            size={18 * scale}
+            color={isDark ? '#38BDF8' : '#0284C7'}
+          />
+        </Pressable>
+      )}
       {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         const hasBadge =
@@ -244,6 +267,15 @@ const styles = StyleSheet.create({
     position: 'relative',
     paddingBottom: 2,
     gap: 8,
+  },
+  tabMenuBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginRight: 2,
   },
   tabItemWrap: {
     alignItems: 'center',

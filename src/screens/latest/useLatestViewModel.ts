@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { UnderlineTabItem } from '../../components/UnderlineTabBar';
+import { FeedSource } from '../../config';
 import { articleRepository } from '../../data/database/articles';
 import { feedService } from '../../services/feedService';
 import { homeSectionsService } from '../../services/homeSectionsService';
@@ -55,7 +56,14 @@ export function useLatestViewModel(): LatestViewModel {
   const [loadProgress, setLoadProgress] = useState(0.12);
   const [loadingStageText, setLoadingStageText] = useState('กำลังเชื่อมต่อแหล่งข่าว...');
   const [categoryLayouts, setCategoryLayouts] = useState<Record<string, number>>({});
+  const [sourceLayouts, setSourceLayouts] = useState<Record<string, number>>({});
   const homeScrollRef = useRef<ScrollView | null>(null);
+
+  const setSourceLayout = (key: string, y: number) => {
+    setSourceLayouts((prev) => ({ ...prev, [key]: y }));
+  };
+
+  const scrollToSource = (_key: string) => {};
 
   // Initial loading & feed switching state
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -496,6 +504,68 @@ export function useLatestViewModel(): LatestViewModel {
     return [allTab, ...groupTabs];
   }, [feedGroups]);
 
+  const isAggregateFeed = useMemo(() => {
+    if (activeGroupKey === 'all') return false;
+    return (
+      selectedFeed.type === 'aggregate' ||
+      selectedFeedKey === activeGroup?.sources[0]?.key
+    );
+  }, [activeGroupKey, selectedFeed.type, selectedFeedKey, activeGroup]);
+
+  // Derived Category Hero, Highlight, Ticker for "ทั้งหมด (All)" of each category
+  const categoryHeroArticles = useMemo(() => {
+    if (!isAggregateFeed) return [];
+    const catArticles = articles.length > 0 ? articles : (categorySections[activeGroupKey] || []);
+    const withImages = catArticles.filter((a) => a.imageUrl && a.imageUrl.startsWith('http'));
+    if (withImages.length >= 3) {
+      return withImages.slice(0, 6);
+    }
+    return catArticles.slice(0, 6);
+  }, [isAggregateFeed, articles, categorySections, activeGroupKey]);
+
+  const categoryHeroIds = useMemo(
+    () => new Set(categoryHeroArticles.map((a) => a.id)),
+    [categoryHeroArticles],
+  );
+
+  const categoryHighlightArticles = useMemo(() => {
+    if (!isAggregateFeed) return [];
+    const catArticles = articles.length > 0 ? articles : (categorySections[activeGroupKey] || []);
+    return catArticles.filter((a) => !categoryHeroIds.has(a.id)).slice(0, 6);
+  }, [isAggregateFeed, articles, categorySections, activeGroupKey, categoryHeroIds]);
+
+  const categoryTickerArticles = useMemo(() => {
+    if (!isAggregateFeed) return [];
+    const catArticles = articles.length > 0 ? articles : (categorySections[activeGroupKey] || []);
+    return catArticles.slice(0, 15);
+  }, [isAggregateFeed, articles, categorySections, activeGroupKey]);
+
+  const sourceSections = useMemo(() => {
+    if (!isAggregateFeed || !activeGroup) return [];
+    const childSources = activeGroup.sources.filter(
+      (s) => s.type !== 'aggregate' && s.type !== 'html',
+    );
+    const catArticles = articles.length > 0 ? articles : (categorySections[activeGroupKey] || []);
+    const sections: { source: FeedSource; articles: NewsArticle[] }[] = [];
+    const assignedIds = new Set<string>();
+
+    for (const source of childSources) {
+      const matched = catArticles.filter(
+        (a) =>
+          !assignedIds.has(a.id) &&
+          (a.author?.toLowerCase().includes(source.label.toLowerCase()) ||
+            source.label.toLowerCase().includes((a.author || '').toLowerCase()) ||
+            (a.link || '').toLowerCase().includes(source.key.toLowerCase())),
+      );
+      if (matched.length > 0) {
+        matched.forEach((a) => assignedIds.add(a.id));
+        sections.push({ source, articles: matched });
+      }
+    }
+
+    return sections;
+  }, [isAggregateFeed, activeGroup, articles, categorySections, activeGroupKey]);
+
   return {
     colors,
     scale,
@@ -509,6 +579,7 @@ export function useLatestViewModel(): LatestViewModel {
     selectedFeedKey,
     activeSources,
     isHtmlFeed,
+    isAggregateFeed,
     articles,
     filteredArticles,
     visibleArticles,
@@ -529,6 +600,13 @@ export function useLatestViewModel(): LatestViewModel {
     heroArticles,
     highlightArticles,
     tickerArticles,
+    categoryHeroArticles,
+    categoryHighlightArticles,
+    categoryTickerArticles,
+    sourceSections,
+    sourceLayouts,
+    setSourceLayout,
+    scrollToSource,
     totalAllArticlesCount,
     homeScrollRef,
     isRefreshing,

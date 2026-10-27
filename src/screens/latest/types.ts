@@ -57,6 +57,16 @@ export interface LatestViewModel {
   isWaitingForLoading: boolean;
   hasFetchError: boolean;
 
+  // Category Editorial Data (เมื่ออยู่ในหน้า "ทั้งหมด (All)" ของแต่ละหมวดหมู่)
+  isAggregateFeed: boolean;
+  categoryHeroArticles: NewsArticle[];
+  categoryHighlightArticles: NewsArticle[];
+  categoryTickerArticles: NewsArticle[];
+  sourceSections: { source: FeedSource; articles: NewsArticle[] }[];
+  sourceLayouts: Record<string, number>;
+  setSourceLayout: (key: string, y: number) => void;
+  scrollToSource: (key: string) => void;
+
   // Actions
   handleRefreshAll: (force?: boolean) => Promise<void>;
   handlePressArticle: (

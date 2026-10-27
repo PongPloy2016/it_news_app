@@ -1,4 +1,5 @@
 import he from 'he';
+import { NewsArticle } from '../types';
 
 export function stripHtml(value?: string | null): string {
   if (!value) return '';
@@ -8,6 +9,11 @@ export function stripHtml(value?: string | null): string {
 export function sanitizeImageUrl(url?: string): string | undefined {
   if (!url) return undefined;
   let cleaned = url.trim();
+
+  // Filter out broken empty directory endpoints (e.g. Kapook /image_fb/)
+  if (/(?:\/image_fb\/?|\/images\/?|\/img\/?)$/i.test(cleaned)) {
+    return undefined;
+  }
 
   // Filter out Google News placeholder/logo images
   if (
@@ -31,9 +37,10 @@ export function sanitizeImageUrl(url?: string): string | undefined {
   }
   // Upgrade insecure http to https for known domains that support SSL
   if (
-    /^http:\/\/(?:www\.)?(?:blognone|brandinside|droidsans|beartai|techsauce|techtalkthai|it24hrs|techhub|sanook|mgronline|manager|thestandard|thaipbs|thairath|matichon|khaosod|dailynews|thaiware)/i.test(
+    /^http:\/\/(?:www\.)?(?:blognone|brandinside|droidsans|beartai|techsauce|techtalkthai|it24hrs|techhub|sanook|mgronline|manager|thestandard|thaipbs|thairath|matichon|khaosod|dailynews|thaiware|kapook)/i.test(
       cleaned,
-    )
+    ) ||
+    /^http:\/\/([^/]*kapook\.com)/i.test(cleaned)
   ) {
     cleaned = cleaned.replace(/^http:\/\//i, 'https://');
   }
@@ -251,19 +258,26 @@ export function extractArticleImagesFromHtml(html: string, pageUrl: string): str
 
   // 2. Isolate article body: <article>, <main>, or common article content containers
   let bodyHtml = '';
-  const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
-  if (articleMatch) {
-    bodyHtml = articleMatch[1];
+  const kapookMatch = html.match(
+    /<section\b[^>]*(?:id|class)=["'][^"']*\barticle__body\b[^"']*["'][^>]*>([\s\S]*?)<\/section>/i,
+  );
+  if (kapookMatch) {
+    bodyHtml = kapookMatch[1];
   } else {
-    const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
-    if (mainMatch) {
-      bodyHtml = mainMatch[1];
+    const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+    if (articleMatch) {
+      bodyHtml = articleMatch[1];
     } else {
-      const contentMatch = html.match(
-        /<div\b[^>]*class=["'][^"']*(?:entry-content|post-content|article-body|story-body|detail-content|article-content|field-item)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
-      );
-      if (contentMatch) {
-        bodyHtml = contentMatch[1];
+      const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+      if (mainMatch) {
+        bodyHtml = mainMatch[1];
+      } else {
+        const contentMatch = html.match(
+          /<div\b[^>]*class=["'][^"']*(?:entry-content|post-content|article-body|story-body|detail-content|article-content|field-item)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+        );
+        if (contentMatch) {
+          bodyHtml = contentMatch[1];
+        }
       }
     }
   }
@@ -295,10 +309,13 @@ export function extractArticleImagesFromHtml(html: string, pageUrl: string): str
       }
 
       if (!candUrl) {
-        const attrMatch = tag.match(
-          /\b(?:data-original|data-orig-file|data-large-file|data-src|data-lazy-src|src)\s*=\s*["']([^"']+)["']/i,
-        );
-        candUrl = attrMatch?.[1];
+        for (const attr of ['data-original', 'data-orig-file', 'data-large-file', 'data-src', 'data-lazy-src', 'src']) {
+          const attrM = tag.match(new RegExp(`\\b${attr}\\s*=\\s*["']([^"']+)["']`, 'i'));
+          if (attrM?.[1] && !attrM[1].startsWith('data:')) {
+            candUrl = attrM[1].trim();
+            break;
+          }
+        }
       }
 
       if (candUrl) {
@@ -445,5 +462,129 @@ export function formatRelative(millis?: number): string {
   if (minutes < 1_440) return `${Math.floor(minutes / 60)} ชั่วโมงที่แล้ว`;
   if (minutes < 10_080) return `${Math.floor(minutes / 1_440)} วันที่แล้ว`;
   return formatThaiDate(millis);
+}
+
+/**
+ * Helper to extract meta tag content regardless of attribute order.
+ */
+function extractMetaTag(html: string, attrName: string, attrValue: string): string | undefined {
+  const regex = new RegExp(
+    `<meta\\b[^>]*?(?:${attrName}=["']${attrValue}["'][^>]*?content=["']([^"']*)["']|content=["']([^"']*)["'][^>]*?${attrName}=["']${attrValue}["'])`,
+    'i',
+  );
+  const match = html.match(regex);
+  return match ? (match[1] || match[2]) : undefined;
+}
+
+/**
+ * Detects Thai Mojibake (e.g. UTF-8 Thai text wrongly decoded as TIS-620/Windows-874).
+ * Common symptoms: strings with high density of 'เธ', 'เน', 'เร', or consecutive 'เ[ธเนร]'.
+ */
+export function isThaiMojibake(text?: string | null): boolean {
+  if (!text || typeof text !== 'string') return false;
+  // 1. Consecutive clusters like 'เรเร', 'เนเน', 'เธเธ', 'เรเน', 'เนเร', 'เธเน' which never occur in valid Thai
+  if (/(?:เ[ธเนร]){2,}/.test(text)) {
+    return true;
+  }
+  // 2. High density of leading-vowel mojibake tokens (เธ, เน, เร)
+  const mojibakeMatches = text.match(/(เธ|เน|เร)/g) || [];
+  if (mojibakeMatches.length >= 4) {
+    const density = (mojibakeMatches.length * 2) / text.length;
+    if (density > 0.25) return true;
+  }
+  return false;
+}
+
+/**
+ * Repairs articles with corrupted/mojibake Thai titles by fetching their real
+ * metadata (og:title, title, og:description) directly from the article's web page.
+ */
+export async function repairMojibakeArticles(
+  articles: NewsArticle[],
+  timeoutMs: number = 4000,
+): Promise<NewsArticle[]> {
+  const mojibakeArticles = articles.filter(
+    (a) => isThaiMojibake(a.title) || isThaiMojibake(a.description),
+  );
+  if (mojibakeArticles.length === 0) return articles;
+
+  const repairedMap = new Map<string, { title?: string; description?: string; imageUrl?: string }>();
+
+  await Promise.allSettled(
+    mojibakeArticles.map(async (article) => {
+      if (!article.link || !/^https?:\/\//i.test(article.link)) return;
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(article.link, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
+            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7',
+          },
+        });
+        clearTimeout(timer);
+        if (!res.ok) return;
+        const html = await res.text();
+
+        // Extract real og:title or <title>
+        const rawOgTitle =
+          extractMetaTag(html, 'property', 'og:title') ||
+          extractMetaTag(html, 'name', 'twitter:title') ||
+          html.match(/<title>(.*?)<\/title>/i)?.[1];
+
+        // Extract real og:description or meta description
+        const rawOgDesc =
+          extractMetaTag(html, 'property', 'og:description') ||
+          extractMetaTag(html, 'name', 'description');
+
+        // Extract og:image if article has none
+        const rawOgImage = extractMetaTag(html, 'property', 'og:image');
+
+        let cleanTitle: string | undefined;
+        if (rawOgTitle) {
+          cleanTitle = stripHtml(rawOgTitle)
+            .replace(/\s*[-|]\s*Kapook.*$/i, '')
+            .replace(/\s*[-|]\s*กระปุก.*$/i, '')
+            .trim();
+        }
+
+        let cleanDesc: string | undefined;
+        if (rawOgDesc) {
+          cleanDesc = stripHtml(rawOgDesc).trim();
+        }
+
+        if (cleanTitle && !isThaiMojibake(cleanTitle)) {
+          repairedMap.set(article.id, {
+            title: cleanTitle,
+            description: cleanDesc && !isThaiMojibake(cleanDesc) ? cleanDesc : undefined,
+            imageUrl:
+              (!article.imageUrl || !sanitizeImageUrl(article.imageUrl)) && rawOgImage
+                ? sanitizeImageUrl(rawOgImage)
+                : undefined,
+          });
+        }
+      } catch {
+        // Silently ignore network fetch failure for individual article
+      }
+    }),
+  );
+
+  if (repairedMap.size === 0) return articles;
+
+  return articles.map((article) => {
+    const repaired = repairedMap.get(article.id);
+    if (repaired) {
+      return {
+        ...article,
+        title: repaired.title || article.title,
+        description: repaired.description || article.description,
+        imageUrl: repaired.imageUrl || article.imageUrl,
+      };
+    }
+    return article;
+  });
 }
 

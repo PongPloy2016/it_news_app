@@ -3,11 +3,13 @@ import { useState } from 'react';
 import {
   Dimensions,
   Image,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { FeedGroup } from '../../config/categories';
 import { getCategoryVisual } from '../../config/categoryVisuals';
 import { useNews } from '../../store/NewsContext';
@@ -37,10 +39,12 @@ export function CategorySectionBlock({
   onPressArticle,
   onViewAll,
 }: Props) {
+  const navigation = useNavigation<any>();
   const { colors, scale, bookmarks, toggleBookmark, isDark } = useNews();
   const visual = getCategoryVisual(group.key, group.label, group.color);
   const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
   const [displayLimit, setDisplayLimit] = useState(4);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const displayArticles = articles.slice(0, displayLimit);
   const remainingCount = Math.max(0, articles.length - displayLimit);
@@ -113,19 +117,40 @@ export function CategorySectionBlock({
           </View>
         </View>
 
-        <Pressable
-          hitSlop={8}
-          onPress={() => onViewAll(group.key)}
-          style={({ pressed }) => [
-            styles.viewAllBtn,
-            pressed && { opacity: 0.7 },
-          ]}
-        >
-          <Text style={[styles.viewAllText, { color: group.color, fontSize: 11.5 * scale }]}>
-            ดูทั้งหมด
-          </Text>
-          <MaterialCommunityIcons name="chevron-right" size={15 * scale} color={group.color} />
-        </Pressable>
+        <View style={styles.headerRightRow}>
+          <Pressable
+            hitSlop={8}
+            onPress={() => onViewAll(group.key)}
+            style={({ pressed }) => [
+              styles.viewAllBtn,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text style={[styles.viewAllText, { color: group.color, fontSize: 11.5 * scale }]}>
+              ดูทั้งหมด
+            </Text>
+            <MaterialCommunityIcons name="chevron-right" size={15 * scale} color={group.color} />
+          </Pressable>
+
+          <Pressable
+            hitSlop={8}
+            onPress={() => setIsMenuOpen(true)}
+            style={({ pressed }) => [
+              styles.categoryMenuBtn,
+              {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+            accessibilityLabel={`เมนูลัดหมวด ${group.label}`}
+          >
+            <MaterialCommunityIcons
+              name="dots-vertical"
+              size={17 * scale}
+              color={colors.muted}
+            />
+          </Pressable>
+        </View>
       </View>
 
       {/* ================= 2. 2x2 CARDS GRID ================= */}
@@ -263,6 +288,91 @@ export function CategorySectionBlock({
           </Text>
         </Pressable>
       ) : null}
+
+      {/* Category Quick Options Modal */}
+      <Modal
+        visible={isMenuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsMenuOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setIsMenuOpen(false)}
+        >
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalBadge, { backgroundColor: group.color }]}>
+                <MaterialCommunityIcons name={visual.icon} size={15 * scale} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: colors.text, fontSize: 15 * scale }]}>
+                  {group.label}
+                </Text>
+                <Text style={[styles.modalSubtitle, { color: colors.muted, fontSize: 11 * scale }]}>
+                  มีทั้งหมด {articles.length} ข่าวในหมวดนี้
+                </Text>
+              </View>
+              <Pressable
+                hitSlop={8}
+                onPress={() => setIsMenuOpen(false)}
+                style={styles.modalCloseBtn}
+              >
+                <MaterialCommunityIcons name="close" size={18 * scale} color={colors.muted} />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalActionsList}>
+              <Pressable
+                onPress={() => {
+                  setIsMenuOpen(false);
+                  onViewAll(group.key);
+                }}
+                style={({ pressed }) => [
+                  styles.modalActionItem,
+                  { backgroundColor: pressed ? (isDark ? '#334155' : '#F1F5F9') : 'transparent' },
+                ]}
+              >
+                <MaterialCommunityIcons name="newspaper-variant-outline" size={19 * scale} color={group.color} />
+                <Text style={[styles.modalActionText, { color: colors.text, fontSize: 13.5 * scale }]}>
+                  อ่านข่าวทั้งหมดในหมวดนี้
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={16 * scale} color={colors.muted} />
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setIsMenuOpen(false);
+                  try {
+                    navigation.dispatch(DrawerActions.openDrawer());
+                  } catch {
+                    navigation.getParent()?.dispatch(DrawerActions.openDrawer());
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.modalActionItem,
+                  { backgroundColor: pressed ? (isDark ? '#334155' : '#F1F5F9') : 'transparent' },
+                ]}
+              >
+                <MaterialCommunityIcons name="menu" size={19 * scale} color="#0EA5E9" />
+                <Text style={[styles.modalActionText, { color: colors.text, fontSize: 13.5 * scale }]}>
+                  เปิดดูช่องข่าวหมวดนี้ในลิ้นชัก (Drawer)
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={16 * scale} color={colors.muted} />
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -309,6 +419,17 @@ const styles = StyleSheet.create({
   countText: {
     fontWeight: '600',
   },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  categoryMenuBtn: {
+    padding: 4,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   viewAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -316,6 +437,64 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontWeight: '700',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  modalCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(148, 163, 184, 0.25)',
+  },
+  modalBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalActionsList: {
+    gap: 4,
+  },
+  modalActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    gap: 12,
+  },
+  modalActionText: {
+    flex: 1,
+    fontWeight: '600',
   },
   grid: {
     flexDirection: 'row',
