@@ -1024,8 +1024,8 @@ function HeaderRunningText({
   const translateX = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Clean spacing between loops, without bullet dots or ellipsis
-  const repeatedText = `${text}          `;
+  // Clean spacing between loops - absolutely NO bullet dots or ellipsis
+  const repeatedText = `${text}             `;
 
   useEffect(() => {
     if (singleWidth <= 0) return;
@@ -1036,8 +1036,8 @@ function HeaderRunningText({
 
     translateX.setValue(0);
 
-    // Speed: ~36 px/sec for smooth, continuous reading of full text
-    const duration = (singleWidth / 36) * 1000;
+    // Speed: ~38 px/sec for smooth, continuous reading of full text
+    const duration = (singleWidth / 38) * 1000;
 
     const loopAnim = Animated.loop(
       Animated.timing(translateX, {
@@ -1062,47 +1062,50 @@ function HeaderRunningText({
 
   return (
     <View style={styles.marqueeViewport}>
-      <Animated.View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          width: 30000, // Massive width ensures Yoga layout NEVER cuts off or truncates text with dots (...)
-          transform: [{ translateX }],
-        }}
+      <ScrollView
+        horizontal
+        scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        pointerEvents="none"
+        contentContainerStyle={{ alignItems: 'center' }}
       >
-        <Text
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 50 && Math.abs(w - singleWidth) > 3) {
-              setSingleWidth(w);
-            }
+        <Animated.View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            transform: [{ translateX }],
           }}
-          numberOfLines={1}
-          ellipsizeMode="clip"
-          style={[
-            styles.marqueeText,
-            {
-              color,
-              fontSize: 8.5 * scale,
-            },
-          ]}
         >
-          {repeatedText}
-        </Text>
-        <Text
-          numberOfLines={1}
-          ellipsizeMode="clip"
-          style={[
-            styles.marqueeText,
-            {
-              color,
-              fontSize: 8.5 * scale,
-            },
-          ]}
-        >
-          {repeatedText}
-        </Text>
-      </Animated.View>
+          <Text
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 50 && Math.abs(w - singleWidth) > 3) {
+                setSingleWidth(w);
+              }
+            }}
+            style={[
+              styles.marqueeText,
+              {
+                color,
+                fontSize: 8 * scale,
+              },
+            ]}
+          >
+            {repeatedText}
+          </Text>
+          <Text
+            style={[
+              styles.marqueeText,
+              {
+                color,
+                fontSize: 8 * scale,
+              },
+            ]}
+          >
+            {repeatedText}
+          </Text>
+        </Animated.View>
+      </ScrollView>
 
       {/* Left Fade Gradient Mask */}
       <LinearGradient
@@ -1160,7 +1163,7 @@ function BrandHeaderTitle() {
           style={[
             styles.brandHeaderTitleText,
             {
-              fontSize: 14.5 * scale,
+              fontSize: 13.5 * scale,
               fontFamily: typography.fontFamily,
             },
           ]}
@@ -1170,7 +1173,7 @@ function BrandHeaderTitle() {
         </Text>
       </View>
 
-      {/* 2. Running Marquee Tagline Capsule */}
+      {/* 2. Running Marquee Tagline Capsule - No live dot, fully unconstrained long text */}
       <View
         style={[
           styles.brandMarqueeBadge,
@@ -1180,7 +1183,6 @@ function BrandHeaderTitle() {
           },
         ]}
       >
-        <View style={[styles.brandLiveDot, { backgroundColor: colors.primary }]} />
         <HeaderRunningText
           text={slogan}
           color={isDark ? colors.text : colors.primary}
@@ -1893,24 +1895,24 @@ const styles = StyleSheet.create({
   brandHeaderContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 1.5,
+    gap: 1,
   },
   brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4.5,
   },
   brandAppLogo: {
-    width: 18,
-    height: 18,
-    borderRadius: 4.5,
-    borderWidth: 0.8,
+    width: 15,
+    height: 15,
+    borderRadius: 3.5,
+    borderWidth: 0.7,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: '#2F6FED',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.35,
-    shadowRadius: 2,
+    shadowOpacity: 0.3,
+    shadowRadius: 1.5,
     elevation: 2,
   },
   brandHeaderTitleText: {
@@ -1921,21 +1923,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
-    paddingVertical: 1,
-    height: 17,
-    borderRadius: 8.5,
-    borderWidth: 0.8,
-    maxWidth: 240,
+    paddingVertical: 0.5,
+    height: 14.5,
+    borderRadius: 7.25,
+    borderWidth: 0.7,
+    maxWidth: 245,
   },
   brandLiveDot: {
-    width: 3.5,
-    height: 3.5,
-    borderRadius: 2,
-    marginRight: 5,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    marginRight: 4,
   },
   marqueeViewport: {
-    width: 215,
-    height: 15,
+    width: 220,
+    height: 13.5,
     justifyContent: 'center',
     overflow: 'hidden',
   },
@@ -1944,7 +1946,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 10,
+    width: 8,
     zIndex: 2,
   },
   marqueeFadeRight: {
@@ -1952,13 +1954,13 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    width: 10,
+    width: 8,
     zIndex: 2,
   },
   marqueeText: {
     fontWeight: '500',
     letterSpacing: -0.1,
-    lineHeight: 14,
+    lineHeight: 12.5,
   },
   headerRoundBtn: {
     width: 38,
