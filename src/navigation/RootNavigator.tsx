@@ -1024,7 +1024,8 @@ function HeaderRunningText({
   const translateX = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const repeatedText = `${text}   •   `;
+  // Clean spacing between loops, without bullet dots or ellipsis
+  const repeatedText = `${text}          `;
 
   useEffect(() => {
     if (singleWidth <= 0) return;
@@ -1035,8 +1036,8 @@ function HeaderRunningText({
 
     translateX.setValue(0);
 
-    // Speed: ~30 px/sec for smooth and comfortable reading
-    const duration = (singleWidth / 30) * 1000;
+    // Speed: ~36 px/sec for smooth, continuous reading of full text
+    const duration = (singleWidth / 36) * 1000;
 
     const loopAnim = Animated.loop(
       Animated.timing(translateX, {
@@ -1061,20 +1062,28 @@ function HeaderRunningText({
 
   return (
     <View style={styles.marqueeViewport}>
-      <Animated.View style={{ flexDirection: 'row', transform: [{ translateX }] }}>
+      <Animated.View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          width: 30000, // Massive width ensures Yoga layout NEVER cuts off or truncates text with dots (...)
+          transform: [{ translateX }],
+        }}
+      >
         <Text
           onLayout={(e) => {
             const w = e.nativeEvent.layout.width;
-            if (w > 0 && Math.abs(w - singleWidth) > 2) {
+            if (w > 50 && Math.abs(w - singleWidth) > 3) {
               setSingleWidth(w);
             }
           }}
           numberOfLines={1}
+          ellipsizeMode="clip"
           style={[
             styles.marqueeText,
             {
               color,
-              fontSize: 10 * scale,
+              fontSize: 8.5 * scale,
             },
           ]}
         >
@@ -1082,23 +1091,12 @@ function HeaderRunningText({
         </Text>
         <Text
           numberOfLines={1}
+          ellipsizeMode="clip"
           style={[
             styles.marqueeText,
             {
               color,
-              fontSize: 10 * scale,
-            },
-          ]}
-        >
-          {repeatedText}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.marqueeText,
-            {
-              color,
-              fontSize: 10 * scale,
+              fontSize: 8.5 * scale,
             },
           ]}
         >
@@ -1132,7 +1130,7 @@ function BrandHeaderTitle() {
   const slogan =
     resolvedLanguage === 'en'
       ? 'Thailand News - The ultimate answer for the digital era! Breaking news, politics, economy, tech, AI & world trends all in one app!'
-      : 'แอปพลิเคชัน ข่าวไทย คือคำตอบของคนทันกระแสยุคดิจิทัล! แอปเดียวที่รวมทุกความเคลื่อนไหว เกาะติดสถานการณ์สำคัญในสังคม การเมือง เศรษฐกิจ เทคโนโลยี AI และประเด็นร้อนรอบโลก จากสำนักข่าวชั้นนำทั่วประเทศและต่างประเทศ อัปเดตสดใหม่ รวดเร็ว ครบ จบ ในที่เดียว!';
+      : 'Thailand News - แอปพลิเคชัน ข่าวไทย คือคำตอบของคนทันกระแสยุคดิจิทัล! แอปเดียวที่รวมทุกความเคลื่อนไหว เกาะติดสถานการณ์สำคัญในสังคม การเมือง เศรษฐกิจ เทคโนโลยี AI และประเด็นร้อนรอบโลก จากสำนักข่าวชั้นนำทั่วประเทศและต่างประเทศ อัปเดตสดใหม่ รวดเร็ว ครบ จบ ในที่เดียว!';
 
   const handleHeaderPress = () => {
     DeviceEventEmitter.emit('SCROLL_TO_TOP');
@@ -1162,7 +1160,7 @@ function BrandHeaderTitle() {
           style={[
             styles.brandHeaderTitleText,
             {
-              fontSize: 16.5 * scale,
+              fontSize: 14.5 * scale,
               fontFamily: typography.fontFamily,
             },
           ]}
@@ -1895,48 +1893,49 @@ const styles = StyleSheet.create({
   brandHeaderContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 1.5,
   },
   brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 5,
   },
   brandAppLogo: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 4.5,
     borderWidth: 0.8,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: '#2F6FED',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.35,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowRadius: 2,
+    elevation: 2,
   },
   brandHeaderTitleText: {
-    fontWeight: '900',
-    letterSpacing: -0.4,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   brandMarqueeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    height: 17,
+    borderRadius: 8.5,
     borderWidth: 0.8,
-    maxWidth: 245,
+    maxWidth: 240,
   },
   brandLiveDot: {
-    width: 4.5,
-    height: 4.5,
-    borderRadius: 2.5,
-    marginRight: 6,
+    width: 3.5,
+    height: 3.5,
+    borderRadius: 2,
+    marginRight: 5,
   },
   marqueeViewport: {
-    width: 205,
-    height: 20,
+    width: 215,
+    height: 15,
     justifyContent: 'center',
     overflow: 'hidden',
   },
@@ -1945,7 +1944,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 14,
+    width: 10,
     zIndex: 2,
   },
   marqueeFadeRight: {
@@ -1953,13 +1952,13 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    width: 14,
+    width: 10,
     zIndex: 2,
   },
   marqueeText: {
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    lineHeight: 18,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+    lineHeight: 14,
   },
   headerRoundBtn: {
     width: 38,
