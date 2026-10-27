@@ -224,3 +224,64 @@ export const agricultureSources: FeedSource[] = [
   { key: 'google-agri-th', label: 'Google ข่าวเกษตร', url: 'https://news.google.com/rss/search?q=เกษตร+OR+พืชสวน+OR+ปศุสัตว์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
 
+export const educationSources: FeedSource[] = [
+  { key: 'google-edu-th', label: 'Google ข่าวการศึกษา', url: 'https://news.google.com/rss/search?q=การศึกษา+OR+ทุนการศึกษา+OR+TCAS&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const economySources: FeedSource[] = [
+  { key: 'prachachat-economy', label: 'ประชาชาติธุรกิจ — เศรษฐกิจ', url: 'https://www.prachachat.net/category/economy/feed', homepage: 'https://www.prachachat.net', type: 'rss' },
+  { key: 'thairath-business', label: 'ไทยรัฐ ธุรกิจ', url: 'https://www.thairath.co.th/rss/business', homepage: 'https://www.thairath.co.th/business', type: 'rss' },
+  { key: 'positioningmag', label: 'Positioning Magazine', url: 'https://positioningmag.com/feed', homepage: 'https://positioningmag.com', type: 'rss' },
+  { key: 'google-economy-th', label: 'Google ข่าวเศรษฐกิจ', url: 'https://news.google.com/rss/search?q=เศรษฐกิจ+OR+หุ้นไทย+OR+การเงิน&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const healthMedicalSources: FeedSource[] = [
+  { key: 'google-health-th', label: 'Google สุขภาพและการแพทย์', url: 'https://news.google.com/rss/search?q=สุขภาพ+OR+การแพทย์+OR+โรงพยาบาล&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const jobsCareersSources: FeedSource[] = [
+  { key: 'google-jobs-th', label: 'Google ข่าวสมัครงาน & อาชีพ', url: 'https://news.google.com/rss/search?q=รับสมัครงาน+OR+หางาน+OR+ตำแหน่งงาน&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const sportsSources: FeedSource[] = [
+  { key: 'matichon-sport', label: 'มติชน — กีฬา', url: 'https://www.matichon.co.th/sport/feed', homepage: 'https://www.matichon.co.th/sport', type: 'rss' },
+  { key: 'thairath-sport', label: 'ไทยรัฐ กีฬา', url: 'https://www.thairath.co.th/rss/sport', homepage: 'https://www.thairath.co.th/sport', type: 'rss' },
+  { key: 'google-sport-th', label: 'Google ข่าวกีฬา', url: 'https://news.google.com/rss/search?q=ฟุตบอล+OR+กีฬาไทย+OR+พรีเมียร์ลีก&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const travelSources: FeedSource[] = [
+  { key: 'matichon-travel', label: 'มติชน — อาหารและท่องเที่ยว', url: 'https://www.matichon.co.th/lifestyle/food-travel/feed', homepage: 'https://www.matichon.co.th', type: 'rss' },
+  { key: 'google-travel-th', label: 'Google ข่าวท่องเที่ยว', url: 'https://news.google.com/rss/search?q=ที่เที่ยว+OR+ท่องเที่ยวไทย+OR+การท่องเที่ยวแห่งประเทศไทย&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const entertainmentSources: FeedSource[] = [
+  { key: 'matichon-ent', label: 'มติชน — บันเทิง', url: 'https://www.matichon.co.th/entertainment/feed', homepage: 'https://www.matichon.co.th/entertainment', type: 'rss' },
+  { key: 'google-ent-th', label: 'Google ข่าวบันเทิง', url: 'https://news.google.com/rss/search?q=ดารา+OR+ละคร+OR+ซีรีส์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const environmentEnergySources: FeedSource[] = [
+  { key: 'google-env-th', label: 'Google สิ่งแวดล้อมและพลังงาน', url: 'https://news.google.com/rss/search?q=พลังงานสะอาด+OR+โลกร้อน+OR+สิ่งแวดล้อม&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const politicsSources: FeedSource[] = [
+  { key: 'matichon-politics', label: 'มติชน — การเมือง', url: 'https://www.matichon.co.th/politics/feed', homepage: 'https://www.matichon.co.th/politics', type: 'rss' },
+  { key: 'google-politics-th', label: 'Google ข่าวการเมือง', url: 'https://news.google.com/rss/search?q=การเมืองไทย+OR+รัฐสภา+OR+รัฐบาล&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const realEstateSources: FeedSource[] = [
+  { key: 'prachachat-property', label: 'ประชาชาติธุรกิจ — อสังหาริมทรัพย์', url: 'https://www.prachachat.net/category/property/feed', homepage: 'https://www.prachachat.net', type: 'rss' },
+  { key: 'google-property-th', label: 'Google ข่าวอสังหาริมทรัพย์', url: 'https://news.google.com/rss/search?q=อสังหาริมทรัพย์+OR+คอนโด+OR+บ้านจัดสรร&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const transportSources: FeedSource[] = [
+  { key: 'google-transport-th', label: 'Google คมนาคมและขนส่ง', url: 'https://news.google.com/rss/search?q=รถไฟฟ้า+OR+ทางด่วน+OR+คมนาคม&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+];
+
+export const hotNewsSources: FeedSource[] = [
+  { key: 'sanook-news', label: 'Sanook News', url: 'https://rssfeeds.sanook.com/rss/feeds/sanook/news.index.xml', homepage: 'https://www.sanook.com/news', type: 'rss' },
+  { key: 'kapook-news', label: 'Kapook ข่าวฮิต', url: 'https://rss.kapook.com/rss.xml', homepage: 'https://www.kapook.com', type: 'rss' },
+  { key: 'ejan-news', label: 'อีจัน', url: 'https://www.ejan.co/rss', homepage: 'https://www.ejan.co', type: 'rss' },
+  { key: 'the-momentum', label: 'The Momentum', url: 'https://themomentum.co/feed/', homepage: 'https://themomentum.co', type: 'rss' },
+];
+
+

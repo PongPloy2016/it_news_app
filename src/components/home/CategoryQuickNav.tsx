@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function CategoryQuickNav({ groups, totalArticlesCount, onSelectCategory }: Props) {
-  const { colors, scale } = useNews();
+  const { colors, scale, resolvedLanguage } = useNews();
 
   return (
     <View style={styles.container}>
@@ -20,15 +20,19 @@ export function CategoryQuickNav({ groups, totalArticlesCount, onSelectCategory 
         <View style={styles.headerTitleWrap}>
           <View style={styles.badgePill}>
             <MaterialCommunityIcons name="view-grid" size={12 * scale} color="#FFFFFF" style={{ marginRight: 3 }} />
-            <Text style={[styles.badgeText, { fontSize: 10.5 * scale }]}>หมวดหมู่ข่าวสาร</Text>
+            <Text style={[styles.badgeText, { fontSize: 10.5 * scale }]}>
+              {resolvedLanguage === 'en' ? 'Categories' : 'หมวดหมู่ข่าวสาร'}
+            </Text>
           </View>
           <Text numberOfLines={1} style={[styles.headerSubtitle, { color: colors.text, fontSize: 11.5 * scale }]}>
-            แยกตามประเด็น
+            {resolvedLanguage === 'en' ? 'By Topics' : 'แยกตามประเด็น'}
           </Text>
         </View>
 
         <Text style={[styles.countStat, { color: colors.muted, fontSize: 10.5 * scale }]}>
-          {groups.length} หมวด • {totalArticlesCount} ข่าว
+          {resolvedLanguage === 'en'
+            ? `${groups.length} Categories • ${totalArticlesCount} News`
+            : `${groups.length} หมวด • ${totalArticlesCount} ข่าว`}
         </Text>
       </View>
 
@@ -40,7 +44,7 @@ export function CategoryQuickNav({ groups, totalArticlesCount, onSelectCategory 
         style={styles.scrollView}
       >
         {groups.map((group) => {
-          const visual = getCategoryVisual(group.key, group.label, group.color);
+          const visual = getCategoryVisual(group.key, group.label, group.color, resolvedLanguage);
           return (
             <Pressable
               key={`nav-${group.key}`}

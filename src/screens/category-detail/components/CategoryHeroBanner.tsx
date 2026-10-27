@@ -13,8 +13,11 @@ const withAlpha = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
+import { useNews } from '../../../store/NewsContext';
+
 export function CategoryHeroBanner({ vm }: { vm: CategoryDetailViewModel }) {
   const { currentGroup, visual, sources, colors, scale } = vm;
+  const { resolvedLanguage } = useNews();
 
   return (
     <View
@@ -34,10 +37,10 @@ export function CategoryHeroBanner({ vm }: { vm: CategoryDetailViewModel }) {
           <MaterialCommunityIcons name={visual.icon} size={22} color="#FFFFFF" />
         </View>
         <Text style={[styles.heroTitle, { fontSize: 20 * scale }]}>
-          {currentGroup?.label ?? visual.shortLabel}
+          {visual.label || currentGroup?.label || visual.shortLabel}
         </Text>
         <Text style={[styles.heroTagline, { fontSize: 12.5 * scale }]}>
-          {visual.tagline} · มีทั้งหมด {sources.filter((s) => s.type !== 'aggregate').length} แหล่งข่าว
+          {visual.tagline} · {sources.filter((s) => s.type !== 'aggregate').length} {resolvedLanguage === 'en' ? 'sources' : 'แหล่งข่าว'}
         </Text>
       </View>
     </View>

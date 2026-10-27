@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { FeedGroup } from '../../config/categories';
-import { getCategoryVisual } from '../../config/categoryVisuals';
+import { getCategoryVisual, getCategoryShortLabel } from '../../config/categoryVisuals';
 import { useNews } from '../../store/NewsContext';
 import { NewsArticle } from '../../types';
 import { formatDateWithRelative, formatRelative, sanitizeImageUrl } from '../../utils/content';
@@ -40,8 +40,8 @@ export function CategorySectionBlock({
   onViewAll,
 }: Props) {
   const navigation = useNavigation<any>();
-  const { colors, scale, bookmarks, toggleBookmark, isDark } = useNews();
-  const visual = getCategoryVisual(group.key, group.label, group.color);
+  const { colors, scale, bookmarks, toggleBookmark, isDark, resolvedLanguage } = useNews();
+  const visual = getCategoryVisual(group.key, group.label, group.color, resolvedLanguage);
   const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
   const [displayLimit, setDisplayLimit] = useState(4);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -62,30 +62,7 @@ export function CategorySectionBlock({
   };
 
   const getEnglishBadgeText = (key: string): string => {
-    switch (key) {
-      case 'tech-business':
-        return 'TECH & BUSINESS';
-      case 'international':
-        return 'GLOBAL IT';
-      case 'thai-news':
-        return 'THAI NEWS';
-      case 'mobile':
-        return 'MOBILE & GADGETS';
-      case 'computer-games':
-        return 'PC & GAMING';
-      case 'weather-forecast':
-        return 'WEATHER';
-      case 'cybersecurity':
-        return 'CYBER SECURITY';
-      case 'agriculture':
-        return 'AGRICULTURE';
-      case 'ai-innovation':
-        return 'AI & INNOVATION';
-      case 'ev-vehicles':
-        return 'EV & TECH';
-      default:
-        return 'TECH NEWS';
-    }
+    return getCategoryShortLabel(key, 'en', group.label).toUpperCase();
   };
 
   return (
@@ -108,11 +85,11 @@ export function CategorySectionBlock({
             numberOfLines={1}
             style={[styles.categoryTitle, { color: colors.text, fontSize: 15 * scale }]}
           >
-            {group.label}
+            {visual.label || group.label}
           </Text>
           <View style={[styles.countBadge, { backgroundColor: colors.surfaceVariant }]}>
             <Text style={[styles.countText, { color: colors.muted, fontSize: 10 * scale }]}>
-              {articles.length} ข่าว
+              {articles.length} {resolvedLanguage === 'en' ? 'news' : 'ข่าว'}
             </Text>
           </View>
         </View>
@@ -127,7 +104,7 @@ export function CategorySectionBlock({
             ]}
           >
             <Text style={[styles.viewAllText, { color: group.color, fontSize: 11.5 * scale }]}>
-              ดูทั้งหมด
+              {resolvedLanguage === 'en' ? 'View all' : 'ดูทั้งหมด'}
             </Text>
             <MaterialCommunityIcons name="chevron-right" size={15 * scale} color={group.color} />
           </Pressable>

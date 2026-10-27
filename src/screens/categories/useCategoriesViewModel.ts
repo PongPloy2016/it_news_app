@@ -16,6 +16,7 @@ export function useCategoriesViewModel(): CategoriesViewModel {
     colors,
     scale,
     isDark,
+    resolvedLanguage,
     refresh,
     isRefreshing,
     channelStats,
@@ -31,7 +32,7 @@ export function useCategoriesViewModel(): CategoriesViewModel {
 
   const groupsWithStats = useMemo<CategoryGroupWithStats[]>(() => {
     return feedGroups.map((group) => {
-      const visual = getCategoryVisual(group.key, group.label, group.color);
+      const visual = getCategoryVisual(group.key, group.label, group.color, resolvedLanguage);
       const regularSources = group.sources.filter((s) => s.type !== 'aggregate');
 
       let newCount = 0;
@@ -52,7 +53,7 @@ export function useCategoriesViewModel(): CategoriesViewModel {
         newCount,
       };
     });
-  }, [feedGroups, channelStats]);
+  }, [feedGroups, channelStats, resolvedLanguage]);
 
   const filteredGroups = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -61,6 +62,8 @@ export function useCategoriesViewModel(): CategoriesViewModel {
       (g) =>
         g.label.toLowerCase().includes(q) ||
         g.visual.shortLabel.toLowerCase().includes(q) ||
+        (g.visual.label_en && g.visual.label_en.toLowerCase().includes(q)) ||
+        (g.visual.short_en && g.visual.short_en.toLowerCase().includes(q)) ||
         g.visual.tagline.toLowerCase().includes(q) ||
         g.sources.some((s) => s.label.toLowerCase().includes(q)),
     );

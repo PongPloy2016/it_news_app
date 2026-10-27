@@ -25,6 +25,7 @@ export function useCategoryDetailViewModel(): CategoryDetailViewModel {
     colors,
     scale,
     isDark,
+    resolvedLanguage,
     bookmarks,
     toggleBookmark,
     setSelectedFeedKey,
@@ -53,8 +54,13 @@ export function useCategoryDetailViewModel(): CategoryDetailViewModel {
   }, [currentGroup?.key, currentGroup?.label]);
 
   const visual = useMemo(() => {
-    return getCategoryVisual(currentGroup?.key ?? groupKey, currentGroup?.label, currentGroup?.color);
-  }, [currentGroup, groupKey]);
+    return getCategoryVisual(
+      currentGroup?.key ?? groupKey,
+      currentGroup?.label,
+      currentGroup?.color,
+      resolvedLanguage,
+    );
+  }, [currentGroup, groupKey, resolvedLanguage]);
 
   const sources = useMemo(() => {
     return currentGroup?.sources ?? [];

@@ -3,6 +3,8 @@ import React from 'react';
 import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CategoryGroupWithStats } from '../types';
 
+import { useNews } from '../../../store/NewsContext';
+
 const withAlpha = (hex: string, alpha: number) => {
   const clean = hex.replace('#', '');
   const safe = clean.length === 3 ? clean.split('').map((char) => char + char).join('') : clean;
@@ -29,6 +31,7 @@ interface CategoryCardItemProps {
 
 export function CategoryCardItem({ item, onPress, colors, scale, isDark }: CategoryCardItemProps) {
   const { visual, newCount, sourceCount } = item;
+  const { resolvedLanguage } = useNews();
 
   return (
     <Pressable
@@ -56,11 +59,15 @@ export function CategoryCardItem({ item, onPress, colors, scale, isDark }: Categ
 
         {newCount > 0 ? (
           <View style={styles.newBadge}>
-            <Text style={styles.newBadgeText}>{newCount} ใหม่</Text>
+            <Text style={styles.newBadgeText}>
+              {newCount} {resolvedLanguage === 'en' ? 'New' : 'ใหม่'}
+            </Text>
           </View>
         ) : (
           <View style={styles.sourceCountBadge}>
-            <Text style={styles.sourceCountText}>{sourceCount} ช่อง</Text>
+            <Text style={styles.sourceCountText}>
+              {sourceCount} {resolvedLanguage === 'en' ? 'Sources' : 'ช่อง'}
+            </Text>
           </View>
         )}
       </View>

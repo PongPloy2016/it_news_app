@@ -19,7 +19,7 @@ import { useNews } from '../store/NewsContext';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
 import { analyticsService } from '../services/analyticsService';
-import { getCategoryVisual } from '../config/categoryVisuals';
+import { getCategoryVisual, getCategoryShortLabel, getCategoryTitle } from '../config/categoryVisuals';
 import { typography } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -54,6 +54,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
     articles,
     channelStats,
     isArticleNew,
+    resolvedLanguage,
   } = useNews();
   const insets = useSafeAreaInsets();
 
@@ -173,12 +174,12 @@ function DrawerContent(props: DrawerContentComponentProps) {
     setCollapsedGroups(updated);
   };
 
-  const getShortLabel = (label: string) => {
-    return label.replace(/^ข่าว/, '').replace(/และธุรกิจดิจิทัล/, ' & ธุรกิจ');
+  const getShortLabel = (key: string, label: string) => {
+    return getCategoryShortLabel(key, resolvedLanguage, label);
   };
 
   const getCategoryIcon = (key: string): keyof typeof MaterialCommunityIcons.glyphMap => {
-    return getCategoryVisual(key).icon;
+    return getCategoryVisual(key, undefined, undefined, resolvedLanguage).icon;
   };
 
   const handleSelectChannel = (channel: (typeof channels)[number]) => {
@@ -381,7 +382,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
                 },
               ]}
             >
-              ทั้งหมด ({channels.length})
+              {resolvedLanguage === 'en' ? 'All' : 'ทั้งหมด'} ({channels.length})
             </Text>
           </Pressable>
 
@@ -428,7 +429,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
                     },
                   ]}
                 >
-                  {getShortLabel(group.label)} ({group.sources.length})
+                  {getShortLabel(group.key, group.label)} ({group.sources.length})
                 </Text>
               </Pressable>
             );
@@ -507,18 +508,18 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   },
                 ]}
               >
-                หน้าแรก (รวมทุกหมวด)
+                {resolvedLanguage === 'en' ? 'Home (All Categories)' : 'หน้าแรก (รวมทุกหมวด)'}
               </Text>
             </View>
             <Text style={[styles.pickerMenuCount, { color: colors.muted, fontSize: 11.5 * scale }]}>
-              {channels.length} ช่อง
+              {channels.length} {resolvedLanguage === 'en' ? 'sources' : 'ช่อง'}
             </Text>
           </Pressable>
 
           {/* Each Group */}
           {feedGroups.map((group) => {
             const isSelected = filterGroupKey === group.key;
-            const groupVisual = getCategoryVisual(group.key, group.label, group.color);
+            const groupVisual = getCategoryVisual(group.key, group.label, group.color, resolvedLanguage);
             return (
               <Pressable
                 key={group.key}
@@ -557,11 +558,11 @@ function DrawerContent(props: DrawerContentComponentProps) {
                       },
                     ]}
                   >
-                    {group.label}
+                    {getCategoryTitle(group.key, resolvedLanguage, group.label)}
                   </Text>
                 </View>
                 <Text style={[styles.pickerMenuCount, { color: colors.muted, fontSize: 11.5 * scale }]}>
-                  {group.sources.length} ช่อง
+                  {group.sources.length} {resolvedLanguage === 'en' ? 'sources' : 'ช่อง'}
                 </Text>
               </Pressable>
             );
@@ -573,7 +574,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
       {/* 3. Section Action Bar (Expand/Collapse All) */}
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionHeaderText, { color: colors.muted, fontSize: 11.5 * scale }]}>
-          โมดูลหมวดหมู่ ({displayedGroups.length})
+          {resolvedLanguage === 'en' ? 'Categories' : 'โมดูลหมวดหมู่'} ({displayedGroups.length})
         </Text>
         <Pressable
           onPress={toggleExpandAll}
@@ -642,7 +643,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
         </Pressable>
         {displayedGroups.map((group) => {
           const isCollapsed = Boolean(collapsedGroups[group.key]);
-          const visual = getCategoryVisual(group.key, group.label, group.color);
+          const visual = getCategoryVisual(group.key, group.label, group.color, resolvedLanguage);
           const groupChannels = channels.filter((c) => c.groupKey === group.key);
           const hasSelectedChannel = groupChannels.some((c) => c.key === selectedFeedKey);
           const groupNewCount = groupChannels.reduce((sum, c) => {
@@ -737,13 +738,13 @@ function DrawerContent(props: DrawerContentComponentProps) {
                         },
                       ]}
                     >
-                      {group.label}
+                      {visual.label || getCategoryTitle(group.key, resolvedLanguage, group.label)}
                     </Text>
 
                     <View style={styles.moduleMetaRow}>
                       <View style={[styles.moduleCountPill, { backgroundColor: withAlpha(colors.text, 0.06) }]}>
                         <Text style={[styles.moduleCountPillText, { color: colors.muted, fontSize: 10.5 * scale }]}>
-                          {group.sources.length} ช่องข่าว
+                          {group.sources.length} {resolvedLanguage === 'en' ? 'sources' : 'ช่องข่าว'}
                         </Text>
                       </View>
 
@@ -1007,7 +1008,7 @@ function CustomBottomTabBar({ state, descriptors, navigation }: BottomTabBarProp
 }
 
 function BrandHeaderTitle() {
-  const { colors, scale, isDark } = useNews();
+  const { colors, scale, isDark, resolvedLanguage } = useNews();
 
   return (
     <View style={styles.brandHeaderContainer}>
@@ -1032,7 +1033,7 @@ function BrandHeaderTitle() {
           },
         ]}
       >
-        ข่าวไทย
+        {resolvedLanguage === 'en' ? 'Thai News' : 'ข่าวไทย'}
       </Text>
 
       <View

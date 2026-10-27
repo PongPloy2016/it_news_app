@@ -196,7 +196,7 @@ function AnimatedHighlightCard({
 }
 
 export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }: Props) {
-  const { colors, scale, isDark, feedGroups } = useNews();
+  const { colors, scale, isDark, feedGroups, resolvedLanguage } = useNews();
   const [activeSlide, setActiveSlide] = useState(0);
   const sliderRef = useRef<FlatList<NewsArticle>>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
@@ -235,10 +235,10 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
         ),
       );
       if (matched) {
-        const visual = getCategoryVisual(matched.key, matched.label, matched.color);
+        const visual = getCategoryVisual(matched.key, matched.label, matched.color, resolvedLanguage);
         return {
           key: matched.key,
-          label: matched.label.replace(/^ข่าว/, '').trim(),
+          label: visual.shortLabel,
           color: matched.color || visual.color,
           icon: visual.icon,
         };
@@ -261,10 +261,10 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
           }),
         );
         if (matched) {
-          const visual = getCategoryVisual(matched.key, matched.label, matched.color);
+          const visual = getCategoryVisual(matched.key, matched.label, matched.color, resolvedLanguage);
           return {
             key: matched.key,
-            label: matched.label.replace(/^ข่าว/, '').trim(),
+            label: visual.shortLabel,
             color: matched.color || visual.color,
             icon: visual.icon,
           };
@@ -301,11 +301,11 @@ export function HeroShowcase({ heroArticles, highlightArticles, onPressArticle }
       color: '#2F6FED',
     };
     const finalGroup = (detectedKey && feedGroups.find((g) => g.key === detectedKey)) || fallbackGroup;
-    const visual = getCategoryVisual(finalGroup.key, finalGroup.label, finalGroup.color);
+    const visual = getCategoryVisual(finalGroup.key, finalGroup.label, finalGroup.color, resolvedLanguage);
 
     return {
       key: finalGroup.key,
-      label: finalGroup.label.replace(/^ข่าว/, '').trim(),
+      label: visual.shortLabel,
       color: finalGroup.color || visual.color,
       icon: visual.icon,
     };

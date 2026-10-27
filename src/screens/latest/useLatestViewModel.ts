@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { UnderlineTabItem } from '../../components/UnderlineTabBar';
 import { FeedSource } from '../../config';
+import { getCategoryShortLabel } from '../../config/categoryVisuals';
 import { articleRepository } from '../../data/database/articles';
 import { feedService } from '../../services/feedService';
 import { homeSectionsService } from '../../services/homeSectionsService';
@@ -25,6 +26,7 @@ export function useLatestViewModel(): LatestViewModel {
     colors,
     scale,
     isDark,
+    resolvedLanguage,
     settings,
     setCardLayout,
     isHydrated,
@@ -483,26 +485,26 @@ export function useLatestViewModel(): LatestViewModel {
     !isHydrated ||
     (!articles.length && (isInitialLoading || isSwitchingFeed || isRefreshing));
 
-  // Top Category Tabs including "รวมทุกหมวด"
+  // Top Category Tabs including "รวมทุกหมวด" (All Categories)
   const categoryTabs: UnderlineTabItem[] = useMemo(() => {
     const allTab: UnderlineTabItem = {
       key: 'all',
-      label: 'รวมทุกหมวด',
+      label: resolvedLanguage === 'en' ? 'All' : 'รวมทุกหมวด',
       iconName: 'view-dashboard-outline',
       color: '#0EA5E9',
     };
     const groupTabs: UnderlineTabItem[] = feedGroups.map((group) => {
-      const cleanLabel = group.label.replace(/^ข่าว/, '');
+      const shortLabel = getCategoryShortLabel(group.key, resolvedLanguage, group.label);
       const icon = GROUP_ICONS[group.key] || 'newspaper';
       return {
         key: group.key,
-        label: cleanLabel,
+        label: shortLabel,
         iconName: icon,
         color: group.color,
       };
     });
     return [allTab, ...groupTabs];
-  }, [feedGroups]);
+  }, [feedGroups, resolvedLanguage]);
 
   const isAggregateFeed = useMemo(() => {
     if (activeGroupKey === 'all') return false;
