@@ -41,6 +41,8 @@ function DrawerContent(props: DrawerContentComponentProps) {
     scale,
     selectedFeedKey,
     setSelectedFeedKey,
+    activeGroupKey,
+    setActiveGroupKey,
     bookmarks,
     isDark,
     setThemeMode,
@@ -104,6 +106,14 @@ function DrawerContent(props: DrawerContentComponentProps) {
     }, 60);
   };
 
+  const navigateToHomeAll = () => {
+    closeDrawer();
+    setActiveGroupKey('all');
+    setTimeout(() => {
+      (props.navigation as any).navigate('DrawerHome', { screen: 'Latest' });
+    }, 60);
+  };
+
   // Build list of channels with their parent group color
   const channels = useMemo(() => {
     return feedGroups.flatMap((group) =>
@@ -117,7 +127,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
   }, [feedGroups]);
 
   // Find active group based on currently selected feed
-  const activeGroupKey = useMemo(() => {
+  const activeFeedGroupKey = useMemo(() => {
     for (const group of feedGroups) {
       if (group.sources.some((s) => s.key === selectedFeedKey)) {
         return group.key;
@@ -132,11 +142,11 @@ function DrawerContent(props: DrawerContentComponentProps) {
       if (Object.keys(prev).length > 0) return prev;
       const initial: Record<string, boolean> = {};
       for (const group of feedGroups) {
-        initial[group.key] = group.key !== activeGroupKey;
+        initial[group.key] = group.key !== activeFeedGroupKey;
       }
       return initial;
     });
-  }, [feedGroups, activeGroupKey]);
+  }, [feedGroups, activeFeedGroupKey]);
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups((prev) => ({
@@ -181,6 +191,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
     // 3. Defer feed state update until drawer animation begins to prevent freezing
     setTimeout(() => {
       setSelectedFeedKey(channel.key);
+      setActiveGroupKey(channel.groupKey);
       const grp = feedGroups.find((g) => g.key === channel.groupKey);
       if (grp) {
         void analyticsService.logCategoryView(grp.key, grp.label, 'drawer');
@@ -474,9 +485,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
             onPress={() => {
               setFilterGroupKey('all');
               setIsCategoryPickerOpen(false);
-              if (channels[0]) {
-                handleSelectChannel(channels[0]);
-              }
+              navigateToHomeAll();
             }}
             style={[
               styles.pickerMenuItem,
@@ -496,7 +505,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
                   },
                 ]}
               >
-                ทั้งหมด (ทุกหมวดหมู่)
+                หน้าแรก (รวมทุกหมวด)
               </Text>
             </View>
             <Text style={[styles.pickerMenuCount, { color: colors.muted, fontSize: 11.5 * scale }]}>
@@ -587,6 +596,48 @@ function DrawerContent(props: DrawerContentComponentProps) {
         contentContainerStyle={styles.channelScrollContent}
         style={styles.channelScrollView}
       >
+        {/* Quick Nav to Home (All Categories) */}
+        <Pressable
+          onPress={navigateToHomeAll}
+          style={({ pressed }) => [
+            styles.homeAllCard,
+            {
+              backgroundColor: activeGroupKey === 'all' ? withAlpha(colors.primary, 0.14) : colors.surfaceVariant,
+              borderColor: activeGroupKey === 'all' ? colors.primary : colors.border,
+              opacity: pressed ? 0.75 : 1,
+            },
+            activeGroupKey === 'all' && {
+              borderLeftWidth: 3.5,
+              borderLeftColor: colors.primary,
+            },
+          ]}
+        >
+          <View style={[styles.homeAllIconWrap, { backgroundColor: withAlpha(colors.primary, 0.15) }]}>
+            <MaterialCommunityIcons name="newspaper-variant-outline" size={18} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.homeAllTitle,
+                {
+                  color: activeGroupKey === 'all' ? colors.primary : colors.text,
+                  fontWeight: activeGroupKey === 'all' ? '800' : '700',
+                  fontSize: 13.5 * scale,
+                },
+              ]}
+            >
+              หน้าแรก (รวมทุกหมวด)
+            </Text>
+            <Text style={[styles.homeAllSubtitle, { color: colors.muted, fontSize: 11 * scale }]}>
+              รวมข่าวเด่นและข่าวล่าสุดจากทุกหมวดหมู่
+            </Text>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={18}
+            color={activeGroupKey === 'all' ? colors.primary : colors.muted}
+          />
+        </Pressable>
         {displayedGroups.map((group) => {
           const isCollapsed = Boolean(collapsedGroups[group.key]);
           const visual = getCategoryVisual(group.key, group.label, group.color);
@@ -812,7 +863,7 @@ function DrawerContent(props: DrawerContentComponentProps) {
 }
 
 function MainTabs() {
-  const { colors, scale, t } = useNews();
+  const { colors, scale, t, setActiveGroupKey } = useNews();
   const insets = useSafeAreaInsets();
 
   const bottomInset = insets.bottom;
@@ -847,6 +898,11 @@ function MainTabs() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: () => {
+            setActiveGroupKey('all');
+          },
         }}
       />
       <Tab.Screen
@@ -1021,6 +1077,27 @@ export function RootNavigator() {
 const styles = StyleSheet.create({
   drawerContainer: {
     flex: 1,
+  },
+  homeAllCard: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  homeAllIconWrap: {
+    alignItems: 'center',
+    borderRadius: 10,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  homeAllTitle: {},
+  homeAllSubtitle: {
+    marginTop: 2,
   },
   topHeader: {
     alignItems: 'center',

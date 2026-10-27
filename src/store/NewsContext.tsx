@@ -82,6 +82,8 @@ interface NewsContextValue {
   refresh: (forceRefresh?: boolean) => Promise<void>;
   syncCloudBookmarks: () => Promise<{ success: boolean; count: number }>;
   importBookmarksFromDevice: (targetDeviceId: string) => Promise<{ success: boolean; count: number; error?: string }>;
+  activeGroupKey: string;
+  setActiveGroupKey: (key: string) => void;
   setSelectedFeedKey: (key: string) => void;
   toggleBookmark: (article: NewsArticle) => void;
   addSearchHistory: (query: string) => void;
@@ -124,6 +126,7 @@ export function NewsProvider({ children }: PropsWithChildren) {
   const [feedSources, setFeedSources] = useState<FeedSource[]>(FEED_SOURCES);
   const [isOnlineFeeds, setIsOnlineFeeds] = useState<boolean>(false);
   const [selectedFeedKey, setSelectedFeedKeyState] = useState<string>(DEFAULT_FEED_KEY);
+  const [activeGroupKey, setActiveGroupKey] = useState<string>('all');
   const [lastUpdated, setLastUpdated] = useState<number>();
   const [isHydrated, setIsHydrated] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -646,6 +649,8 @@ export function NewsProvider({ children }: PropsWithChildren) {
       refresh,
       syncCloudBookmarks,
       importBookmarksFromDevice,
+      activeGroupKey,
+      setActiveGroupKey,
       setSelectedFeedKey,
       toggleBookmark,
       addSearchHistory,
@@ -698,6 +703,8 @@ export function NewsProvider({ children }: PropsWithChildren) {
       refresh,
       syncCloudBookmarks,
       importBookmarksFromDevice,
+      activeGroupKey,
+      setActiveGroupKey,
       setSelectedFeedKey,
       toggleBookmark,
       addSearchHistory,

@@ -28,6 +28,7 @@ export function useCategoryDetailViewModel(): CategoryDetailViewModel {
     bookmarks,
     toggleBookmark,
     setSelectedFeedKey,
+    setActiveGroupKey,
     channelStats,
     settings,
   } = useNews();
@@ -132,9 +133,12 @@ export function useCategoryDetailViewModel(): CategoryDetailViewModel {
   const handleSetMainFeedAndGoHome = useCallback(
     (source: FeedSource) => {
       setSelectedFeedKey(source.key);
+      if (currentGroup?.key) {
+        setActiveGroupKey(currentGroup.key);
+      }
       navigation.navigate('MainTabs', { screen: 'Latest' });
     },
-    [navigation, setSelectedFeedKey],
+    [navigation, setSelectedFeedKey, setActiveGroupKey, currentGroup?.key],
   );
 
   const goBack = useCallback(() => {

@@ -35,6 +35,8 @@ export function useLatestViewModel(): LatestViewModel {
     selectedFeed,
     selectedFeedKey,
     setSelectedFeedKey,
+    activeGroupKey,
+    setActiveGroupKey,
     toggleBookmark,
     markAsRead,
     markAllAsRead,
@@ -46,7 +48,6 @@ export function useLatestViewModel(): LatestViewModel {
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [activeGroupKey, setActiveGroupKey] = useState<string>('all');
 
   // Home Editorial category sections state
   const [categorySections, setCategorySections] = useState<Record<string, NewsArticle[]>>({});
@@ -235,15 +236,6 @@ export function useLatestViewModel(): LatestViewModel {
     });
   }, [categorySections]);
 
-  // Synchronize active group when selectedFeedKey changes externally
-  useEffect(() => {
-    const matchedGroup = feedGroups.find((group) =>
-      group.sources.some((item) => item.key === selectedFeedKey),
-    );
-    if (matchedGroup && activeGroupKey !== matchedGroup.key) {
-      setActiveGroupKey(matchedGroup.key);
-    }
-  }, [feedGroups, selectedFeedKey]);
 
   useEffect(() => {
     if (articles.length > 0 || Object.keys(categorySections).length > 0) {
