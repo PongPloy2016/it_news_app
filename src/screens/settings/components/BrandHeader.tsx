@@ -33,7 +33,7 @@ export function BrandHeader({ vm }: BrandHeaderProps) {
           ]}
         >
           <Image
-            source={require('../../../assets/icon.png')}
+            source={require('../../../../assets/icon.png')}
             style={styles.brandLogoImage}
             resizeMode="cover"
           />
