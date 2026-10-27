@@ -447,11 +447,11 @@ export function formatDateWithRelative(
   options?: { shortYear?: boolean },
 ): string {
   if (!millis) return '';
-  const dateStr = formatThaiDate(millis, options);
-  const relStr = formatRelative(millis);
-  if (!dateStr) return relStr || '';
-  if (!relStr || relStr === dateStr) return dateStr;
-  return `${dateStr} • ${relStr}`;
+  const diffHours = (Date.now() - millis) / 3_600_000;
+  if (diffHours < 24) {
+    return formatRelative(millis);
+  }
+  return formatThaiDate(millis, options);
 }
 
 export function formatRelative(millis?: number): string {

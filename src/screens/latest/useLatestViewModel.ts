@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { DeviceEventEmitter, FlatList, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { UnderlineTabItem } from '../../components/UnderlineTabBar';
@@ -60,6 +60,19 @@ export function useLatestViewModel(): LatestViewModel {
   const [categoryLayouts, setCategoryLayouts] = useState<Record<string, number>>({});
   const [sourceLayouts, setSourceLayouts] = useState<Record<string, number>>({});
   const homeScrollRef = useRef<ScrollView | null>(null);
+  const flatListRef = useRef<FlatList<NewsArticle> | null>(null);
+
+  // Listen to Tap on Brand Header -> Smooth Scroll to top
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('SCROLL_TO_TOP', () => {
+      if (activeGroupKey === 'all') {
+        homeScrollRef.current?.scrollTo({ y: 0, animated: true });
+      } else {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }
+    });
+    return () => sub.remove();
+  }, [activeGroupKey]);
 
   const setSourceLayout = (key: string, y: number) => {
     setSourceLayouts((prev) => ({ ...prev, [key]: y }));
@@ -611,6 +624,7 @@ export function useLatestViewModel(): LatestViewModel {
     scrollToSource,
     totalAllArticlesCount,
     homeScrollRef,
+    flatListRef,
     isRefreshing,
     isInitialLoading,
     isSwitchingFeed,

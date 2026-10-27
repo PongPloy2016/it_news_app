@@ -108,6 +108,7 @@ export function CategoryFeedView({ vm }: CategoryFeedViewProps) {
       <TopProgressBar progress={0.8} visible={isRefreshing} color={groupColor} />
 
       <FlatList
+        ref={vm.flatListRef}
         key={settings.cardLayout === 'grid' ? 'grid-latest-2cols' : 'list-latest-1col'}
         numColumns={settings.cardLayout === 'grid' ? 2 : 1}
         columnWrapperStyle={settings.cardLayout === 'grid' ? styles.gridColumnWrap : undefined}

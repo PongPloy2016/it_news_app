@@ -4,7 +4,7 @@ import { createDrawerNavigator, DrawerContentComponentProps, DrawerContentScroll
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DrawerActions, getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, Dimensions, Easing, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, DeviceEventEmitter, Dimensions, Easing, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArticleDetailScreen } from '../screens/ArticleDetailScreen';
@@ -1007,59 +1007,66 @@ function CustomBottomTabBar({ state, descriptors, navigation }: BottomTabBarProp
   );
 }
 
-function HeaderRunningText({ text, color, scale }: { text: string; color: string; scale: number }) {
-  const containerWidth = 190;
-  const [textWidth, setTextWidth] = useState(280);
-  const translateX = useRef(new Animated.Value(containerWidth)).current;
+function HeaderRunningText({
+  text,
+  color,
+  scale,
+  isDark,
+  primaryColor,
+}: {
+  text: string;
+  color: string;
+  scale: number;
+  isDark: boolean;
+  primaryColor: string;
+}) {
+  const [singleWidth, setSingleWidth] = useState(0);
+  const translateX = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
 
+  const repeatedText = `${text}   •   `;
+
   useEffect(() => {
-    if (textWidth <= 0) return;
+    if (singleWidth <= 0) return;
 
     if (animRef.current) {
       animRef.current.stop();
     }
 
-    translateX.setValue(containerWidth);
+    translateX.setValue(0);
 
-    const totalDistance = containerWidth + textWidth + 24;
-    // Speed: 36 px/sec for smooth, readable pace
-    const duration = (totalDistance / 36) * 1000;
+    // Speed: ~30 px/sec for smooth and comfortable reading
+    const duration = (singleWidth / 30) * 1000;
 
-    const startAnimation = () => {
-      translateX.setValue(containerWidth);
-      const anim = Animated.timing(translateX, {
-        toValue: -textWidth - 12,
+    const loopAnim = Animated.loop(
+      Animated.timing(translateX, {
+        toValue: -singleWidth,
         duration,
         easing: Easing.linear,
         useNativeDriver: true,
-      });
+      })
+    );
 
-      animRef.current = anim;
-      anim.start(({ finished }) => {
-        if (finished) {
-          startAnimation();
-        }
-      });
-    };
-
-    startAnimation();
+    animRef.current = loopAnim;
+    loopAnim.start();
 
     return () => {
       if (animRef.current) {
         animRef.current.stop();
       }
     };
-  }, [text, textWidth, translateX]);
+  }, [text, singleWidth, translateX]);
+
+  const fadeEdgeColor = isDark ? withAlpha(primaryColor, 0.28) : withAlpha(primaryColor, 0.16);
 
   return (
     <View style={styles.marqueeViewport}>
-      <Animated.View style={{ flexDirection: 'row', width: 2000, transform: [{ translateX }] }}>
+      <Animated.View style={{ flexDirection: 'row', transform: [{ translateX }] }}>
         <Text
           onLayout={(e) => {
             const w = e.nativeEvent.layout.width;
-            if (w > 0 && Math.abs(w - textWidth) > 3) {
-              setTextWidth(w);
+            if (w > 0 && Math.abs(w - singleWidth) > 2) {
+              setSingleWidth(w);
             }
           }}
           numberOfLines={1}
@@ -1067,13 +1074,55 @@ function HeaderRunningText({ text, color, scale }: { text: string; color: string
             styles.marqueeText,
             {
               color,
-              fontSize: 9.5 * scale,
+              fontSize: 10 * scale,
             },
           ]}
         >
-          {text}
+          {repeatedText}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.marqueeText,
+            {
+              color,
+              fontSize: 10 * scale,
+            },
+          ]}
+        >
+          {repeatedText}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.marqueeText,
+            {
+              color,
+              fontSize: 10 * scale,
+            },
+          ]}
+        >
+          {repeatedText}
         </Text>
       </Animated.View>
+
+      {/* Left Fade Gradient Mask */}
+      <LinearGradient
+        colors={[fadeEdgeColor, withAlpha(primaryColor, 0)]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.marqueeFadeLeft}
+        pointerEvents="none"
+      />
+
+      {/* Right Fade Gradient Mask */}
+      <LinearGradient
+        colors={[withAlpha(primaryColor, 0), fadeEdgeColor]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.marqueeFadeRight}
+        pointerEvents="none"
+      />
     </View>
   );
 }
@@ -1085,8 +1134,23 @@ function BrandHeaderTitle() {
       ? 'Leading IT & tech news application for tech enthusiasts'
       : 'แอปพลิเคชันรวมข่าวสารไอทีและเทคโนโลยีชั้นนำสำหรับคนที่สนใจ';
 
+  const handleHeaderPress = () => {
+    DeviceEventEmitter.emit('SCROLL_TO_TOP');
+  };
+
   return (
-    <View style={styles.brandHeaderContainer}>
+    <Pressable
+      onPress={handleHeaderPress}
+      style={({ pressed }) => [
+        styles.brandHeaderContainer,
+        {
+          opacity: pressed ? 0.75 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel="TechThai News - กลับสู่ด้านบนสุด"
+    >
       {/* 1. App Logo & TechThaiNews Title */}
       <View style={styles.brandTitleRow}>
         <Image
@@ -1119,9 +1183,15 @@ function BrandHeaderTitle() {
         ]}
       >
         <View style={[styles.brandLiveDot, { backgroundColor: colors.primary }]} />
-        <HeaderRunningText text={slogan} color={isDark ? colors.text : colors.primary} scale={scale} />
+        <HeaderRunningText
+          text={slogan}
+          color={isDark ? colors.text : colors.primary}
+          scale={scale}
+          isDark={isDark}
+          primaryColor={colors.primary}
+        />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -1839,6 +1909,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 0.8,
     borderColor: 'rgba(255, 255, 255, 0.25)',
+    shadowColor: '#2F6FED',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    elevation: 3,
   },
   brandHeaderTitleText: {
     fontWeight: '900',
@@ -1848,10 +1923,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 1.5,
+    paddingVertical: 2.5,
     borderRadius: 10,
     borderWidth: 0.8,
-    maxWidth: 220,
+    maxWidth: 245,
   },
   brandLiveDot: {
     width: 4.5,
@@ -1860,12 +1935,31 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   marqueeViewport: {
-    width: 185,
+    width: 205,
+    height: 20,
+    justifyContent: 'center',
     overflow: 'hidden',
+  },
+  marqueeFadeLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 14,
+    zIndex: 2,
+  },
+  marqueeFadeRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 14,
+    zIndex: 2,
   },
   marqueeText: {
     fontWeight: '600',
     letterSpacing: -0.2,
+    lineHeight: 18,
   },
   headerRoundBtn: {
     width: 38,

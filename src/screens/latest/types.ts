@@ -1,4 +1,4 @@
-import { ScrollView } from 'react-native';
+import { FlatList, ScrollView } from 'react-native';
 import { UnderlineTabItem } from '../../components/UnderlineTabBar';
 import { FeedGroup, FeedSource } from '../../config';
 import { AppSettings, NewsArticle } from '../../types';
@@ -49,6 +49,7 @@ export interface LatestViewModel {
   tickerArticles: NewsArticle[];
   totalAllArticlesCount: number;
   homeScrollRef: React.RefObject<ScrollView | null>;
+  flatListRef: React.RefObject<FlatList<NewsArticle> | null>;
 
   // Loading & Error States
   isRefreshing: boolean;
