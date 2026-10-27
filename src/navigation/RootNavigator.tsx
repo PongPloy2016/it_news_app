@@ -20,6 +20,7 @@ import { MainTabParamList, RootStackParamList } from '../types';
 import { formatRelative } from '../utils/content';
 import { analyticsService } from '../services/analyticsService';
 import { getCategoryVisual } from '../config/categoryVisuals';
+import { typography } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -1005,11 +1006,86 @@ function CustomBottomTabBar({ state, descriptors, navigation }: BottomTabBarProp
   );
 }
 
+function BrandHeaderTitle() {
+  const { colors, scale, isDark } = useNews();
+
+  return (
+    <View style={styles.brandHeaderContainer}>
+      <View
+        style={[
+          styles.brandHeaderIconBadge,
+          {
+            backgroundColor: colors.primary,
+          },
+        ]}
+      >
+        <MaterialCommunityIcons name="newspaper-variant-outline" size={16 * scale} color="#FFFFFF" />
+      </View>
+
+      <Text
+        style={[
+          styles.brandHeaderTitleText,
+          {
+            color: colors.text,
+            fontSize: 18 * scale,
+            fontFamily: typography.fontFamily,
+          },
+        ]}
+      >
+        ข่าวไทย
+      </Text>
+
+      <View
+        style={[
+          styles.brandHeaderNewsBadge,
+          {
+            backgroundColor: isDark ? withAlpha(colors.primary, 0.22) : withAlpha(colors.primary, 0.12),
+            borderColor: withAlpha(colors.primary, 0.35),
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.brandHeaderNewsBadgeText,
+            {
+              color: colors.primary,
+              fontSize: 10 * scale,
+            },
+          ]}
+        >
+          NEWS
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function LatestHeaderRight({ navigation }: { navigation: any }) {
+  const { colors } = useNews();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 14 }}>
+      <Pressable
+        hitSlop={10}
+        style={({ pressed }) => [
+          styles.headerRoundBtn,
+          {
+            backgroundColor: withAlpha(colors.text, pressed ? 0.12 : 0.05),
+          },
+        ]}
+        onPress={() => navigation.navigate('Search')}
+        accessibilityLabel="ค้นหาข่าว"
+      >
+        <MaterialCommunityIcons name="magnify" size={21} color={colors.text} />
+      </Pressable>
+    </View>
+  );
+}
+
 function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined>, string>, t: any): string {
   const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
   switch (routeName) {
     case 'Latest':
-      return 'IT News App';
+      return 'ข่าวไทย News';
     case 'Categories':
       return t.tab_categories;
     case 'Search':
@@ -1019,7 +1095,7 @@ function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined
     case 'Settings':
       return t.tab_settings;
     default:
-      return 'IT News App';
+      return 'ข่าวไทย News';
   }
 }
 
@@ -1034,11 +1110,11 @@ function BookmarksHeaderRight() {
       onPress={() => void syncCloudBookmarks()}
       disabled={isSyncingBookmarks}
       style={{
-        marginRight: 16,
+        marginRight: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         borderRadius: 16,
         backgroundColor: colors.surfaceVariant,
       }}
@@ -1047,7 +1123,7 @@ function BookmarksHeaderRight() {
       {isSyncingBookmarks ? (
         <ActivityIndicator size="small" color={colors.primary} />
       ) : (
-        <MaterialCommunityIcons name="cloud-sync-outline" size={21} color={colors.primary} />
+        <MaterialCommunityIcons name="cloud-sync-outline" size={20} color={colors.primary} />
       )}
     </Pressable>
   );
@@ -1132,7 +1208,7 @@ function MainTabs() {
 }
 
 function MainDrawer() {
-  const { colors, scale, t } = useNews();
+  const { colors, scale, t, isDark } = useNews();
   const screenWidth = Dimensions.get('window').width;
   const drawerWidth = Math.min(320, Math.round(screenWidth * 0.80));
 
@@ -1141,9 +1217,23 @@ function MainDrawer() {
       drawerContent={(props) => <DrawerContent {...props} />}
       screenOptions={({ navigation }) => ({
         headerShown: true,
-        headerStyle: { backgroundColor: colors.surface },
+        headerTitleAlign: 'center',
+        headerStyle: {
+          backgroundColor: colors.surface,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: withAlpha(colors.border, isDark ? 0.35 : 0.55),
+          elevation: 2.5,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1.5 },
+          shadowOpacity: isDark ? 0.35 : 0.05,
+          shadowRadius: 3.5,
+        },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '800', fontSize: 18 * scale },
+        headerTitleStyle: {
+          fontWeight: '800',
+          fontSize: 18 * scale,
+          fontFamily: typography.fontFamily,
+        },
         drawerStyle: { backgroundColor: colors.surface, width: drawerWidth },
         drawerType: 'front',
         swipeEnabled: true,
@@ -1155,10 +1245,17 @@ function MainDrawer() {
         headerLeft: () => (
           <Pressable
             hitSlop={12}
-            style={{ marginLeft: 16 }}
+            style={({ pressed }) => [
+              styles.headerRoundBtn,
+              {
+                backgroundColor: withAlpha(colors.text, pressed ? 0.12 : 0.05),
+                marginLeft: 14,
+              },
+            ]}
             onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            accessibilityLabel="เปิดเมนูหมวดหมู่"
           >
-            <MaterialCommunityIcons name="menu" size={28} color={colors.text} />
+            <MaterialCommunityIcons name="menu" size={23} color={colors.text} />
           </Pressable>
         ),
       })}
@@ -1166,11 +1263,19 @@ function MainDrawer() {
       <Drawer.Screen
         name="DrawerHome"
         component={MainTabs}
-        options={({ route }) => {
+        options={({ route, navigation }) => {
           const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
           return {
-            headerTitle: getDrawerHeaderTitle(route, t),
-            headerRight: routeName === 'Bookmarks' ? () => <BookmarksHeaderRight /> : undefined,
+            headerTitle:
+              routeName === 'Latest'
+                ? () => <BrandHeaderTitle />
+                : getDrawerHeaderTitle(route, t),
+            headerRight:
+              routeName === 'Bookmarks'
+                ? () => <BookmarksHeaderRight />
+                : routeName === 'Latest'
+                ? () => <LatestHeaderRight navigation={navigation} />
+                : undefined,
           };
         }}
       />
@@ -1650,5 +1755,43 @@ const styles = StyleSheet.create({
   centerTabLabel: {
     letterSpacing: -0.2,
     marginTop: 3,
+  },
+  brandHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  brandHeaderIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  brandHeaderTitleText: {
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  brandHeaderNewsBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  brandHeaderNewsBadgeText: {
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  headerRoundBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
