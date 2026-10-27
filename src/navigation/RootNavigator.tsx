@@ -1131,8 +1131,8 @@ function BrandHeaderTitle() {
   const { colors, scale, isDark, resolvedLanguage } = useNews();
   const slogan =
     resolvedLanguage === 'en'
-      ? 'Leading IT & tech news application for tech enthusiasts'
-      : 'แอปพลิเคชันรวมข่าวสารไอทีและเทคโนโลยีชั้นนำสำหรับคนที่สนใจ';
+      ? 'Thailand News - The ultimate answer for the digital era! Breaking news, politics, economy, tech, AI & world trends all in one app!'
+      : 'แอปพลิเคชัน ข่าวไทย คือคำตอบของคนทันกระแสยุคดิจิทัล! แอปเดียวที่รวมทุกความเคลื่อนไหว เกาะติดสถานการณ์สำคัญในสังคม การเมือง เศรษฐกิจ เทคโนโลยี AI และประเด็นร้อนรอบโลก จากสำนักข่าวชั้นนำทั่วประเทศและต่างประเทศ อัปเดตสดใหม่ รวดเร็ว ครบ จบ ในที่เดียว!';
 
   const handleHeaderPress = () => {
     DeviceEventEmitter.emit('SCROLL_TO_TOP');
@@ -1149,9 +1149,9 @@ function BrandHeaderTitle() {
         },
       ]}
       accessibilityRole="button"
-      accessibilityLabel="TechThai News - กลับสู่ด้านบนสุด"
+      accessibilityLabel="Thailand News - กลับสู่ด้านบนสุด"
     >
-      {/* 1. App Logo & TechThaiNews Title */}
+      {/* 1. App Logo & Thailand News Title */}
       <View style={styles.brandTitleRow}>
         <Image
           source={require('../../assets/icon.png')}
@@ -1167,7 +1167,7 @@ function BrandHeaderTitle() {
             },
           ]}
         >
-          <Text style={{ color: colors.text }}>TechThai</Text>
+          <Text style={{ color: colors.text }}>Thailand </Text>
           <Text style={{ color: colors.primary }}>News</Text>
         </Text>
       </View>
@@ -1220,7 +1220,7 @@ function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined
   const routeName = getFocusedRouteNameFromRoute(route) ?? 'Latest';
   switch (routeName) {
     case 'Latest':
-      return 'TechThaiNews';
+      return 'Thailand News';
     case 'Categories':
       return t.tab_categories;
     case 'Search':
@@ -1230,7 +1230,7 @@ function getDrawerHeaderTitle(route: RouteProp<Record<string, object | undefined
     case 'Settings':
       return t.tab_settings;
     default:
-      return 'TechThaiNews';
+      return 'Thailand News';
   }
 }
 

@@ -44,7 +44,7 @@ export const translations = {
     // Settings Header & Brand Banner
     settings_title: 'ตั้งค่า',
     brand_tagline: 'ติดตามข่าวสารวงการไอทีและเทคโนโลยีทันโลก',
-    brand_footer: 'TechThaiNews v{version} • ออกแบบเพื่อคนรักไอที',
+    brand_footer: 'Thailand News v{version} • ทันทุกกระแสข่าวสาร',
     announcement_title: 'ประกาศจากระบบ',
     badge_status_ready: 'พร้อมใช้งาน',
     badge_quick_ai: 'AI Reader',
@@ -224,7 +224,7 @@ export const translations = {
     // Settings Header & Brand Banner
     settings_title: 'Settings',
     brand_tagline: 'Stay updated with global tech and IT news',
-    brand_footer: 'TechThaiNews v{version} • Designed for tech lovers',
+    brand_footer: 'Thailand News v{version} • Keep up with Thailand & world trends',
     announcement_title: 'System Announcement',
     badge_status_ready: 'Ready',
     badge_quick_ai: 'AI Reader',

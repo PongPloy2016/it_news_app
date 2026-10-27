@@ -41,7 +41,7 @@ export function BrandHeader({ vm }: BrandHeaderProps) {
         <View style={styles.brandTextCol}>
           <View style={styles.brandTopRow}>
             <Text style={[styles.brandTitle, { color: colors.text, fontSize: 17.5 * scale }]}>
-              TechThaiNews
+              Thailand News
             </Text>
             <View
               style={[
