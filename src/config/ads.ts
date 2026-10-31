@@ -58,7 +58,7 @@ export async function initializeMobileAds(): Promise<void> {
   if (isAdsInitialized) return;
   try {
     await mobileAds().setRequestConfiguration({
-      testDeviceIdentifiers: ['70229655BD49A6A1C7FD896931E8B71C', 'EMULATOR'],
+      testDeviceIdentifiers: USE_TEST_ADS ? ['EMULATOR'] : [],
     });
     const adapterStatuses = await mobileAds().initialize();
     isAdsInitialized = true;
