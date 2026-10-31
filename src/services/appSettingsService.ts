@@ -16,7 +16,7 @@ export const DEFAULT_REMOTE_SETTINGS: RemoteAppSettings = {
   interstitial_interval_clicks: 4,
   interstitial_min_delay_sec: 60,
   admob_banner_id_android: 'ca-app-pub-4252101594093237/3628558622',
-  admob_interstitial_id_android: 'ca-app-pub-7344555333906095/9939973650',
+  admob_interstitial_id_android: 'ca-app-pub-4252101594093237/2592769004',
   min_supported_version: '1.0.4',
   latest_version: '1.0.5',
   force_update_title: 'มีเวอร์ชันใหม่พร้อมใช้งาน',

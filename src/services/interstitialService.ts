@@ -91,11 +91,15 @@ function setupAdInstance(): void {
         fn();
       }
 
-      // Retry loading after 15 seconds
+      // Retry loading: if HTTP 403 (Forbidden/misconfigured), back off for 5 minutes; otherwise wait 30 seconds
+      const errorMsg = String(error?.message || error || '');
+      const is403 = errorMsg.includes('403');
+      const retryDelayMs = is403 ? 300000 : 30000;
+
       setTimeout(() => {
         setupAdInstance();
         loadInterstitialAd();
-      }, 15000);
+      }, retryDelayMs);
     });
   } catch (err) {
     if (__DEV__) {

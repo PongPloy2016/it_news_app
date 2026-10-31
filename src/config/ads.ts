@@ -2,7 +2,7 @@ import mobileAds, { TestIds } from 'react-native-google-mobile-ads';
 
 export const ADMOB_APP_ID = 'ca-app-pub-4252101594093237~5088377311';
 export const PRODUCTION_BANNER_AD_UNIT_ID = 'ca-app-pub-4252101594093237/3628558622';
-export const PRODUCTION_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-7344555333906095/9939973650';
+export const PRODUCTION_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-4252101594093237/2592769004';
 
 /**
  * Flag to force Test Ads across the entire app.
@@ -30,12 +30,23 @@ export function getBannerAdUnitId(remoteId?: string | null): string {
 
 /**
  * Returns the effective Interstitial Ad Unit ID. If USE_TEST_ADS is true, forces Google Test Interstitial.
+ * Also safely falls back to Test ID if the configured ID belongs to a different publisher to prevent HTTP 403.
  */
 export function getInterstitialAdUnitId(remoteId?: string | null): string {
   if (USE_TEST_ADS) {
     return TEST_INTERSTITIAL_AD_UNIT_ID;
   }
-  return remoteId || PRODUCTION_INTERSTITIAL_AD_UNIT_ID || TEST_INTERSTITIAL_AD_UNIT_ID;
+  const candidateId = remoteId || PRODUCTION_INTERSTITIAL_AD_UNIT_ID;
+  const appPublisher = ADMOB_APP_ID.split('~')[0];
+  if (candidateId && !candidateId.startsWith(appPublisher)) {
+    if (__DEV__) {
+      console.warn(
+        `[AdMob] Interstitial ID (${candidateId}) publisher does not match App ID (${appPublisher}). Falling back to Test ID to prevent HTTP 403.`
+      );
+    }
+    return TEST_INTERSTITIAL_AD_UNIT_ID;
+  }
+  return candidateId || TEST_INTERSTITIAL_AD_UNIT_ID;
 }
 
 let isAdsInitialized = false;
