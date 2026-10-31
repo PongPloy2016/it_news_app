@@ -223,10 +223,24 @@ export function useLatestViewModel(): LatestViewModel {
 
   // Enrich home articles without images with real OpenGraph thumbnails from web
   useEffect(() => {
-    const allArticles = Object.values(categorySections).flat();
-    const needImages = allArticles
-      .filter((a) => !a.imageUrl && !enrichedHomeIdsRef.current.has(a.id))
-      .slice(0, 20);
+    // Prioritize visible top 4 articles across all category blocks (especially Weather, Tech, Thai news)
+    const visibleNeedImages: NewsArticle[] = [];
+    const remainingNeedImages: NewsArticle[] = [];
+
+    for (const list of Object.values(categorySections)) {
+      list.slice(0, 4).forEach((a) => {
+        if (!a.imageUrl && !enrichedHomeIdsRef.current.has(a.id)) {
+          visibleNeedImages.push(a);
+        }
+      });
+      list.slice(4).forEach((a) => {
+        if (!a.imageUrl && !enrichedHomeIdsRef.current.has(a.id)) {
+          remainingNeedImages.push(a);
+        }
+      });
+    }
+
+    const needImages = [...visibleNeedImages, ...remainingNeedImages].slice(0, 24);
 
     if (needImages.length === 0) return;
 

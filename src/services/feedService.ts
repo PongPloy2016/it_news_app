@@ -182,6 +182,17 @@ class FeedServiceQueue {
           // ignore fallback error
         }
       }
+      if (task.feed.key.endsWith('-weather')) {
+        const WEATHER_KEYWORDS =
+          /ฝน|น้ำท่วม|พายุ|อากาศ|pm2\.5|tmd|อุตุนิยมวิทยา|ภัยพิบัติ|สภาพอากาศ|แผ่นดินไหว|คลื่นลม|ลมหนาว|อุณหภูมิ|ดีเปรสชัน|มรสุม|ลูกเห็บ|แล้ง|อุทกภัย|หมอก/i;
+        const weatherOnly = articles.filter((a) =>
+          WEATHER_KEYWORDS.test(`${a.title} ${a.description || ''}`),
+        );
+        if (weatherOnly.length > 0) {
+          articles = weatherOnly;
+        }
+      }
+
       this.registerArticles(articles);
       this.cache.set(task.feed.key, { articles, timestamp: Date.now() });
       task.resolve(articles);

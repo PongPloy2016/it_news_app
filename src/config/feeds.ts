@@ -182,12 +182,13 @@ export const aiSources: FeedSource[] = [
 ];
 
 export const weatherSources: FeedSource[] = [
-  { key: 'tmd-warning', label: 'กรมอุตุนิยมวิทยา (เตือนภัย)', url: 'https://www.tmd.go.th/feed/warning', homepage: 'https://www.tmd.go.th', type: 'rss' },
-  { key: 'tmd-daily', label: 'กรมอุตุนิยมวิทยา (พยากรณ์ประจำวัน)', url: 'https://www.tmd.go.th/feed/daily', homepage: 'https://www.tmd.go.th', type: 'rss' },
+  { key: 'thairath-weather', label: 'ไทยรัฐ พยากรณ์อากาศ & ภัยพิบัติ', url: 'https://www.thairath.co.th/rss/news', homepage: 'https://www.thairath.co.th', type: 'rss' },
+  { key: 'sanook-weather', label: 'Sanook เกาะติดสภาพอากาศ', url: 'https://rssfeeds.sanook.com/rss/feeds/sanook/news.index.xml', homepage: 'https://www.sanook.com/news', type: 'rss' },
+  { key: 'matichon-weather', label: 'มติชน ดินฟ้าอากาศ', url: 'https://www.matichon.co.th/feed', homepage: 'https://www.matichon.co.th', type: 'rss' },
+  { key: 'khaosod-weather', label: 'ข่าวสด สภาพอากาศ & อุทกภัย', url: 'https://www.khaosod.co.th/feed', homepage: 'https://www.khaosod.co.th', type: 'rss' },
   { key: 'google-weather-th', label: 'Google ข่าวพยากรณ์อากาศ', url: 'https://news.google.com/rss/search?q=%E0%B8%9E%E0%B8%A2%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%93%E0%B9%8C%E0%B8%AD%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A8+OR+%E0%B8%9D%E0%B8%99%E0%B8%95%E0%B8%81&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
   { key: 'google-storm-th', label: 'ข่าวพายุ & น้ำท่วม', url: 'https://news.google.com/rss/search?q=%E0%B8%9E%E0%B8%B2%E0%B8%A2%E0%B8%B8+OR+%E0%B8%99%E0%B9%89%E0%B8%B3%E0%B8%97%E0%B9%88%E0%B8%A7%E0%B8%A1&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
   { key: 'google-pm25-th', label: 'รายงานฝุ่น PM2.5', url: 'https://news.google.com/rss/search?q=PM2.5+OR+%E0%B8%84%E0%B8%B8%E0%B8%93%E0%B8%A0%E0%B8%B2%E0%B8%9E%E0%B8%AD%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A8&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
-  { key: 'thaipbs-weather', label: 'Thai PBS สภาพแวดล้อม & อากาศ', url: 'https://www.thaipbs.or.th/rss/environment', homepage: 'https://www.thaipbs.or.th', type: 'rss' },
 ];
 
 export const cybersecuritySources: FeedSource[] = [

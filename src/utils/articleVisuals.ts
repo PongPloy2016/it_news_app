@@ -49,6 +49,11 @@ const THEME_POOLS = {
     'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=600&auto=format&fit=crop&q=75', // storm lightning
     'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=600&auto=format&fit=crop&q=75', // flood relief rain
   ],
+  tmdOfficial: [
+    'https://www.tmd.go.th/media/image_video_section/Daily-Forecast.png', // Official TMD Daily Weather Forecast Infographic Banner
+    'https://www.tmd.go.th/CustomTheme3/logoes/Nav/logo_navbar.png', // Official TMD Thai Meteorological Department Emblem & Title
+    'https://earthquake.tmd.go.th/images/logo_link_1.png', // Official Earthquake Observation Division
+  ],
   agriculture: [
     'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&auto=format&fit=crop&q=75', // green farm
     'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&auto=format&fit=crop&q=75', // smart agriculture
@@ -127,6 +132,15 @@ export function getDiverseArticleImage(
     /ฝน|น้ำท่วม|พายุ|อากาศ|pm2\.5|tmd|อุตุนิยมวิทยา|ภัยพิบัติ|สภาพอากาศ/i.test(textToScan) ||
     fallbackCategoryKey === 'weather-forecast'
   ) {
+    if (/แผ่นดินไหว|earthquake/i.test(textToScan)) {
+      return THEME_POOLS.tmdOfficial[2];
+    }
+    if (/กรมอุตุนิยมวิทยา|กองพยากรณ์|ประกาศกรม|tmd|พยากรณ์อากาศ/i.test(textToScan)) {
+      const isDaily = /พยากรณ์|ประจำวัน|สภาพอากาศ/i.test(textToScan);
+      return (attemptIndex % 2 === 0 ? isDaily : !isDaily)
+        ? THEME_POOLS.tmdOfficial[0]
+        : THEME_POOLS.tmdOfficial[1];
+    }
     pool = THEME_POOLS.weather;
   } else if (
     /เกษตร|ชาวนา|พืช|ปศุสัตว์|ข้าว|สวน|เพาะปลูก/i.test(textToScan) ||
