@@ -101,7 +101,7 @@ export const notificationService = {
         callbacks.onForegroundMessage(remoteMessage);
       } else {
         // Default display alert if in foreground
-        const title = remoteMessage.notification?.title || 'TechThaiNews';
+        const title = remoteMessage.notification?.title || 'Thailand News - ข่าวไทย';
         const body = remoteMessage.notification?.body || '';
         if (title || body) {
           Alert.alert(title, body);

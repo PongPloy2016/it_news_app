@@ -326,7 +326,7 @@ export function ForceUpdateModal({
 
               {/* Title */}
               <Text style={[styles.title, { color: colors.text }]}>
-                TechThaiNews v{cleanTargetVersion}
+                Thailand News v{cleanTargetVersion}
               </Text>
 
               {/* Subtitle Message */}

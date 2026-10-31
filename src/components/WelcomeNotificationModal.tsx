@@ -233,7 +233,7 @@ export function WelcomeNotificationModal({
             {/* Live Indicator Pill on Banner */}
             <View style={styles.badgePill}>
               <View style={styles.badgePillDot} />
-              <Text style={styles.badgePillText}>TechThaiNews Alert</Text>
+              <Text style={styles.badgePillText}>Thailand News Alert</Text>
             </View>
           </View>
 

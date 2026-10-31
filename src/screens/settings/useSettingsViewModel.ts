@@ -121,8 +121,8 @@ export function useSettingsViewModel(): SettingsViewModel {
     if (!deviceId) return;
     try {
       await Share.share({
-        title: 'TechThaiNews Device ID',
-        message: `TechThaiNews Device ID: ${deviceId}`,
+        title: 'Thailand News Device ID',
+        message: `Thailand News Device ID: ${deviceId}`,
       });
     } catch {
       Alert.alert(t.device_id_label, deviceId);
