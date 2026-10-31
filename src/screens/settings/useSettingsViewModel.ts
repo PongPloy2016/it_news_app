@@ -157,7 +157,7 @@ export function useSettingsViewModel(): SettingsViewModel {
       category: feedbackCategory,
       message: feedbackMessage.trim(),
       contact: feedbackContact.trim() || undefined,
-      app_version: remoteSettings.latest_version || '1.0.5',
+      app_version: remoteSettings.latest_version || '1.0.6',
       device_platform: Platform.OS,
     });
     setIsSubmitting(false);

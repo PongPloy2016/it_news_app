@@ -205,7 +205,7 @@ export function SupportSection({ vm }: SupportSectionProps) {
       {/* 9. Footer Credit */}
       <View style={styles.footerWrap}>
         <Text style={[styles.footerText, { color: colors.muted, fontSize: 12 * scale }]}>
-          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.5')}
+          {t.brand_footer.replace('{version}', remoteSettings.latest_version || '1.0.6')}
         </Text>
       </View>
     </>

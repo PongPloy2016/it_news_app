@@ -54,7 +54,7 @@ export function BrandHeader({ vm }: BrandHeaderProps) {
             >
               <View style={styles.brandLiveDot} />
               <Text style={[styles.brandVersionText, { color: colors.primary, fontSize: 11 * scale }]}>
-                v{remoteSettings.latest_version || '1.0.5'}
+                v{remoteSettings.latest_version || '1.0.6'}
               </Text>
             </View>
           </View>
