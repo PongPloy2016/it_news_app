@@ -192,9 +192,11 @@ export const weatherSources: FeedSource[] = [
 ];
 
 export const cybersecuritySources: FeedSource[] = [
+  { key: 'techtalkthai-cyber', label: 'TechTalkThai ไซเบอร์ซีเคียวริตี้', url: 'https://www.techtalkthai.com/tag/cybersecurity/feed/', homepage: 'https://www.techtalkthai.com', type: 'rss' },
   { key: 'thehackernews', label: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews', homepage: 'https://thehackernews.com', type: 'rss' },
-  { key: 'google-cyber-th', label: 'Google เตือนภัยไซเบอร์ & แก๊งคอล', url: 'https://news.google.com/rss/search?q=ไซเบอร์+OR+แฮกเกอร์+OR+แก๊งคอลเซ็นเตอร์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
-  { key: 'google-security-th', label: 'Google ข่าวความมั่นคงปลอดภัย', url: 'https://news.google.com/rss/search?q=ความมั่นคงปลอดภัยไซเบอร์+OR+ภัยไซเบอร์&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'techtalkthai-sec', label: 'TechTalkThai ความปลอดภัย', url: 'https://www.techtalkthai.com/tag/security/feed/', homepage: 'https://www.techtalkthai.com', type: 'rss' },
+  { key: 'google-cyber-th', label: 'Google เตือนภัยไซเบอร์ & แก๊งคอล', url: 'https://news.google.com/rss/search?q=%E0%B9%84%E0%B8%8b%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C+OR+%E0%B9%81%E0%B8%87%E0%B8%81%E0%B9%80%E0%B8%81%E0%B8%AD%E0%B8%A3%E0%B9%8C+OR+%E0%B9%81%E0%B8%81%E0%B9%87%E0%B8%87%E0%B8%84%E0%B8%AD%E0%B8%A5%E0%B9%80%E0%B8%8b%E0%B9%87%E0%B8%99%E0%B9%80%E0%B8%85%E0%B8%AD%E0%B8%A3%E0%B9%8C+-site:facebook.com+-site:twitter.com+-site:x.com&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
+  { key: 'google-security-th', label: 'Google ข่าวความมั่นคงปลอดภัย', url: 'https://news.google.com/rss/search?q=%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1%E0%B8%A1%E0%B8%B1%E0%B9%88%E0%B8%99%E0%B8%84%E0%B8%87%E0%B8%9B%E0%B8%A5%E0%B8%AD%E0%B8%94%E0%B8%A0%E0%B8%B1%E0%B8%A2%E0%B9%84%E0%B8%8b%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C+OR+%E0%B8%A0%E0%B8%B1%E0%B8%A2%E0%B9%84%E0%B8%8b%E0%B8%9A%E0%B8%AD%E0%B8%A3%E0%B9%8C+-site:facebook.com+-site:twitter.com+-site:x.com&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
 
 export const evSources: FeedSource[] = [
@@ -209,9 +211,9 @@ export const scienceSpaceSources: FeedSource[] = [
 ];
 
 export const fintechCryptoSources: FeedSource[] = [
-  { key: 'siamblockchain', label: 'Siam Blockchain', url: 'https://siamblockchain.com/feed/', homepage: 'https://siamblockchain.com', type: 'rss' },
   { key: 'bitcoinaddict', label: 'Bitcoin Addict', url: 'https://bitcoinaddict.org/feed/', homepage: 'https://bitcoinaddict.org', type: 'rss' },
   { key: 'cointelegraph', label: 'Cointelegraph', url: 'https://cointelegraph.com/rss', homepage: 'https://cointelegraph.com', type: 'rss' },
+  { key: 'siamblockchain', label: 'Siam Blockchain', url: 'https://siamblockchain.com/feed/', homepage: 'https://siamblockchain.com', type: 'rss' },
 ];
 
 export const developerSources: FeedSource[] = [

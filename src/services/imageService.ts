@@ -114,7 +114,7 @@ export const imageService = {
   async enrichArticlesWithOgImage(
     articles: NewsArticle[],
     onUpdate: (updatedArticles: NewsArticle[]) => void,
-    limit: number = 20,
+    limit: number = 40,
   ): Promise<void> {
     const pending = articles.filter((item) => !sanitizeImageUrl(item.imageUrl)).slice(0, limit);
     if (pending.length === 0) return;

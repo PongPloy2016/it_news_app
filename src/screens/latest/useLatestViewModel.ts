@@ -240,7 +240,7 @@ export function useLatestViewModel(): LatestViewModel {
       });
     }
 
-    const needImages = [...visibleNeedImages, ...remainingNeedImages].slice(0, 24);
+    const needImages = [...visibleNeedImages, ...remainingNeedImages].slice(0, 40);
 
     if (needImages.length === 0) return;
 
