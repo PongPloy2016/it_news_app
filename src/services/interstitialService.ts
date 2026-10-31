@@ -46,9 +46,7 @@ function setupAdInstance(): void {
   const adUnitId = getInterstitialAdUnitId(remote.admob_interstitial_id_android);
 
   try {
-    interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
-      requestNonPersonalizedAdsOnly: true,
-    });
+    interstitialAd = InterstitialAd.createForAdRequest(adUnitId);
 
     unsubscribeLoaded = interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
       isLoaded = true;

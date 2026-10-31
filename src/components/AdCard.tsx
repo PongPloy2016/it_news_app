@@ -65,17 +65,12 @@ export function AdCard({
         <BannerAd
           unitId={effectiveUnitId}
           size={size}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
           onAdLoaded={() => {
             setIsAdLoaded(true);
             setHasAdError(false);
           }}
           onAdFailedToLoad={(error) => {
-            if (__DEV__) {
-              console.warn('[AdMob AdCard] Failed to load:', error);
-            }
+            console.warn(`[AdMob AdCard] Failed to load unit "${effectiveUnitId}":`, error?.message || error);
             setHasAdError(true);
           }}
         />

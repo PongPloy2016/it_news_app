@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { getBannerAdUnitId, initializeMobileAds } from '../config/ads';
 import { useNews } from '../store/NewsContext';
+import { crashlyticsService } from '../services/crashlyticsService';
 
 interface AdBannerProps {
   unitId?: string;
@@ -18,6 +19,7 @@ export function AdBanner({
   const { remoteSettings } = useNews();
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [hasAdError, setHasAdError] = useState(false);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // If ads are disabled globally or banner ads are off in Supabase
   const isBannerEnabled = remoteSettings.ads_enabled && remoteSettings.banner_ads_enabled;
@@ -26,6 +28,11 @@ export function AdBanner({
     if (isBannerEnabled) {
       void initializeMobileAds();
     }
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
   }, [isBannerEnabled]);
 
   if (!isBannerEnabled || hasAdError) {
@@ -39,18 +46,22 @@ export function AdBanner({
       <BannerAd
         unitId={effectiveUnitId}
         size={size}
-        requestOptions={{
-          requestNonPersonalizedAdsOnly: true,
-        }}
         onAdLoaded={() => {
           setIsAdLoaded(true);
           setHasAdError(false);
         }}
         onAdFailedToLoad={(error) => {
-          if (__DEV__) {
-            console.warn('[AdMob Banner] Failed to load:', error);
-          }
+          console.warn(`[AdMob Banner] Failed to load unit "${effectiveUnitId}":`, error?.message || error);
+          crashlyticsService.log(`[AdMob Banner] Failed to load unit: ${effectiveUnitId}, error: ${error?.message || error}`);
           setHasAdError(true);
+
+          // Retry loading after 30 seconds if it failed due to temporary inventory / network
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+          }
+          retryTimeoutRef.current = setTimeout(() => {
+            setHasAdError(false);
+          }, 30000);
         }}
       />
     </View>
