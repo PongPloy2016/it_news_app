@@ -75,10 +75,17 @@ const THEME_POOLS = {
     'https://images.unsplash.com/photo-1507668077129-56e32842fceb?w=600&auto=format&fit=crop&q=75', // science lab
     'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=75', // research flask
   ],
+  economy: [
+    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&auto=format&fit=crop&q=75', // stock chart finance graph
+    'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=600&auto=format&fit=crop&q=75', // stock market trading board
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop&q=75', // financial skyscraper business district
+    'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&auto=format&fit=crop&q=75', // financial analysis tablet & charts
+    'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=600&auto=format&fit=crop&q=75', // money currency economy
+  ],
   generalTech: [
     'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&auto=format&fit=crop&q=75', // team work tech
     'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&auto=format&fit=crop&q=75', // futuristic laptop
-    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=75', // data streams
+    'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=600&auto=format&fit=crop&q=75', // data streams
   ],
 };
 
@@ -127,10 +134,15 @@ export function getDiverseArticleImage(
     /รถยนต์ไฟฟ้า|ev|tesla|byd|charger|แบตเตอรี่รถ/i.test(textToScan) ||
     fallbackCategoryKey === 'ev-vehicles'
   ) {
-    pool = THEME_POOLS.ev;
   } else if (
-    /ฝน|น้ำท่วม|พายุ|อากาศ|pm2\.5|tmd|อุตุนิยมวิทยา|ภัยพิบัติ|สภาพอากาศ/i.test(textToScan) ||
-    fallbackCategoryKey === 'weather-forecast'
+    fallbackCategoryKey === 'economy-business' ||
+    /เศรษฐกิจ|การเงิน|หุ้น|ตลาดทุน|การลงทุน|กำไร|รายได้|gdp|เงินเฟ้อ|การตลาด|ธุรกิจ|การค้า|ดีล|เช่าที่ดิน|ททท|ท่องเที่ยว|คลัง/i.test(textToScan)
+  ) {
+    pool = THEME_POOLS.economy;
+  } else if (
+    (fallbackCategoryKey === 'weather-forecast' ||
+      /ฝน|น้ำท่วม|พายุ|อากาศ|pm2\.5|tmd|อุตุนิยมวิทยา|ภัยพิบัติ|สภาพอากาศ/i.test(textToScan)) &&
+    fallbackCategoryKey !== 'economy-business'
   ) {
     if (/แผ่นดินไหว|earthquake/i.test(textToScan)) {
       return THEME_POOLS.tmdOfficial[2];
@@ -148,7 +160,7 @@ export function getDiverseArticleImage(
   ) {
     pool = THEME_POOLS.agriculture;
   } else if (
-    /บิตคอยน์|bitcoin|crypto|คริปโท|blockchain|เหรียญ|fintech|การเงิน/i.test(textToScan) ||
+    /บิตคอยน์|bitcoin|crypto|คริปโท|blockchain|เหรียญ|fintech/i.test(textToScan) ||
     fallbackCategoryKey === 'fintech-crypto'
   ) {
     pool = THEME_POOLS.crypto;
@@ -164,6 +176,9 @@ export function getDiverseArticleImage(
     pool = THEME_POOLS.science;
   } else if (fallbackCategoryKey) {
     switch (fallbackCategoryKey) {
+      case 'economy-business':
+        pool = THEME_POOLS.economy;
+        break;
       case 'mobile':
         pool = THEME_POOLS.mobile;
         break;

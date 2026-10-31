@@ -59,7 +59,7 @@ export const imageService = {
   async fetchArticleImagesFromLink(link: string): Promise<string[]> {
     if (!link || !/^https?:\/\//i.test(link)) return [];
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 7000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
       let targetUrl = link;
@@ -87,7 +87,14 @@ export const imageService = {
         });
         if (response.ok) {
           html = await response.text();
-        } else if (response.status === 403 || response.status === 503) {
+        }
+        if (
+          !html ||
+          response.status === 403 ||
+          response.status === 503 ||
+          html.includes('challenges.cloudflare.com') ||
+          html.includes('<title>Just a moment...</title>')
+        ) {
           const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
             signal: controller.signal,
             headers: { 'X-Return-Format': 'html' },
@@ -117,7 +124,7 @@ export const imageService = {
     await Promise.allSettled(
       pending.map(async (article) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 7000);
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
 
         try {
           let targetUrl = article.link;
@@ -142,7 +149,14 @@ export const imageService = {
             });
             if (response.ok) {
               html = await response.text();
-            } else if (response.status === 403 || response.status === 503) {
+            }
+            if (
+              !html ||
+              response.status === 403 ||
+              response.status === 503 ||
+              html.includes('challenges.cloudflare.com') ||
+              html.includes('<title>Just a moment...</title>')
+            ) {
               const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
                 signal: controller.signal,
                 headers: { 'X-Return-Format': 'html' },

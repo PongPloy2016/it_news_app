@@ -300,6 +300,7 @@ export function useLatestViewModel(): LatestViewModel {
   }, [isSwitchingFeed, isRefreshing]);
 
   const handleRefreshAll = async (force: boolean = true) => {
+    enrichedHomeIdsRef.current.clear();
     setLoadProgress(0.12);
     setLoadingStageText('กำลังเริ่มดึงข้อมูลข่าวสาร...');
     await Promise.allSettled([

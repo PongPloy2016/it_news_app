@@ -230,9 +230,10 @@ export const educationSources: FeedSource[] = [
 ];
 
 export const economySources: FeedSource[] = [
-  { key: 'prachachat-economy', label: 'ประชาชาติธุรกิจ — เศรษฐกิจ', url: 'https://www.prachachat.net/category/economy/feed', homepage: 'https://www.prachachat.net', type: 'rss' },
-  { key: 'thairath-business', label: 'ไทยรัฐ ธุรกิจ', url: 'https://www.thairath.co.th/rss/business', homepage: 'https://www.thairath.co.th/business', type: 'rss' },
-  { key: 'positioningmag', label: 'Positioning Magazine', url: 'https://positioningmag.com/feed', homepage: 'https://positioningmag.com', type: 'rss' },
+  { key: 'thestandard-wealth', label: 'THE STANDARD WEALTH', url: 'https://thestandard.co/category/wealth/feed/', homepage: 'https://thestandard.co/category/wealth/', type: 'rss' },
+  { key: 'brandinside-biz', label: 'Brand Inside ธุรกิจ & การเงิน', url: 'https://brandinside.asia/feed/', homepage: 'https://brandinside.asia', type: 'rss' },
+  { key: 'marketingoops-biz', label: 'Marketing Oops การตลาด & ธุรกิจ', url: 'https://www.marketingoops.com/feed/', homepage: 'https://www.marketingoops.com', type: 'rss' },
+  { key: 'kaohoon-biz', label: 'ข่าวหุ้นธุรกิจออนไลน์', url: 'https://www.kaohoon.com/feed', homepage: 'https://www.kaohoon.com', type: 'rss' },
   { key: 'google-economy-th', label: 'Google ข่าวเศรษฐกิจ', url: 'https://news.google.com/rss/search?q=เศรษฐกิจ+OR+หุ้นไทย+OR+การเงิน&hl=th&gl=TH&ceid=TH:th', homepage: 'https://news.google.com', type: 'rss' },
 ];
 
