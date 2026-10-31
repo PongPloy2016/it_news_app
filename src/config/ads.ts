@@ -9,7 +9,7 @@ export const PRODUCTION_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-4252101594093237/2
  * Set to true: Always serves Google official Test Ads (TestIds.BANNER, TestIds.INTERSTITIAL)
  * Set to false: Uses real production Ad Unit IDs.
  */
-export const USE_TEST_ADS = false;
+export const USE_TEST_ADS = true;
 
 // Google official sample/test ad units (Safe for development and store testing)
 export const TEST_BANNER_AD_UNIT_ID = TestIds.BANNER;
