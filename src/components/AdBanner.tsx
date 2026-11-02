@@ -20,6 +20,7 @@ export function AdBanner({
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [hasAdError, setHasAdError] = useState(false);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
 
   // If ads are disabled globally or banner ads are off in Supabase
   const isBannerEnabled = remoteSettings.ads_enabled && remoteSettings.banner_ads_enabled;
@@ -49,19 +50,26 @@ export function AdBanner({
         onAdLoaded={() => {
           setIsAdLoaded(true);
           setHasAdError(false);
+          retryCountRef.current = 0;
         }}
         onAdFailedToLoad={(error) => {
           console.warn(`[AdMob Banner] Failed to load unit "${effectiveUnitId}":`, error?.message || error);
           crashlyticsService.log(`[AdMob Banner] Failed to load unit: ${effectiveUnitId}, error: ${error?.message || error}`);
           setHasAdError(true);
 
-          // Retry loading after 30 seconds if it failed due to temporary inventory / network
-          if (retryTimeoutRef.current) {
-            clearTimeout(retryTimeoutRef.current);
+          // Exponential backoff retry to prevent Google AdMob rate-limit (error-code-invalid-request)
+          const attempts = retryCountRef.current + 1;
+          retryCountRef.current = attempts;
+
+          if (attempts <= 4) {
+            const delay = Math.min(30000 * Math.pow(1.5, attempts - 1), 120000);
+            if (retryTimeoutRef.current) {
+              clearTimeout(retryTimeoutRef.current);
+            }
+            retryTimeoutRef.current = setTimeout(() => {
+              setHasAdError(false);
+            }, delay);
           }
-          retryTimeoutRef.current = setTimeout(() => {
-            setHasAdError(false);
-          }, 30000);
         }}
       />
     </View>
